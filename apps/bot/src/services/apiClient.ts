@@ -168,6 +168,37 @@ export class ApiClient {
       throw e;
     }
   }
+
+  async getGuildLicenseSummary(guildId: string): Promise<{ licensed: boolean }> {
+    return this.requestJson<{ licensed: boolean }>(`/bot/guild/${guildId}/summary`);
+  }
+
+  async postGuildLifecycle(body: {
+    guildId: string;
+    event: 'join' | 'leave';
+    discordName?: string | null;
+    iconHash?: string | null;
+    approximateMemberCount?: number | null;
+  }): Promise<unknown> {
+    return this.requestJson('/bot/guild/lifecycle', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  async postMembersBatch(guildId: string, discordUserIds: string[]): Promise<{ inserted: number }> {
+    return this.requestJson<{ inserted: number }>(`/bot/guild/${guildId}/members/batch`, {
+      method: 'POST',
+      body: JSON.stringify({ discordUserIds }),
+    });
+  }
+
+  async postMembersSyncDone(guildId: string): Promise<unknown> {
+    return this.requestJson(`/bot/guild/${guildId}/members/sync-done`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
 }
 
 function normalizeHeaders(h: RequestInit['headers'] | undefined): Record<string, string> {

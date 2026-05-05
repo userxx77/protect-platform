@@ -20,6 +20,7 @@ import {
 } from '../commands/config';
 import { helpCommandData, executeHelp } from '../commands/help';
 import { onGuildMemberAdd } from '../events/guildMemberAdd';
+import { onGuildJoined, onGuildRemoved } from '../events/guildJoinLeave';
 
 export function createDiscordClient(api: ApiClient, env: Env): Client {
   const client = new Client({
@@ -52,6 +53,22 @@ export function createDiscordClient(api: ApiClient, env: Env): Client {
     setImmediate(() => {
       void onGuildMemberAdd(member, api, client).catch((err) =>
         botLog('error', 'guild_member_add_handler', { error: String(err) }),
+      );
+    });
+  });
+
+  client.on(Events.GuildCreate, (guild) => {
+    setImmediate(() => {
+      void onGuildJoined(guild, api).catch((err) =>
+        botLog('error', 'guild_create_handler', { error: String(err) }),
+      );
+    });
+  });
+
+  client.on(Events.GuildDelete, (guild) => {
+    setImmediate(() => {
+      void onGuildRemoved(guild, api).catch((err) =>
+        botLog('error', 'guild_delete_handler', { error: String(err) }),
       );
     });
   });

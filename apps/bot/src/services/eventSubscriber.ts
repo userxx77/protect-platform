@@ -1,13 +1,20 @@
 import Redis from 'ioredis';
+import type { Client } from 'discord.js';
 
 import { botLog } from '../log';
 import type { ApiClient } from './apiClient';
+import type { Env } from '../config/env';
+import { syncGuildMembersToApi } from './memberSync';
+import { sendAdminFeedMessage } from './adminFeed';
 
 const CHANNELS = [
   'protect:user.flagged',
   'protect:user.reported',
   'protect:user.updated',
   'protect:server.config.updated',
+  'protect:report.pending',
+  'protect:guild.members.sync',
+  'protect:guild.discovered',
 ];
 
 /** Envelope v1 from API/worker; older messages may omit schemaVersion / eventId. */
@@ -17,12 +24,21 @@ type EventEnvelope = {
   type?: string;
   correlationId?: string;
   occurredAt?: string;
-  payload: { guildId?: string | null };
+  payload: {
+    guildId?: string | null;
+    reportId?: string;
+    targetDiscordId?: string;
+    reporterDiscordId?: string;
+    name?: string | null;
+    approximateMemberCount?: number | null;
+  };
 };
 
 export function startEventSubscriber(
   redisUrl: string,
   api: ApiClient,
+  client: Client,
+  botEnv: Env,
   options?: { dedupe?: boolean },
 ): { stop: () => Promise<void> } {
   const sub = new Redis(redisUrl, { maxRetriesPerRequest: 2 });
@@ -57,6 +73,56 @@ export function startEventSubscriber(
           if (first === null) {
             return;
           }
+        }
+
+        if (env.type === 'guild.members.sync') {
+          const gid = env.payload?.guildId;
+          if (gid) {
+            const g = client.guilds.cache.get(gid);
+            if (g) {
+              await syncGuildMembersToApi(g, api);
+            } else {
+              botLog('warn', 'member_sync_guild_not_cached', { guildId: gid });
+            }
+          }
+          return;
+        }
+
+        if (env.type === 'report.pending') {
+          const { reportId, targetDiscordId, reporterDiscordId, guildId } = env.payload;
+          await sendAdminFeedMessage(
+            client,
+            botEnv,
+            'Report pending review',
+            [
+              `Report **${reportId ?? '—'}**`,
+              `Target: <@${targetDiscordId ?? '0'}> (\`${targetDiscordId ?? '—'}\`)`,
+              `Reporter: <@${reporterDiscordId ?? '0'}>`,
+              guildId ? `Guild: \`${guildId}\`` : '',
+            ]
+              .filter(Boolean)
+              .join('\n'),
+          );
+          return;
+        }
+
+        if (env.type === 'guild.discovered') {
+          const { guildId, name, approximateMemberCount } = env.payload;
+          await sendAdminFeedMessage(
+            client,
+            botEnv,
+            'Bot joined a server',
+            [
+              `**${name ?? 'Unknown guild'}**`,
+              guildId ? `ID: \`${guildId}\`` : '',
+              approximateMemberCount != null
+                ? `~${approximateMemberCount} members`
+                : '',
+            ]
+              .filter(Boolean)
+              .join('\n'),
+          );
+          return;
         }
 
         const gid = env.payload?.guildId;

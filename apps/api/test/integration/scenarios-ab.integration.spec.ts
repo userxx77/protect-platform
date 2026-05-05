@@ -94,6 +94,9 @@ async function cleanupDiscordPair(
     await prisma.flag.deleteMany({ where: { userId: { in: uids } } });
     await prisma.user.deleteMany({ where: { id: { in: uids } } });
   }
+  await prisma.trustedUser.deleteMany({
+    where: { discordUserId: reporterDiscordId },
+  });
 }
 
 const describeOrSkip = shouldSkip ? describe.skip : describe;
@@ -125,6 +128,11 @@ describeOrSkip('integration scenarios A & B', () => {
       const targetDiscordId = id17();
       const reporterDiscordId = id17();
       try {
+        await prisma.trustedUser.upsert({
+          where: { discordUserId: reporterDiscordId },
+          create: { discordUserId: reporterDiscordId, trustLevel: 1 },
+          update: {},
+        });
         await request(app.getHttpServer())
           .post('/v1/report')
           .set('x-api-key', botKey)

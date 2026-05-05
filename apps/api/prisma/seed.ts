@@ -1,4 +1,4 @@
-import { PrismaClient, FlagLevel, PlatformRole } from '@prisma/client';
+import { PrismaClient, FlagLevel, PlatformRole, LicenseStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -35,18 +35,20 @@ async function main() {
     },
   });
 
-  await prisma.server.upsert({
+  await prisma.guildEntitlement.upsert({
     where: { guildId: '111111111111111111' },
-    update: {},
+    update: {
+      status: LicenseStatus.ACTIVE,
+      validFrom: new Date('2020-01-01'),
+      validUntil: null,
+    },
     create: {
       guildId: '111111111111111111',
-      config: {
-        alertMinLevel: 'SUSPICIOUS',
-      },
+      status: LicenseStatus.ACTIVE,
+      validFrom: new Date('2020-01-01'),
+      validUntil: null,
     },
   });
-
-  console.log('Seed complete (platform admin, trusted user, sample server).');
 }
 
 main()

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { AuditAction, ActorKind, Prisma } from '@prisma/client';
+import { randomUUID } from 'node:crypto';
+import { AuditAction, ActorKind, LicenseStatus, MemberSyncState, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { UpsertServerConfigDto } from './dto/server-config.dto';
@@ -80,5 +81,104 @@ export class ServersService {
       config: saved.config as Prisma.JsonObject,
       updatedAt: saved.updatedAt.toISOString(),
     };
+  }
+
+  /** Called by bot on guild join/leave — creates INACTIVE entitlement row for new guilds. */
+  async recordBotGuildLifecycle(dto: {
+    guildId: string;
+    discordName?: string | null;
+    iconHash?: string | null;
+    approximateMemberCount?: number | null;
+    event: 'join' | 'leave';
+  }): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const removedAt = dto.event === 'leave' ? new Date() : null;
+
+      await tx.server.upsert({
+        where: { guildId: dto.guildId },
+        create: {
+          guildId: dto.guildId,
+          discordName: dto.discordName ?? null,
+          iconHash: dto.iconHash ?? null,
+          approximateMemberCount: dto.approximateMemberCount ?? null,
+          botJoinedAt: dto.event === 'join' ? new Date() : null,
+          removedAt,
+        },
+        update: {
+          discordName: dto.discordName ?? undefined,
+          iconHash: dto.iconHash ?? undefined,
+          approximateMemberCount: dto.approximateMemberCount ?? undefined,
+          ...(dto.event === 'join'
+            ? { botJoinedAt: new Date(), removedAt: null }
+            : { removedAt }),
+        },
+      });
+
+      const ent = await tx.guildEntitlement.findUnique({
+        where: { guildId: dto.guildId },
+      });
+      if (!ent) {
+        await tx.guildEntitlement.create({
+          data: {
+            guildId: dto.guildId,
+            status: LicenseStatus.INACTIVE,
+            validFrom: new Date(),
+          },
+        });
+      }
+
+      if (dto.event === 'join') {
+        await this.audit.logWithTx(tx, {
+          action: AuditAction.GUILD_DISCOVERED,
+          entityType: 'server',
+          entityId: dto.guildId,
+          targetId: dto.guildId,
+          actorKind: ActorKind.BOT,
+          metadata: {
+            name: dto.discordName,
+            approximateMemberCount: dto.approximateMemberCount,
+          },
+        });
+
+        await this.outbox.enqueue(tx, {
+          type: 'guild.discovered',
+          idempotencyKey: `guild.discovered:${dto.guildId}`,
+          payload: {
+            guildId: dto.guildId,
+            name: dto.discordName ?? null,
+            approximateMemberCount: dto.approximateMemberCount ?? null,
+          },
+        });
+      }
+    });
+  }
+
+  async batchUpsertGuildMembers(
+    guildId: string,
+    discordUserIds: string[],
+    source = 'SYNC',
+  ): Promise<{ inserted: number }> {
+    if (discordUserIds.length === 0) return { inserted: 0 };
+    const data = discordUserIds.map((discordUserId) => ({
+      id: randomUUID(),
+      guildId,
+      discordUserId,
+      source,
+    }));
+    const r = await this.prisma.guildMemberCache.createMany({
+      data,
+      skipDuplicates: true,
+    });
+    return { inserted: r.count };
+  }
+
+  async markMemberSyncIdle(guildId: string): Promise<void> {
+    await this.prisma.guildEntitlement.updateMany({
+      where: { guildId },
+      data: {
+        memberSyncState: MemberSyncState.IDLE,
+        lastMemberSyncAt: new Date(),
+      },
+    });
   }
 }

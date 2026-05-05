@@ -33,12 +33,16 @@ enum FlagSource {
 enum AuditAction {
   FLAG_CREATED
   REPORT_CREATED
+  REPORT_APPROVED
+  REPORT_REJECTED
   REPORT_REJECTED_ABUSE
   SERVER_CONFIG_UPDATED
   TRUST_GRANTED
   USER_TOUCHED
   ROLE_ASSIGNED
   API_CLIENT_CREATED
+  GUILD_DISCOVERED
+  ENTITLEMENT_UPDATED
 }
 
 enum ActorKind {
@@ -57,6 +61,21 @@ enum OutboxStatus {
   PROCESSING
   DISPATCHED
   FAILED
+}
+
+enum LicenseStatus {
+  INACTIVE
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+enum MemberSyncState {
+  IDLE
+  QUEUED
+  RUNNING
+  PAUSED
 }
 
 model User {
@@ -88,6 +107,7 @@ model Flag {
   createdAt       DateTime   @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  report Report?
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("flags")
@@ -104,8 +124,12 @@ model Report {
   createdAt         DateTime     @default(now()) @map("created_at")
   resolvedAt        DateTime?    @map("resolved_at")
   resolverNote      String?      @map("resolver_note")
+  reviewedByDiscordId String?   @map("reviewed_by_discord_id")
+  reviewedAt        DateTime?    @map("reviewed_at")
+  flagId            String?      @unique @map("flag_id") @db.Uuid
 
   reportedUser User @relation("ReportTarget", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  flag          Flag? @relation(fields: [flagId], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
   @@index([reporterDiscordId, reportedUserId, guildId, createdAt(sort: Desc)])
@@ -116,10 +140,51 @@ model Server {
   id        String   @id @default(uuid()) @db.Uuid
   guildId   String   @unique @map("guild_id")
   config    Json     @default("{}")
+  discordName       String?   @map("discord_name")
+  iconHash          String?   @map("icon_hash")
+  approximateMemberCount Int? @map("approximate_member_count")
+  botJoinedAt       DateTime? @map("bot_joined_at")
+  removedAt         DateTime? @map("removed_at")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  entitlement GuildEntitlement?
+  members     GuildMemberCache[]
+
   @@map("servers")
+}
+
+model GuildEntitlement {
+  guildId              String          @id @map("guild_id")
+  status               LicenseStatus   @default(INACTIVE)
+  validFrom            DateTime        @map("valid_from")
+  validUntil           DateTime?       @map("valid_until")
+  stripeCustomerId     String?         @map("stripe_customer_id")
+  stripeSubscriptionId String?       @map("stripe_subscription_id")
+  planCode             String?         @map("plan_code")
+  createdByDiscordId   String?         @map("created_by_discord_id")
+  lastMemberSyncAt     DateTime?       @map("last_member_sync_at")
+  memberSyncState      MemberSyncState @default(IDLE) @map("member_sync_state")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+
+  server Server @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@map("guild_entitlements")
+}
+
+model GuildMemberCache {
+  id              String   @id @default(uuid()) @db.Uuid
+  guildId         String   @map("guild_id")
+  discordUserId   String   @map("discord_user_id")
+  firstSeenAt     DateTime @default(now()) @map("first_seen_at")
+  source          String   @default("SYNC") @map("source")
+
+  server Server @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+
+  @@unique([guildId, discordUserId])
+  @@index([guildId])
+  @@map("guild_member_cache")
 }
 
 model TrustedUser {

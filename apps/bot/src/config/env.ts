@@ -48,6 +48,16 @@ const envSchema = z.object({
       }
       return s.trim();
     }),
+  /** Optional: channel ID for admin feed embeds (join, pending reports, sync). */
+  DISCORD_ADMIN_FEED_CHANNEL_ID: z
+    .string()
+    .optional()
+    .transform((s) => {
+      if (s === undefined || s.trim() === '') {
+        return undefined;
+      }
+      return s.trim();
+    }),
 });
 
 export type Env = z.infer<typeof envSchema>;

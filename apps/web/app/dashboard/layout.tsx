@@ -15,10 +15,13 @@ export default async function DashboardLayout({
   return (
     <div className="ds-dashboard">
       <aside className="ds-sidebar" aria-label="Dashboard navigation">
-        <div className="ds-brand">Protect</div>
+        <div className="ds-brand">Sentra</div>
         <DashboardNavLink href="/dashboard">Flagged users</DashboardNavLink>
         <DashboardNavLink href="/dashboard/config">Server config</DashboardNavLink>
         <DashboardNavLink href="/dashboard/audit">Audit log</DashboardNavLink>
+        <DashboardNavLink href="/dashboard/my-servers">My servers</DashboardNavLink>
+        <DashboardNavLink href="/dashboard/admin/reports">Admin: reports</DashboardNavLink>
+        <DashboardNavLink href="/dashboard/admin/guilds">Admin: guilds</DashboardNavLink>
         <div className="ds-sidebar-footer">
           <DashboardNavLink href="/">Home</DashboardNavLink>
           <div style={{ marginTop: '0.5rem' }}>

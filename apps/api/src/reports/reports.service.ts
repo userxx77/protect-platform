@@ -1,6 +1,9 @@
 import {
+  BadRequestException,
+  ForbiddenException,
   Injectable,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   AuditAction,
@@ -18,6 +21,9 @@ import { FlagPolicyService } from '../domain/flag-policy.service';
 import { UserCacheService } from '../cache/user-cache.service';
 import { lockUserRowForAggregateUpdate } from '../prisma/user-row-lock';
 import { userToPublic } from '../users/user.mapper';
+import { EntitlementsService } from '../entitlements/entitlements.service';
+import { AuthzService } from '../auth/authz.service';
+import { AppRole, type RequestPrincipal } from '../auth/auth.types';
 
 @Injectable()
 export class ReportsService {
@@ -30,9 +36,137 @@ export class ReportsService {
     private readonly anti: ReportsAntiAbuseService,
     private readonly policy: FlagPolicyService,
     private readonly userCache: UserCacheService,
+    private readonly entitlements: EntitlementsService,
+    private readonly authz: AuthzService,
   ) {}
 
-  async create(dto: CreateReportDto) {
+  private assertReporterAccess(dto: CreateReportDto, principal: RequestPrincipal): void {
+    if (principal.identity.kind === 'user') {
+      const isAdmin = this.authz.principalHasAnyRole(principal, [AppRole.ADMIN]);
+      if (!isAdmin && principal.identity.discordId !== dto.reporterDiscordId) {
+        throw new ForbiddenException('Cannot report on behalf of another user');
+      }
+    }
+  }
+
+  private async reporterInstantApplies(dto: CreateReportDto): Promise<boolean> {
+    const reporterPrincipal = await this.authz.resolvePrincipal({
+      kind: 'user',
+      discordId: dto.reporterDiscordId,
+    });
+    return this.authz.principalHasAnyRole(reporterPrincipal, [
+      AppRole.TRUSTED,
+      AppRole.ADMIN,
+    ]);
+  }
+
+  async create(dto: CreateReportDto, principal: RequestPrincipal) {
+    this.assertReporterAccess(dto, principal);
+
+    const instant = await this.reporterInstantApplies(dto);
+    if (!instant) {
+      if (!dto.guildId) {
+        throw new BadRequestException('guildId is required for community reports');
+      }
+      const licensed = await this.entitlements.isGuildLicensed(dto.guildId);
+      if (!licensed) {
+        throw new ForbiddenException('This server has no active Sentra license for reports');
+      }
+      return this.createPendingReport(dto);
+    }
+
+    return this.createInstantReport(dto);
+  }
+
+  /** Community path: PENDING review, no flag until admin approves. */
+  private async createPendingReport(dto: CreateReportDto) {
+    const { dedupeKey } = await this.anti.assertCanReport({
+      reporterDiscordId: dto.reporterDiscordId,
+      targetDiscordId: dto.targetDiscordId,
+      guildId: dto.guildId,
+      reason: dto.reason,
+      prismaDedupeLookup: (key, since) =>
+        this.prisma.report.findFirst({
+          where: { dedupeKey: key, createdAt: { gte: since } },
+          select: { id: true },
+        }),
+    });
+
+    try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        const reported = await tx.user.upsert({
+          where: { discordId: dto.targetDiscordId },
+          create: {
+            discordId: dto.targetDiscordId,
+            flagScore: 0,
+            flagLevel: FlagLevel.CLEAN,
+          },
+          update: {},
+        });
+
+        await tx.user.upsert({
+          where: { discordId: dto.reporterDiscordId },
+          create: {
+            discordId: dto.reporterDiscordId,
+            flagScore: 0,
+            flagLevel: FlagLevel.CLEAN,
+          },
+          update: {},
+        });
+
+        const report = await tx.report.create({
+          data: {
+            reporterDiscordId: dto.reporterDiscordId,
+            reportedUserId: reported.id,
+            guildId: dto.guildId ?? null,
+            reason: dto.reason,
+            dedupeKey,
+            status: ReportStatus.PENDING,
+          },
+        });
+
+        await this.audit.logWithTx(tx, {
+          action: AuditAction.REPORT_CREATED,
+          entityType: 'report',
+          entityId: report.id,
+          targetId: dto.targetDiscordId,
+          actorDiscordId: dto.reporterDiscordId,
+          actorKind: ActorKind.USER,
+          metadata: {
+            guildId: dto.guildId,
+            pendingReview: true,
+          },
+        });
+
+        await this.outbox.enqueue(tx, {
+          type: 'report.pending',
+          idempotencyKey: `report.pending:${report.id}`,
+          payload: {
+            reportId: report.id,
+            targetDiscordId: dto.targetDiscordId,
+            reporterDiscordId: dto.reporterDiscordId,
+            guildId: dto.guildId ?? null,
+          },
+        });
+
+        return { report };
+      });
+
+      return {
+        id: result.report.id,
+        status: result.report.status,
+        createdAt: result.report.createdAt,
+        pendingReview: true as const,
+      };
+    } catch (e) {
+      this.log.warn(`Pending report failed: ${e}`);
+      await this.anti.rollbackSlots(dto.reporterDiscordId, dto.guildId);
+      throw e;
+    }
+  }
+
+  /** Trusted/admin path: flag applied immediately. */
+  private async createInstantReport(dto: CreateReportDto) {
     const { dedupeKey } = await this.anti.assertCanReport({
       reporterDiscordId: dto.reporterDiscordId,
       targetDiscordId: dto.targetDiscordId,
@@ -76,7 +210,7 @@ export class ReportsService {
             guildId: dto.guildId ?? null,
             reason: dto.reason,
             dedupeKey,
-            status: ReportStatus.PENDING,
+            status: ReportStatus.ACCEPTED,
           },
         });
 
@@ -92,6 +226,11 @@ export class ReportsService {
             actorDiscordId: dto.reporterDiscordId,
             guildId: dto.guildId ?? null,
           },
+        });
+
+        await tx.report.update({
+          where: { id: report.id },
+          data: { flagId: createdFlag.id },
         });
 
         await tx.user.update({
@@ -124,6 +263,7 @@ export class ReportsService {
             guildId: dto.guildId,
             flagWeight: weight,
             flagLevel: userAfter.flagLevel,
+            instant: true,
           },
         });
 
@@ -162,11 +302,189 @@ export class ReportsService {
         createdAt: result.report.createdAt,
         appliedFlagWeight: result.weight,
         targetFlagLevel: result.userAfter.flagLevel,
+        pendingReview: false as const,
       };
     } catch (e) {
       this.log.warn(`Report transaction failed, rolling back rate limits: ${e}`);
       await this.anti.rollbackSlots(dto.reporterDiscordId, dto.guildId);
       throw e;
     }
+  }
+
+  async listPending(params: { limit: number }) {
+    const take = Math.min(Math.max(params.limit, 1), 100);
+    const rows = await this.prisma.report.findMany({
+      where: { status: ReportStatus.PENDING },
+      orderBy: { createdAt: 'desc' },
+      take,
+      include: {
+        reportedUser: { select: { discordId: true } },
+      },
+    });
+
+    return {
+      items: rows.map((r) => ({
+        id: r.id,
+        reporterDiscordId: r.reporterDiscordId,
+        targetDiscordId: r.reportedUser.discordId,
+        guildId: r.guildId,
+        reason: r.reason,
+        status: r.status,
+        createdAt: r.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  async approve(reportId: string, adminDiscordId: string) {
+    const existing = await this.prisma.report.findUnique({
+      where: { id: reportId },
+      include: { reportedUser: true },
+    });
+    if (!existing) throw new NotFoundException('Report not found');
+    if (existing.status !== ReportStatus.PENDING) {
+      throw new BadRequestException('Report is not pending');
+    }
+    if (existing.flagId) {
+      throw new BadRequestException('Report already has a flag');
+    }
+
+    const dto = {
+      targetDiscordId: existing.reportedUser.discordId,
+      reporterDiscordId: existing.reporterDiscordId,
+      guildId: existing.guildId ?? undefined,
+      reason: existing.reason,
+    };
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      await lockUserRowForAggregateUpdate(tx, existing.reportedUserId);
+
+      const weight = this.policy.communityReportWeight();
+
+      const createdFlag = await tx.flag.create({
+        data: {
+          userId: existing.reportedUserId,
+          weight,
+          effectiveWeight: weight,
+          reason: existing.reason,
+          source: FlagSource.COMMUNITY_REPORT,
+          actorDiscordId: existing.reporterDiscordId,
+          guildId: existing.guildId ?? null,
+        },
+      });
+
+      await tx.user.update({
+        where: { id: existing.reportedUserId },
+        data: { flagScore: { increment: weight } },
+      });
+
+      const afterScore = await tx.user.findUniqueOrThrow({
+        where: { id: existing.reportedUserId },
+      });
+      const nextLevel = this.policy.levelFromScore(afterScore.flagScore);
+
+      const userAfter = await tx.user.update({
+        where: { id: existing.reportedUserId },
+        data: {
+          flagLevel: nextLevel,
+          stateVersion: { increment: 1 },
+        },
+        include: { _count: { select: { flags: true } } },
+      });
+
+      const report = await tx.report.update({
+        where: { id: reportId },
+        data: {
+          status: ReportStatus.ACCEPTED,
+          flagId: createdFlag.id,
+          reviewedByDiscordId: adminDiscordId,
+          reviewedAt: new Date(),
+        },
+      });
+
+      await this.audit.logWithTx(tx, {
+        action: AuditAction.REPORT_APPROVED,
+        entityType: 'report',
+        entityId: report.id,
+        targetId: dto.targetDiscordId,
+        actorDiscordId: adminDiscordId,
+        actorKind: ActorKind.USER,
+        metadata: { flagId: createdFlag.id, guildId: existing.guildId },
+      });
+
+      await this.outbox.enqueueMany(tx, [
+        {
+          type: 'user.reported',
+          idempotencyKey: `user.reported:${report.id}:approved`,
+          payload: {
+            reportId: report.id,
+            targetDiscordId: dto.targetDiscordId,
+            reporterDiscordId: dto.reporterDiscordId,
+            guildId: existing.guildId ?? null,
+          },
+        },
+        {
+          type: 'user.updated',
+          idempotencyKey: `user.updated:${existing.reportedUserId}:approve:${report.id}:flag:${createdFlag.id}`,
+          payload: {
+            discordId: dto.targetDiscordId,
+            flagLevel: userAfter.flagLevel,
+            flagScore: userAfter.flagScore,
+            stateVersion: userAfter.stateVersion,
+          },
+        },
+      ]);
+
+      return { report, userAfter, weight };
+    });
+
+    const pub = userToPublic(result.userAfter, result.userAfter._count.flags);
+    await this.userCache.setIfNewer(dto.targetDiscordId, pub);
+
+    return {
+      id: result.report.id,
+      status: result.report.status,
+      appliedFlagWeight: result.weight,
+      targetFlagLevel: result.userAfter.flagLevel,
+    };
+  }
+
+  async reject(reportId: string, adminDiscordId: string, resolverNote?: string) {
+    const existing = await this.prisma.report.findUnique({
+      where: { id: reportId },
+    });
+    if (!existing) throw new NotFoundException('Report not found');
+    if (existing.status !== ReportStatus.PENDING) {
+      throw new BadRequestException('Report is not pending');
+    }
+
+    const report = await this.prisma.$transaction(async (tx) => {
+      const r = await tx.report.update({
+        where: { id: reportId },
+        data: {
+          status: ReportStatus.REJECTED,
+          reviewedByDiscordId: adminDiscordId,
+          reviewedAt: new Date(),
+          resolvedAt: new Date(),
+          resolverNote: resolverNote ?? null,
+        },
+      });
+
+      await this.audit.logWithTx(tx, {
+        action: AuditAction.REPORT_REJECTED,
+        entityType: 'report',
+        entityId: r.id,
+        targetId: existing.reporterDiscordId,
+        actorDiscordId: adminDiscordId,
+        actorKind: ActorKind.USER,
+        metadata: { guildId: existing.guildId },
+      });
+
+      return r;
+    });
+
+    return {
+      id: report.id,
+      status: report.status,
+    };
   }
 }

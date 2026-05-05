@@ -30,12 +30,7 @@ async function main() {
   const rawApiBase = env.API_BASE_URL.replace(/\/$/, '');
   await waitForApiReady(rawApiBase, { maxAttempts: 60, backoffMs: 2000 });
 
-  const subStop =
-    env.REDIS_URL !== undefined && env.REDIS_URL.length > 0
-      ? startEventSubscriber(env.REDIS_URL, api, {
-          dedupe: env.BOT_EVENT_DEDUPE,
-        })
-      : null;
+  let subStop: { stop: () => Promise<void> } | null = null;
   const client = createDiscordClient(api, env);
   let stopPresence: (() => void) | undefined;
   client.once(Events.ClientReady, async () => {
@@ -43,6 +38,11 @@ async function main() {
       await registerSlashCommands(env, client);
     } catch (e) {
       botLog('error', 'slash_sync_failed', { error: String(e) });
+    }
+    if (env.REDIS_URL !== undefined && env.REDIS_URL.length > 0) {
+      subStop = startEventSubscriber(env.REDIS_URL, api, client, env, {
+        dedupe: env.BOT_EVENT_DEDUPE,
+      });
     }
     if (env.BOT_HEALTH_PORT != null) {
       startBotHealth(env.BOT_HEALTH_PORT!);

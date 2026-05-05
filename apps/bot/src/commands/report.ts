@@ -23,12 +23,19 @@ export async function executeReport(
     return;
   }
   try {
-    await api.postReport({
+    const data = await api.postReport({
       reporterDiscordId: interaction.user.id,
       targetDiscordId: target.id,
       reason,
       guildId: interaction.guildId ?? undefined,
-    });
+    }) as { pendingReview?: boolean };
+    if (data && typeof data === 'object' && data.pendingReview === true) {
+      await interaction.editReply({
+        content:
+          'Report submitted and is **pending staff review**. You will not see score changes until it is approved. Thank you.',
+      });
+      return;
+    }
     await interaction.editReply({
       content: `Report submitted for <@${target.id}>. Thank you.`,
     });

@@ -4,6 +4,9 @@ export const EVENT_CHANNELS = {
   USER_REPORTED: 'protect:user.reported',
   USER_UPDATED: 'protect:user.updated',
   SERVER_CONFIG_UPDATED: 'protect:server.config.updated',
+  REPORT_PENDING: 'protect:report.pending',
+  GUILD_MEMBERS_SYNC: 'protect:guild.members.sync',
+  GUILD_DISCOVERED: 'protect:guild.discovered',
 } as const;
 
 /** Single stream for durable ordered consumption (worker writes here). */
@@ -15,7 +18,10 @@ export type DomainEventType =
   | 'user.flagged'
   | 'user.reported'
   | 'user.updated'
-  | 'server.config.updated';
+  | 'server.config.updated'
+  | 'report.pending'
+  | 'guild.members.sync'
+  | 'guild.discovered';
 
 export interface DomainEventEnvelope<T = unknown> {
   schemaVersion: typeof EVENT_SCHEMA_VERSION;
@@ -55,6 +61,23 @@ export type ServerConfigUpdatedPayload = {
   guildId: string;
 };
 
+export type ReportPendingPayload = {
+  reportId: string;
+  targetDiscordId: string;
+  reporterDiscordId: string;
+  guildId?: string | null;
+};
+
+export type GuildMembersSyncPayload = {
+  guildId: string;
+};
+
+export type GuildDiscoveredPayload = {
+  guildId: string;
+  name: string | null;
+  approximateMemberCount: number | null;
+};
+
 export function channelForEventType(type: DomainEventType): string {
   switch (type) {
     case 'user.flagged':
@@ -65,6 +88,12 @@ export function channelForEventType(type: DomainEventType): string {
       return EVENT_CHANNELS.USER_UPDATED;
     case 'server.config.updated':
       return EVENT_CHANNELS.SERVER_CONFIG_UPDATED;
+    case 'report.pending':
+      return EVENT_CHANNELS.REPORT_PENDING;
+    case 'guild.members.sync':
+      return EVENT_CHANNELS.GUILD_MEMBERS_SYNC;
+    case 'guild.discovered':
+      return EVENT_CHANNELS.GUILD_DISCOVERED;
     default: {
       const _exhaustive: never = type;
       return _exhaustive;
@@ -94,6 +123,9 @@ export function isDomainEventType(s: string): s is DomainEventType {
     s === 'user.flagged' ||
     s === 'user.reported' ||
     s === 'user.updated' ||
-    s === 'server.config.updated'
+    s === 'server.config.updated' ||
+    s === 'report.pending' ||
+    s === 'guild.members.sync' ||
+    s === 'guild.discovered'
   );
 }

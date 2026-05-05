@@ -23,6 +23,10 @@ import { InternalModule } from './internal/internal.module';
 import { BotModule } from './bot/bot.module';
 import { ApiReadOnlyMiddleware } from './common/api-read-only.middleware';
 import { OutboxBackpressureMiddleware } from './common/outbox-backpressure.middleware';
+import { EntitlementsModule } from './entitlements/entitlements.module';
+import { AdminModule } from './admin/admin.module';
+import { MeModule } from './me/me.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -81,6 +85,10 @@ import { OutboxBackpressureMiddleware } from './common/outbox-backpressure.middl
     MetricsModule,
     InternalModule,
     BotModule,
+    EntitlementsModule,
+    AdminModule,
+    MeModule,
+    WebhooksModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
