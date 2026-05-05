@@ -172,6 +172,42 @@ export async function formatEventLine(
     return `${T} ${pc.bold('[CONFIG]')} ${pipeSafe(name)} | ${gid} | ${pc.dim('alert settings updated')}`;
   }
 
+  if (
+    t === 'support.ticket.created' ||
+    t === 'support.ticket.evidence_submitted' ||
+    t === 'support.ticket.resolved'
+  ) {
+    const ticketId = String(p.ticketId ?? '—');
+    const reportId = String(p.reportId ?? '—');
+    const reporterId = String(p.reporterDiscordId ?? '—');
+    let reporterN = reporterId;
+    if (enrich && token) {
+      reporterN = await resolveDiscord(token, cache, 'user', reporterId);
+    }
+    const status = typeof p.status === 'string' ? p.status : '—';
+    const evidence =
+      t === 'support.ticket.evidence_submitted'
+        ? ` | ${String(p.attachmentCount ?? 0)} img, ${String(p.linkCount ?? 0)} links`
+        : '';
+    const action =
+      t === 'support.ticket.created'
+        ? pc.cyan('ticket opened')
+        : t === 'support.ticket.evidence_submitted'
+          ? pc.yellow('evidence')
+          : pc.green('resolved');
+    return `${T} ${pc.bold('[TICKET]')} ${pipeSafe(reporterN)} | ticket ${ticketId} | report ${reportId} | ${status}${evidence} | ${action}`;
+  }
+
+  if (t === 'flag.removed') {
+    const id = String(p.discordId ?? '—');
+    const flagId = String(p.flagId ?? '—');
+    let uname = id;
+    if (enrich && token) {
+      uname = await resolveDiscord(token, cache, 'user', id);
+    }
+    return `${T} ${pc.bold('[FLAG]')} ${pipeSafe(uname)} | ${id} | flag ${flagId} | ${pc.dim('removed')}`;
+  }
+
   return `${T} ${pc.bold(`[${t}]`)} ${pc.dim(pipeSafe(JSON.stringify(p), 200))}`;
 }
 

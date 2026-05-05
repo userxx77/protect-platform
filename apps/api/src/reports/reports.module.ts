@@ -7,10 +7,18 @@ import { AuditModule } from '../audit/audit.module';
 import { EventsModule } from '../events/events.module';
 import { FlagPolicyService } from '../domain/flag-policy.service';
 import { EntitlementsModule } from '../entitlements/entitlements.module';
+import { TicketsModule } from '../tickets/tickets.module';
 
 @Module({
-  imports: [UsersModule, AuditModule, EventsModule, EntitlementsModule],
+  imports: [
+    UsersModule,
+    AuditModule,
+    EventsModule,
+    EntitlementsModule,
+    TicketsModule,
+  ],
   controllers: [ReportsController],
   providers: [ReportsService, ReportsAntiAbuseService, FlagPolicyService],
+  exports: [ReportsService],
 })
 export class ReportsModule {}

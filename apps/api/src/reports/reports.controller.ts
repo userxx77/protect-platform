@@ -28,7 +28,13 @@ export class ReportsController {
   constructor(private readonly reports: ReportsService) {}
 
   @Post('report')
-  @RequireRoles(AppRole.BOT, AppRole.USER, AppRole.TRUSTED, AppRole.ADMIN)
+  @RequireRoles(
+    AppRole.BOT,
+    AppRole.USER,
+    AppRole.TRUSTED,
+    AppRole.ADMIN,
+    AppRole.CHECKER,
+  )
   async report(
     @Body() body: CreateReportDto,
     @Req() req: Request & { principal?: RequestPrincipal },

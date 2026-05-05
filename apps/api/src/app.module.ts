@@ -28,6 +28,7 @@ import { AdminModule } from './admin/admin.module';
 import { MeModule } from './me/me.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { PublicModule } from './platform-stats/public.module';
+import { TicketsModule } from './tickets/tickets.module';
 
 @Module({
   imports: [
@@ -91,6 +92,7 @@ import { PublicModule } from './platform-stats/public.module';
     MeModule,
     WebhooksModule,
     PublicModule,
+    TicketsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

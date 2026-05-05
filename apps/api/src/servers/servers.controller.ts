@@ -24,7 +24,7 @@ export class ServersController {
   }
 
   @Get('server/:id')
-  @RequireRoles(AppRole.BOT, AppRole.USER, AppRole.TRUSTED, AppRole.ADMIN)
+  @RequireRoles(AppRole.BOT, AppRole.USER, AppRole.TRUSTED, AppRole.ADMIN, AppRole.CHECKER)
   async getServer(@Param('id') id: string) {
     return this.servers.getByGuildId(id);
   }

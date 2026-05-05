@@ -86,6 +86,58 @@ export function embedReportPending(input: {
     );
 }
 
+export function embedSupportTicketAdmin(input: {
+  kind: string;
+  ticketId?: string;
+  reportId?: string;
+  reporterDiscordId?: string;
+  guildId?: string | null;
+  status?: string;
+  attachmentCount?: number;
+  linkCount?: number;
+}): EmbedBuilder {
+  const title =
+    input.kind === 'support.ticket.created'
+      ? 'Support ticket opened'
+      : input.kind === 'support.ticket.evidence_submitted'
+        ? 'Ticket evidence submitted'
+        : input.kind === 'support.ticket.resolved' && input.status === 'REJECTED'
+          ? 'Ticket rejected'
+          : input.kind === 'support.ticket.resolved'
+            ? 'Ticket resolved'
+            : 'Ticket event';
+  const color =
+    input.kind === 'support.ticket.resolved' && input.status !== 'REJECTED'
+      ? SENTRA_SUCCESS
+      : SENTRA_WARNING;
+  const e = baseEmbed(color).setTitle(title);
+  const fields: { name: string; value: string; inline?: boolean }[] = [
+    { name: 'Ticket', value: `\`${input.ticketId ?? '—'}\``, inline: true },
+    { name: 'Report', value: `\`${input.reportId ?? '—'}\``, inline: true },
+  ];
+  if (input.reporterDiscordId) {
+    fields.push({
+      name: 'Reporter',
+      value: `<@${input.reporterDiscordId}>`,
+      inline: true,
+    });
+  }
+  if (input.guildId) {
+    fields.push({ name: 'Guild', value: `\`${input.guildId}\``, inline: true });
+  }
+  if (input.status) {
+    fields.push({ name: 'Status', value: input.status, inline: true });
+  }
+  if (input.kind === 'support.ticket.evidence_submitted') {
+    fields.push({
+      name: 'Evidence',
+      value: `${input.attachmentCount ?? 0} image(s), ${input.linkCount ?? 0} link(s)`,
+      inline: false,
+    });
+  }
+  return e.addFields(fields);
+}
+
 export function embedMemberSyncStarted(input: {
   guildId: string;
   guildName: string;

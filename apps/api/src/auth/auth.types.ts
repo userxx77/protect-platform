@@ -3,6 +3,7 @@ export enum AppRole {
   ADMIN = 'ADMIN',
   TRUSTED = 'TRUSTED',
   USER = 'USER',
+  CHECKER = 'CHECKER',
   BOT = 'BOT',
 }
 

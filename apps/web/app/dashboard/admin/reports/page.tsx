@@ -8,6 +8,8 @@ type PendingItem = {
   guildId: string | null;
   reason: string;
   createdAt: string;
+  ticketId?: string | null;
+  ticketStatus?: string | null;
 };
 
 type PendingResponse = { items: PendingItem[] };
@@ -41,6 +43,7 @@ export default async function AdminReportsPage() {
               <th>Target</th>
               <th>Reporter</th>
               <th>Guild</th>
+              <th>Ticket</th>
               <th>Reason</th>
               <th>Actions</th>
             </tr>
@@ -52,6 +55,15 @@ export default async function AdminReportsPage() {
                 <td className="ds-mono">{r.targetDiscordId}</td>
                 <td className="ds-mono">{r.reporterDiscordId}</td>
                 <td className="ds-mono">{r.guildId ?? '—'}</td>
+                <td>
+                  {r.ticketId ? (
+                    <span className="ds-mono">
+                      {r.ticketStatus ?? '—'} · {r.ticketId.slice(0, 8)}…
+                    </span>
+                  ) : (
+                    '—'
+                  )}
+                </td>
                 <td style={{ maxWidth: 240 }}>{r.reason}</td>
                 <td>
                   <form action={approveReportAction.bind(null, r.id)} style={{ display: 'inline', marginRight: '0.5rem' }}>

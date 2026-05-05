@@ -10,6 +10,34 @@ import {
 } from './sentra';
 
 /** Detect API 403 for unlicensed community report. */
+export function isReportCommunityRoleForbiddenError(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e);
+  return (
+    /\b403\b/.test(msg) &&
+    /Community reports require a dashboard account with the User role/i.test(msg)
+  );
+}
+
+export function embedReportCommunityRoleDenied(dashboardUrl: string | undefined): EmbedBuilder {
+  const link = dashboardUrl?.trim()
+    ? `\n\n[**Open dashboard**](${dashboardUrl})`
+    : '';
+  return new EmbedBuilder()
+    .setColor(SENTRA_WARNING)
+    .setTitle('Account role required')
+    .setDescription(
+      `**Community reports** (pending staff review) are limited to accounts with **User** access in Sentra. Checker accounts can still use \`/check\` and trusted reporters can use \`/flag\` where applicable.${link}`,
+    )
+    .addFields({
+      name: 'Next step',
+      value:
+        'Ask a **platform admin** to grant **User** role for your Discord account in Sentra.',
+    })
+    .setFooter(productFooter())
+    .setTimestamp(new Date());
+}
+
+/** Detect API 403 for unlicensed community report. */
 export function isReportLicenseForbiddenError(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e);
   return (

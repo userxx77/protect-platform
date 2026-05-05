@@ -111,6 +111,13 @@ export class ApiClient {
     return this.requestJson<PublicStats>('/bot/public-stats');
   }
 
+  async getDiscordCapabilities(discordId: string): Promise<{
+    platformRole: string;
+    canSubmitCommunityReport: boolean;
+  }> {
+    return this.requestJson(`/bot/discord/${discordId}/capabilities`);
+  }
+
   async postBotServerConfig(body: {
     guildId: string;
     actorDiscordId: string;

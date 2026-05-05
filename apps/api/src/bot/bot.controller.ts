@@ -8,7 +8,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
-import { isDiscordPlatformAdmin } from '@protect/shared';
+import { isDiscordPlatformAdmin, parseAdminDiscordIds } from '@protect/shared';
 import { BotOrJwtGuard } from '../auth/bot-or-jwt.guard';
 import { RbacGuard } from '../auth/rbac.guard';
 import { RequireRoles } from '../auth/roles.decorator';
@@ -16,11 +16,12 @@ import { AppRole } from '../auth/auth.types';
 import { ServersService } from '../servers/servers.service';
 import { BotProxyServerConfigDto } from '../servers/dto/bot-proxy-server-config.dto';
 import { BotGuildLifecycleDto, BotMembersBatchDto } from '../servers/dto/bot-guild.dto';
-import { ActorKind } from '@prisma/client';
+import { ActorKind, PlatformRole } from '@prisma/client';
 import { EntitlementsService } from '../entitlements/entitlements.service';
 import { AdminGuildsService } from '../admin/admin-guilds.service';
 import { UpsertEntitlementBodyDto } from '../admin/dto/admin-guilds.dto';
 import { PlatformStatsService } from '../platform-stats/platform-stats.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @ApiTags('bot')
 @Controller('bot')
@@ -34,6 +35,7 @@ export class BotController {
     private readonly adminGuilds: AdminGuildsService,
     private readonly config: ConfigService,
     private readonly platformStats: PlatformStatsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   private assertBotActorAdmin(actorHeader: string | undefined): string {
@@ -52,6 +54,32 @@ export class BotController {
   async guildSummary(@Param('guildId') guildId: string) {
     const licensed = await this.entitlements.isGuildLicensed(guildId);
     return { guildId, licensed };
+  }
+
+  @Get('discord/:discordId/capabilities')
+  @RequireRoles(AppRole.BOT)
+  @ApiOkResponse({
+    description: 'Platform role and whether the user may file community (pending) reports',
+  })
+  async discordCapabilities(@Param('discordId') discordId: string) {
+    const [account, trusted] = await Promise.all([
+      this.prisma.platformAccount.findUnique({
+        where: { discordUserId: discordId },
+        select: { role: true },
+      }),
+      this.prisma.trustedUser.findUnique({
+        where: { discordUserId: discordId },
+        select: { discordUserId: true },
+      }),
+    ]);
+    const legacy = parseAdminDiscordIds(this.config.get<string>('ADMIN_DISCORD_IDS'));
+    const platformRole = account?.role ?? PlatformRole.CHECKER;
+    const canSubmitCommunityReport =
+      trusted != null ||
+      legacy.includes(discordId) ||
+      account?.role === PlatformRole.USER ||
+      account?.role === PlatformRole.ADMIN;
+    return { platformRole, canSubmitCommunityReport };
   }
 
   @Get('public-stats')

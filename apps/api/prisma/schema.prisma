@@ -32,6 +32,8 @@ enum FlagSource {
 
 enum AuditAction {
   FLAG_CREATED
+  FLAG_DELETED
+  FLAG_UPDATED
   REPORT_CREATED
   REPORT_APPROVED
   REPORT_REJECTED
@@ -52,8 +54,9 @@ enum ActorKind {
 }
 
 enum PlatformRole {
-  ADMIN
+  CHECKER
   USER
+  ADMIN
 }
 
 enum OutboxStatus {
@@ -76,6 +79,15 @@ enum MemberSyncState {
   QUEUED
   RUNNING
   PAUSED
+}
+
+enum SupportTicketStatus {
+  OPEN
+  NEEDS_EVIDENCE
+  EVIDENCE_SUBMITTED
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
 }
 
 model User {
@@ -130,6 +142,7 @@ model Report {
 
   reportedUser User @relation("ReportTarget", fields: [reportedUserId], references: [id], onDelete: Cascade)
   flag          Flag? @relation(fields: [flagId], references: [id], onDelete: SetNull)
+  supportTicket SupportTicket?
 
   @@index([status, createdAt])
   @@index([reporterDiscordId, reportedUserId, guildId, createdAt(sort: Desc)])
@@ -203,15 +216,50 @@ model TrustedUser {
   @@map("trusted_users")
 }
 
-/// Dashboard / platform RBAC (ADMIN | USER). TRUSTED is derived from TrustedUser.
+/// Dashboard / platform RBAC (CHECKER | USER | ADMIN). TRUSTED is derived from TrustedUser.
 model PlatformAccount {
   id             String       @id @default(uuid()) @db.Uuid
   discordUserId  String       @unique @map("discord_user_id")
-  role           PlatformRole @default(USER)
+  role           PlatformRole @default(CHECKER)
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
 
   @@map("platform_accounts")
+}
+
+model SupportTicket {
+  id                     String              @id @default(uuid()) @db.Uuid
+  reportId               String              @unique @map("report_id") @db.Uuid
+  guildId                String?             @map("guild_id")
+  reporterDiscordId      String              @map("reporter_discord_id")
+  status                 SupportTicketStatus @default(OPEN)
+  adminNote              String?             @map("admin_note")
+  userMessage            String?             @map("user_message")
+  evidenceLinks          Json                @default("[]") @map("evidence_links")
+  assignedAdminDiscordId String?             @map("assigned_admin_discord_id")
+  createdAt              DateTime            @default(now()) @map("created_at")
+  updatedAt              DateTime            @updatedAt @map("updated_at")
+
+  report      Report                      @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  attachments SupportTicketAttachment[]
+
+  @@index([reporterDiscordId, status])
+  @@index([guildId, status])
+  @@map("support_tickets")
+}
+
+model SupportTicketAttachment {
+  id         String   @id @default(uuid()) @db.Uuid
+  ticketId   String   @map("ticket_id") @db.Uuid
+  storageKey String   @map("storage_key")
+  mimeType   String   @map("mime_type")
+  sizeBytes  Int      @map("size_bytes")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@map("support_ticket_attachments")
 }
 
 model AuditLog {

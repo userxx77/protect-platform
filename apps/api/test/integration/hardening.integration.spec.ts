@@ -57,6 +57,18 @@ describeOrSkip('production hardening integration', () => {
     const r2 = id17();
     try {
       await Promise.all([
+        prisma.trustedUser.upsert({
+          where: { discordUserId: r1 },
+          create: { discordUserId: r1, trustLevel: 1 },
+          update: {},
+        }),
+        prisma.trustedUser.upsert({
+          where: { discordUserId: r2 },
+          create: { discordUserId: r2, trustLevel: 1 },
+          update: {},
+        }),
+      ]);
+      await Promise.all([
         request(app.getHttpServer())
           .post('/v1/report')
           .set('x-api-key', botKey)
@@ -104,6 +116,9 @@ describeOrSkip('production hardening integration', () => {
           await prisma.processedEvent.deleteMany({ where: { eventId: { in: eids } } });
           await prisma.outboxEvent.deleteMany({ where: { id: { in: eids } } });
         }
+        await prisma.trustedUser.deleteMany({
+          where: { discordUserId: { in: [r1, r2] } },
+        });
         await prisma.report.deleteMany({ where: { reportedUserId: { in: ids } } });
         await prisma.flag.deleteMany({ where: { userId: { in: ids } } });
         await prisma.user.deleteMany({ where: { id: { in: ids } } });

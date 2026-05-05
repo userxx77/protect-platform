@@ -7,6 +7,10 @@ export const EVENT_CHANNELS = {
   REPORT_PENDING: 'protect:report.pending',
   GUILD_MEMBERS_SYNC: 'protect:guild.members.sync',
   GUILD_DISCOVERED: 'protect:guild.discovered',
+  SUPPORT_TICKET_CREATED: 'protect:support.ticket.created',
+  SUPPORT_TICKET_EVIDENCE_SUBMITTED: 'protect:support.ticket.evidence_submitted',
+  SUPPORT_TICKET_RESOLVED: 'protect:support.ticket.resolved',
+  FLAG_REMOVED: 'protect:flag.removed',
 } as const;
 
 /** Single stream for durable ordered consumption (worker writes here). */
@@ -21,7 +25,11 @@ export type DomainEventType =
   | 'server.config.updated'
   | 'report.pending'
   | 'guild.members.sync'
-  | 'guild.discovered';
+  | 'guild.discovered'
+  | 'support.ticket.created'
+  | 'support.ticket.evidence_submitted'
+  | 'support.ticket.resolved'
+  | 'flag.removed';
 
 export interface DomainEventEnvelope<T = unknown> {
   schemaVersion: typeof EVENT_SCHEMA_VERSION;
@@ -81,6 +89,35 @@ export type GuildDiscoveredPayload = {
   approximateMemberCount: number | null;
 };
 
+export type SupportTicketCreatedPayload = {
+  ticketId: string;
+  reportId: string;
+  reporterDiscordId: string;
+  guildId?: string | null;
+  status: string;
+};
+
+export type SupportTicketEvidenceSubmittedPayload = {
+  ticketId: string;
+  reportId: string;
+  reporterDiscordId: string;
+  attachmentCount: number;
+  linkCount: number;
+};
+
+export type SupportTicketResolvedPayload = {
+  ticketId: string;
+  reportId: string;
+  reporterDiscordId: string;
+  status: string;
+};
+
+export type FlagRemovedPayload = {
+  discordId: string;
+  flagId: string;
+  actorDiscordId: string;
+};
+
 export function channelForEventType(type: DomainEventType): string {
   switch (type) {
     case 'user.flagged':
@@ -97,6 +134,14 @@ export function channelForEventType(type: DomainEventType): string {
       return EVENT_CHANNELS.GUILD_MEMBERS_SYNC;
     case 'guild.discovered':
       return EVENT_CHANNELS.GUILD_DISCOVERED;
+    case 'support.ticket.created':
+      return EVENT_CHANNELS.SUPPORT_TICKET_CREATED;
+    case 'support.ticket.evidence_submitted':
+      return EVENT_CHANNELS.SUPPORT_TICKET_EVIDENCE_SUBMITTED;
+    case 'support.ticket.resolved':
+      return EVENT_CHANNELS.SUPPORT_TICKET_RESOLVED;
+    case 'flag.removed':
+      return EVENT_CHANNELS.FLAG_REMOVED;
     default: {
       const _exhaustive: never = type;
       return _exhaustive;
@@ -129,6 +174,14 @@ export function isDomainEventType(s: string): s is DomainEventType {
     s === 'server.config.updated' ||
     s === 'report.pending' ||
     s === 'guild.members.sync' ||
-    s === 'guild.discovered'
+    s === 'guild.discovered' ||
+    s === 'support.ticket.created' ||
+    s === 'support.ticket.evidence_submitted' ||
+    s === 'support.ticket.resolved' ||
+    s === 'flag.removed'
   );
 }
+
+/** Exact API 403 message for community /report when reporter lacks USER/ADMIN platform role. */
+export const COMMUNITY_REPORT_REQUIRES_USER_ROLE_MESSAGE =
+  'Community reports require a dashboard account with the User role. A platform admin can promote your account in Sentra.';

@@ -1,4 +1,7 @@
+import Link from 'next/link';
+import { auth } from '@/auth';
 import { dashboardApi } from '@/lib/api-server';
+import { isPlatformAdminDiscordId } from '@/lib/platform-admin';
 
 type FlaggedResponse = {
   items: Array<{
@@ -12,6 +15,8 @@ type FlaggedResponse = {
 };
 
 export default async function DashboardFlaggedPage() {
+  const session = await auth();
+  const showFlagsAdmin = isPlatformAdminDiscordId(session?.user?.id);
   let data: FlaggedResponse;
   try {
     data = await dashboardApi<FlaggedResponse>('/users/flagged?limit=50');
@@ -43,6 +48,7 @@ export default async function DashboardFlaggedPage() {
               <th>Score</th>
               <th># Flags</th>
               <th>Updated</th>
+              {showFlagsAdmin ? <th>Admin</th> : null}
             </tr>
           </thead>
           <tbody>
@@ -53,6 +59,13 @@ export default async function DashboardFlaggedPage() {
                 <td>{u.flagScore}</td>
                 <td>{u.flagCount ?? '—'}</td>
                 <td className="ds-mono">{u.updatedAt}</td>
+                {showFlagsAdmin ? (
+                  <td>
+                    <Link className="ds-btn ds-btn-ghost" href={`/dashboard/admin/users/${u.discordId}`}>
+                      Flags
+                    </Link>
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>

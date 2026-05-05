@@ -17,7 +17,7 @@ export class UsersController {
   constructor(private readonly users: UsersService) {}
 
   @Get('user/:id')
-  @RequireRoles(AppRole.BOT, AppRole.USER, AppRole.TRUSTED, AppRole.ADMIN)
+  @RequireRoles(AppRole.BOT, AppRole.USER, AppRole.TRUSTED, AppRole.ADMIN, AppRole.CHECKER)
   async getUser(
     @Param('id') id: string,
     @Req() req: Request & { principal?: RequestPrincipal },

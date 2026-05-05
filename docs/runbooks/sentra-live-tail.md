@@ -2,9 +2,16 @@
 
 Colored CLI that subscribes to the same Redis Pub/Sub channels the API worker publishes to (domain events). Use on a VPS or locally with access to **`REDIS_URL`**.
 
-## Setup
+## Na deploy op de VPS (belangrijk)
 
-From repo root after install and build:
+Na `git pull` moet je de **gecompileerde** CLI opnieuw bouwen; anders blijft `node apps/ops-cli/dist/index.js` de **oude** output tonen (twee regels per event o.i.d.):
+
+```bash
+pnpm install
+pnpm --filter @protect/ops-cli run build
+```
+
+Zonder `SENTRA_OPS_STATS_KEY` in `.env` krijg je een waarschuwing voor de stats-footer. Zet dezelfde waarde als op de API, of gebruik `--stats-interval=0` om die poll uit te zetten.
 
 ```bash
 pnpm install

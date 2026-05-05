@@ -2,11 +2,13 @@ import { SlashCommandBuilder, type ChatInputCommandInteraction } from 'discord.j
 import type { ApiClient } from '../services/apiClient';
 import type { Env } from '../config/env';
 import {
+  embedReportCommunityRoleDenied,
   embedReportFailed,
   embedReportLicenseDenied,
   embedReportSuccessInstant,
   embedReportSuccessPending,
   embedRateLimited,
+  isReportCommunityRoleForbiddenError,
   isReportLicenseForbiddenError,
 } from '../embeds/commandEmbeds';
 
@@ -36,6 +38,13 @@ export async function executeReport(
     return;
   }
   try {
+    const caps = await api.getDiscordCapabilities(interaction.user.id);
+    if (!caps.canSubmitCommunityReport) {
+      await interaction.editReply({
+        embeds: [embedReportCommunityRoleDenied(dashboardUrlEnv(env))],
+      });
+      return;
+    }
     const data = (await api.postReport({
       reporterDiscordId: interaction.user.id,
       targetDiscordId: target.id,
@@ -51,6 +60,12 @@ export async function executeReport(
     if (isReportLicenseForbiddenError(e)) {
       await interaction.editReply({
         embeds: [embedReportLicenseDenied(dashboardUrlEnv(env))],
+      });
+      return;
+    }
+    if (isReportCommunityRoleForbiddenError(e)) {
+      await interaction.editReply({
+        embeds: [embedReportCommunityRoleDenied(dashboardUrlEnv(env))],
       });
       return;
     }

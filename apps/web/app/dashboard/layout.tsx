@@ -20,7 +20,7 @@ export default async function DashboardLayout({
         <div className="ds-brand">Sentra</div>
         <div className="ds-nav-group-label">Overview</div>
         <DashboardNavLink href="/dashboard">Flagged users</DashboardNavLink>
-        <DashboardNavLink href="/dashboard/my-servers">My servers</DashboardNavLink>
+        <DashboardNavLink href="/dashboard/tickets">Support tickets</DashboardNavLink>
         <div className="ds-nav-group-label" style={{ marginTop: '0.75rem' }}>
           Moderation
         </div>
@@ -33,7 +33,7 @@ export default async function DashboardLayout({
             </div>
             <DashboardNavLink href="/dashboard/admin/stats">Snapshot</DashboardNavLink>
             <DashboardNavLink href="/dashboard/admin/guilds">Guilds &amp; licenses</DashboardNavLink>
-            <DashboardNavLink href="/dashboard/admin/reports">Pending reports</DashboardNavLink>
+            <DashboardNavLink href="/dashboard/admin/tickets">Tickets &amp; evidence</DashboardNavLink>
           </>
         ) : null}
         <div className="ds-sidebar-footer">

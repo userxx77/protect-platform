@@ -12,6 +12,7 @@ import {
   FlagSource,
   ReportStatus,
 } from '@prisma/client';
+import { COMMUNITY_REPORT_REQUIRES_USER_ROLE_MESSAGE } from '@protect/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { OutboxService } from '../events/outbox.service';
@@ -24,6 +25,7 @@ import { userToPublic } from '../users/user.mapper';
 import { EntitlementsService } from '../entitlements/entitlements.service';
 import { AuthzService } from '../auth/authz.service';
 import { AppRole, type RequestPrincipal } from '../auth/auth.types';
+import { TicketsService } from '../tickets/tickets.service';
 
 function truncateEventReason(reason: string, max = 200): string {
   const t = reason.replace(/\s+/g, ' ').trim();
@@ -44,7 +46,19 @@ export class ReportsService {
     private readonly userCache: UserCacheService,
     private readonly entitlements: EntitlementsService,
     private readonly authz: AuthzService,
+    private readonly tickets: TicketsService,
   ) {}
+
+  private async assertCommunityReporterEligible(reporterDiscordId: string): Promise<void> {
+    const account = await this.prisma.platformAccount.findUnique({
+      where: { discordUserId: reporterDiscordId },
+      select: { role: true },
+    });
+    if (account?.role === 'USER' || account?.role === 'ADMIN') {
+      return;
+    }
+    throw new ForbiddenException(COMMUNITY_REPORT_REQUIRES_USER_ROLE_MESSAGE);
+  }
 
   private assertReporterAccess(dto: CreateReportDto, principal: RequestPrincipal): void {
     if (principal.identity.kind === 'user') {
@@ -71,6 +85,7 @@ export class ReportsService {
 
     const instant = await this.reporterInstantApplies(dto);
     if (!instant) {
+      await this.assertCommunityReporterEligible(dto.reporterDiscordId);
       if (!dto.guildId) {
         throw new BadRequestException('guildId is required for community reports');
       }
@@ -154,6 +169,12 @@ export class ReportsService {
             guildId: dto.guildId ?? null,
             reason: truncateEventReason(dto.reason),
           },
+        });
+
+        await this.tickets.createForPendingReport(tx, {
+          reportId: report.id,
+          guildId: dto.guildId ?? null,
+          reporterDiscordId: dto.reporterDiscordId,
         });
 
         return { report };
@@ -327,6 +348,7 @@ export class ReportsService {
       take,
       include: {
         reportedUser: { select: { discordId: true } },
+        supportTicket: { select: { id: true, status: true } },
       },
     });
 
@@ -339,6 +361,8 @@ export class ReportsService {
         reason: r.reason,
         status: r.status,
         createdAt: r.createdAt.toISOString(),
+        ticketId: r.supportTicket?.id ?? null,
+        ticketStatus: r.supportTicket?.status ?? null,
       })),
     };
   }
@@ -443,6 +467,13 @@ export class ReportsService {
         },
       ]);
 
+      await this.tickets.finalizeTicketForReport(
+        tx,
+        reportId,
+        'RESOLVED',
+        adminDiscordId,
+      );
+
       return { report, userAfter, weight };
     });
 
@@ -487,6 +518,13 @@ export class ReportsService {
         actorKind: ActorKind.USER,
         metadata: { guildId: existing.guildId },
       });
+
+      await this.tickets.finalizeTicketForReport(
+        tx,
+        reportId,
+        'REJECTED',
+        adminDiscordId,
+      );
 
       return r;
     });

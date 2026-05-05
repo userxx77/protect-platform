@@ -9,6 +9,7 @@ import { sendAdminFeedEmbed } from './adminFeed';
 import {
   embedGuildDiscovered,
   embedReportPending,
+  embedSupportTicketAdmin,
   embedUnknownGuildSync,
 } from '../embeds/sentra';
 
@@ -20,6 +21,10 @@ const CHANNELS = [
   'protect:report.pending',
   'protect:guild.members.sync',
   'protect:guild.discovered',
+  'protect:support.ticket.created',
+  'protect:support.ticket.evidence_submitted',
+  'protect:support.ticket.resolved',
+  'protect:flag.removed',
 ];
 
 /** Envelope v1 from API/worker; older messages may omit schemaVersion / eventId. */
@@ -112,6 +117,37 @@ export function startEventSubscriber(
               targetDiscordId,
               reporterDiscordId,
               guildId: guildId ?? undefined,
+            }),
+          );
+          return;
+        }
+
+        if (
+          env.type === 'support.ticket.created' ||
+          env.type === 'support.ticket.evidence_submitted' ||
+          env.type === 'support.ticket.resolved'
+        ) {
+          const p = env.payload as {
+            ticketId?: string;
+            reportId?: string;
+            reporterDiscordId?: string;
+            guildId?: string | null;
+            status?: string;
+            attachmentCount?: number;
+            linkCount?: number;
+          };
+          await sendAdminFeedEmbed(
+            client,
+            botEnv,
+            embedSupportTicketAdmin({
+              kind: env.type,
+              ticketId: p.ticketId,
+              reportId: p.reportId,
+              reporterDiscordId: p.reporterDiscordId,
+              guildId: p.guildId,
+              status: p.status,
+              attachmentCount: p.attachmentCount,
+              linkCount: p.linkCount,
             }),
           );
           return;
