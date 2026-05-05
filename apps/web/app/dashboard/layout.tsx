@@ -1,6 +1,7 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
+import { DashboardNavLink } from '@/app/components/DashboardNavLink';
+import { DashboardSignOut } from '@/app/components/DashboardSignOut';
 
 export default async function DashboardLayout({
   children,
@@ -12,14 +13,20 @@ export default async function DashboardLayout({
     redirect('/api/auth/signin');
   }
   return (
-    <main>
-      <nav style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-        <Link href="/dashboard">Flagged users</Link>
-        <Link href="/dashboard/config">Server config</Link>
-        <Link href="/dashboard/audit">Audit log</Link>
-        <Link href="/">Home</Link>
-      </nav>
-      {children}
-    </main>
+    <div className="ds-dashboard">
+      <aside className="ds-sidebar" aria-label="Dashboard navigation">
+        <div className="ds-brand">Protect</div>
+        <DashboardNavLink href="/dashboard">Flagged users</DashboardNavLink>
+        <DashboardNavLink href="/dashboard/config">Server config</DashboardNavLink>
+        <DashboardNavLink href="/dashboard/audit">Audit log</DashboardNavLink>
+        <div className="ds-sidebar-footer">
+          <DashboardNavLink href="/">Home</DashboardNavLink>
+          <div style={{ marginTop: '0.5rem' }}>
+            <DashboardSignOut />
+          </div>
+        </div>
+      </aside>
+      <div className="ds-main">{children}</div>
+    </div>
   );
 }

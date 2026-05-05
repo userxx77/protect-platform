@@ -32,22 +32,30 @@ export default async function ServerConfigPage({
   const manageable = session.manageableGuilds ?? [];
 
   return (
-    <section>
-      <h1>Server configuration</h1>
-      <p>
+    <section className="ds-card">
+      <h1 className="ds-h1">Server configuration</h1>
+      <p className="ds-muted" style={{ marginTop: '0.35rem' }}>
         Saves alert settings per guild (API admin). Discord: use <code>/config</code> with{' '}
         <strong>Manage Server</strong>. Guild appears here after the first save.
       </p>
-      {sp?.saved ? <p style={{ color: 'green' }}>Saved.</p> : null}
-      {sp?.error ? <p style={{ color: '#f88' }}>Error: {sp.error}</p> : null}
+      {sp?.saved ? (
+        <div className="ds-alert ds-alert-success" style={{ marginTop: '1rem' }}>
+          Saved.
+        </div>
+      ) : null}
+      {sp?.error ? (
+        <div className="ds-alert ds-alert-error" style={{ marginTop: '1rem' }}>
+          Error: {sp.error}
+        </div>
+      ) : null}
       {listError ? (
-        <p style={{ color: '#fa0' }}>
+        <div className="ds-alert ds-alert-warn" style={{ marginTop: '1rem' }}>
           {listError}{' '}
           <small>(Are you in `ADMIN_DISCORD_IDS` or `platform_accounts` ADMIN?)</small>
-        </p>
+        </div>
       ) : null}
       {manageable.length === 0 ? (
-        <p style={{ color: '#888', fontSize: '0.9rem' }}>
+        <p className="ds-hint" style={{ marginTop: '1rem' }}>
           No guilds with <strong>Manage Server</strong> in this login session. Sign out and sign in
           again after upgrading OAuth scopes, or paste a guild ID manually.
         </p>
@@ -55,48 +63,49 @@ export default async function ServerConfigPage({
 
       {servers.length > 0 ? (
         <>
-          <h2>Configured servers</h2>
-          <table style={{ borderCollapse: 'collapse', marginBottom: '1.5rem', width: '100%', maxWidth: 720 }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #444' }}>
-                <th style={{ textAlign: 'left', padding: 8 }}>Guild ID</th>
-                <th style={{ textAlign: 'left', padding: 8 }}>Alert channel</th>
-                <th style={{ textAlign: 'left', padding: 8 }}>Min level</th>
-                <th style={{ textAlign: 'left', padding: 8 }}>Updated (UTC)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {servers.map((s) => (
-                <tr key={s.guildId} style={{ borderBottom: '1px solid #333' }}>
-                  <td style={{ padding: 8, fontFamily: 'monospace', fontSize: '0.85rem' }}>
-                    {s.guildId}
-                  </td>
-                  <td style={{ padding: 8, fontFamily: 'monospace', fontSize: '0.85rem' }}>
-                    {s.alertChannelId ?? '—'}
-                  </td>
-                  <td style={{ padding: 8 }}>{s.alertMinLevel ?? '—'}</td>
-                  <td style={{ padding: 8, fontSize: '0.85rem' }}>{s.updatedAt}</td>
+          <h2 className="ds-h2">Configured servers</h2>
+          <div className="ds-table-wrap" style={{ maxWidth: 720 }}>
+            <table className="ds-table">
+              <thead>
+                <tr>
+                  <th>Guild ID</th>
+                  <th>Alert channel</th>
+                  <th>Min level</th>
+                  <th>Updated (UTC)</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {servers.map((s) => (
+                  <tr key={s.guildId}>
+                    <td className="ds-mono">{s.guildId}</td>
+                    <td className="ds-mono">{s.alertChannelId ?? '—'}</td>
+                    <td>{s.alertMinLevel ?? '—'}</td>
+                    <td className="ds-mono">{s.updatedAt}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       ) : (
-        <p style={{ marginBottom: '1rem' }}>No servers in the database yet.</p>
+        <p style={{ marginBottom: '1rem' }} className="ds-hint">
+          No servers in the database yet.
+        </p>
       )}
 
-      <h2>{servers.length ? 'Update or add' : 'Add'} configuration</h2>
+      <h2 className="ds-h2">{servers.length ? 'Update or add' : 'Add'} configuration</h2>
       <form action={saveServerConfig}>
-        <div style={{ marginBottom: '0.75rem' }}>
-          <label htmlFor="guildId">Guild ID</label>
-          <br />
+        <div className="ds-field">
+          <label htmlFor="guildId" className="ds-label">
+            Guild ID
+          </label>
           <input
             id="guildId"
             name="guildId"
             required
             list="guild-pick"
             placeholder="Discord guild snowflake (use suggestions if available)"
-            style={{ width: '100%', maxWidth: 420, marginTop: 4 }}
+            className="ds-input"
           />
           <datalist id="guild-pick">
             {manageable.map((g) => (
@@ -104,24 +113,26 @@ export default async function ServerConfigPage({
             ))}
           </datalist>
         </div>
-        <div style={{ marginBottom: '0.75rem' }}>
-          <label htmlFor="alertChannelId">Alert channel ID (optional)</label>
-          <br />
+        <div className="ds-field">
+          <label htmlFor="alertChannelId" className="ds-label">
+            Alert channel ID (optional)
+          </label>
           <input
             id="alertChannelId"
             name="alertChannelId"
             placeholder="Text channel snowflake"
-            style={{ width: '100%', maxWidth: 420, marginTop: 4 }}
+            className="ds-input"
           />
         </div>
-        <div style={{ marginBottom: '0.75rem' }}>
-          <label htmlFor="alertMinLevel">Minimum level to alert</label>
-          <br />
+        <div className="ds-field">
+          <label htmlFor="alertMinLevel" className="ds-label">
+            Minimum level to alert
+          </label>
           <select
             id="alertMinLevel"
             name="alertMinLevel"
             defaultValue="SUSPICIOUS"
-            style={{ marginTop: 4 }}
+            className="ds-select"
           >
             <option value="CLEAN">CLEAN</option>
             <option value="SUSPICIOUS">SUSPICIOUS</option>
@@ -129,7 +140,9 @@ export default async function ServerConfigPage({
             <option value="CONFIRMED_CHEATER">CONFIRMED_CHEATER</option>
           </select>
         </div>
-        <button type="submit">Save</button>
+        <button type="submit" className="ds-btn">
+          Save
+        </button>
       </form>
     </section>
   );
