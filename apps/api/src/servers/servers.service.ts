@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'node:crypto';
 import { AuditAction, ActorKind, LicenseStatus, MemberSyncState, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -21,6 +22,7 @@ export class ServersService {
     private readonly audit: AuditService,
     private readonly outbox: OutboxService,
     private readonly entitlements: EntitlementsService,
+    private readonly config: ConfigService,
   ) {}
 
   async getByGuildId(guildId: string) {
@@ -92,7 +94,7 @@ export class ServersService {
     };
   }
 
-  /** Called by bot on guild join/leave — creates INACTIVE entitlement row for new guilds. */
+  /** Called by bot on guild join/leave — creates entitlement (auto-trial or INACTIVE). */
   async recordBotGuildLifecycle(dto: {
     guildId: string;
     discordName?: string | null;
@@ -136,13 +138,34 @@ export class ServersService {
         where: { guildId: dto.guildId },
       });
       if (!ent) {
-        await tx.guildEntitlement.create({
-          data: {
-            guildId: dto.guildId,
-            status: LicenseStatus.INACTIVE,
-            validFrom: new Date(),
-          },
-        });
+        const trialDays = Math.max(
+          0,
+          Math.min(
+            3650,
+            Number(this.config.get<string>('SENTRA_AUTO_TRIAL_DAYS') ?? 0) || 0,
+          ),
+        );
+        const now = new Date();
+        if (trialDays > 0) {
+          const validUntil = new Date(now);
+          validUntil.setUTCDate(validUntil.getUTCDate() + trialDays);
+          await tx.guildEntitlement.create({
+            data: {
+              guildId: dto.guildId,
+              status: LicenseStatus.TRIAL,
+              validFrom: now,
+              validUntil,
+            },
+          });
+        } else {
+          await tx.guildEntitlement.create({
+            data: {
+              guildId: dto.guildId,
+              status: LicenseStatus.INACTIVE,
+              validFrom: now,
+            },
+          });
+        }
       }
 
       if (dto.event === 'join') {

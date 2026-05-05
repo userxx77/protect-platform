@@ -5,6 +5,12 @@ import {
 import { isDiscordPlatformAdmin } from '@protect/shared';
 import type { ApiClient } from '../services/apiClient';
 import type { Env } from '../config/env';
+import {
+  embedPlatformAdminOnly,
+  embedSentraAdminError,
+  embedSentraAdminLicenseOk,
+  embedSentraAdminSyncQueued,
+} from '../embeds/commandEmbeds';
 
 export const sentraAdminCommandData = new SlashCommandBuilder()
   .setName('sentra-admin')
@@ -71,8 +77,8 @@ export async function executeSentraAdmin(
 ): Promise<void> {
   if (!isDiscordPlatformAdmin(interaction.user.id, env.ADMIN_DISCORD_IDS)) {
     await interaction.reply({
-      content: 'You are not a platform admin for Sentra.',
       ephemeral: true,
+      embeds: [embedPlatformAdminOnly()],
     });
     return;
   }
@@ -102,7 +108,7 @@ export async function executeSentraAdmin(
         planCode: planCode || undefined,
       });
       await interaction.editReply({
-        content: `License updated for guild \`${guildId}\` → **${status}**.`,
+        embeds: [embedSentraAdminLicenseOk(guildId, status)],
       });
       return;
     }
@@ -111,11 +117,11 @@ export async function executeSentraAdmin(
       const guildId = interaction.options.getString('guild_id', true);
       await api.postBotAdminSyncMembers(guildId, interaction.user.id);
       await interaction.editReply({
-        content: `Member sync queued for \`${guildId}\`. Check dashboard for status.`,
+        embeds: [embedSentraAdminSyncQueued(guildId)],
       });
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Request failed';
-    await interaction.editReply({ content: msg.slice(0, 1800) });
+    await interaction.editReply({ embeds: [embedSentraAdminError(msg.slice(0, 1800))] });
   }
 }

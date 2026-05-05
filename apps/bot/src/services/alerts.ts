@@ -1,5 +1,5 @@
 import { EmbedBuilder, type ColorResolvable } from 'discord.js';
-import { SENTRA_PRIMARY, sentraFooter } from '../embeds/sentra';
+import { SENTRA_PRIMARY, productFooter } from '../embeds/sentra';
 
 const levelColors: Record<string, ColorResolvable> = {
   CLEAN: 0x57f287,
@@ -39,7 +39,7 @@ export function userStatusEmbed(
         inline: true,
       },
     )
-    .setFooter(sentraFooter())
+    .setFooter(productFooter())
     .setTimestamp(new Date());
 }
 

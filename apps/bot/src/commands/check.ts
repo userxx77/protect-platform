@@ -5,6 +5,7 @@ import {
 } from 'discord.js';
 import type { ApiClient } from '../services/apiClient';
 import { alertEmbed, shouldAlert, userStatusEmbed } from '../services/alerts';
+import { embedCheckFailed, embedRateLimited } from '../embeds/commandEmbeds';
 
 export const checkCommandData = new SlashCommandBuilder()
   .setName('check')
@@ -21,14 +22,12 @@ export async function executeCheck(
   const target = interaction.options.getUser('user', true);
   await interaction.deferReply({ ephemeral: true });
   if (!api.guildRate.tryConsume(interaction.guildId)) {
-    await interaction.editReply({
-      content: 'Rate limit: too many commands in this server. Try again shortly.',
-    });
+    await interaction.editReply({ embeds: [embedRateLimited()] });
     return;
   }
   try {
     const u = await api.getUser(target.id);
-    const embed = userStatusEmbed(u, 'Protect — user check');
+    const embed = userStatusEmbed(u, 'Reputation check');
     await interaction.editReply({ embeds: [embed] });
     void api.postIncrementCheckCounter().catch(() => undefined);
 
@@ -58,6 +57,6 @@ export async function executeCheck(
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
-    await interaction.editReply({ content: `Lookup failed: ${msg}` });
+    await interaction.editReply({ embeds: [embedCheckFailed(msg)] });
   }
 }

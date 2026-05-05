@@ -11,6 +11,12 @@ This runbook complements [production-deploy.md](./production-deploy.md) and [wor
 - **Postgres restart**: API `/ready` goes unhealthy; Compose keeps dependents waiting or restarting until DB recovers. No automatic data repair is required for the outbox schema.
 - **Bot**: **discord.js** reconnects the gateway after disconnects. Logs: `discord_shard_disconnect`, `discord_shard_resume`, `discord_client_ready`. Slash commands are re-registered on each **process** start via Discord’s **`PUT`** application (and optional guild) routes — this is **idempotent** (same command set replaced, not duplicated as parallel definitions).
 
+### Data persistence (Sentra vs Discord)
+
+- **PostgreSQL** holds authoritative data: user flag scores, reports, `guild_member_cache`, server alert config, and guild entitlements. Restarting API, worker, or web does not wipe reputation rows.
+- **Redis** speeds up `GET /user/:id` via `UserCacheService`; on cache miss the API reads from Postgres and refreshes Redis.
+- **Discord.js** guild/member caches live in the bot process only. After a **bot** restart, that cache is empty until Discord sends chunks; your **`guild_member_cache`** table in Postgres is unchanged. Use member sync to refresh the dashboard list, not to restore flags.
+
 ## Zero-downtime expectations (single VPS)
 
 True rolling “zero downtime” needs multiple instances behind a load balancer. On a **single** VPS, expect **brief** gaps while containers restart:

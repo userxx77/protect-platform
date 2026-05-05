@@ -1,4 +1,4 @@
-# Live event tail (`sentra-tail`)
+# Live event monitor (`sentra monitor` / `sentra-tail`)
 
 Colored CLI that subscribes to the same Redis Pub/Sub channels the API worker publishes to (domain events). Use on a VPS or locally with access to **`REDIS_URL`**.
 
@@ -26,10 +26,7 @@ pnpm --filter @protect/ops-cli run build
 # load .env from project root if you use one
 export REDIS_URL=redis://127.0.0.1:6379
 export DISCORD_BOT_TOKEN=   # optional
-pnpm --filter @protect/ops-cli exec node apps/ops-cli/dist/index.js
-
-# Or after global link / npx from package:
-# sentra-tail --enrich --stats-interval=45
+pnpm --filter @protect/ops-cli exec node apps/ops-cli/dist/index.js monitor --enrich --stats-interval=45
 ```
 
 Flags:

@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "private": true,
   "bin": {
-    "sentra-tail": "./dist/index.js"
+    "sentra-tail": "./dist/index.js",
+    "sentra-monitor": "./dist/index.js"
   },
   "scripts": {
     "prebuild": "pnpm --filter @protect/shared run build",

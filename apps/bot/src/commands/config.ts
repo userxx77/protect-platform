@@ -5,6 +5,17 @@ import {
   type ChatInputCommandInteraction,
 } from 'discord.js';
 import type { ApiClient } from '../services/apiClient';
+import {
+  embedConfigBadChannel,
+  embedConfigFailed,
+  embedConfigLoadFailed,
+  embedConfigNeedOptions,
+  embedConfigSaved,
+  embedConfigView,
+  embedNeedGuild,
+  embedNeedManageServer,
+  embedRateLimited,
+} from '../embeds/commandEmbeds';
 
 export const configCommandData = new SlashCommandBuilder()
   .setName('config')
@@ -63,24 +74,19 @@ export async function executeConfigView(
   api: ApiClient,
 ): Promise<void> {
   if (!interaction.inGuild()) {
-    await interaction.reply({
-      ephemeral: true,
-      content: 'Use this command in a server.',
-    });
+    await interaction.reply({ ephemeral: true, embeds: [embedNeedGuild()] });
     return;
   }
   if (!canManageConfig(interaction)) {
     await interaction.reply({
       ephemeral: true,
-      content: 'You need **Manage Server** or **Administrator**.',
+      embeds: [embedNeedManageServer()],
     });
     return;
   }
   await interaction.deferReply({ ephemeral: true });
   if (!api.guildRate.tryConsume(interaction.guildId)) {
-    await interaction.editReply({
-      content: 'Rate limit: try again shortly.',
-    });
+    await interaction.editReply({ embeds: [embedRateLimited()] });
     return;
   }
   try {
@@ -93,17 +99,22 @@ export async function executeConfigView(
     const roles = Array.isArray(cfg.mentionRoleIds)
       ? (cfg.mentionRoleIds as string[]).join(', ') || '—'
       : '—';
+    const updatedNote = s.updatedAt
+      ? `_Updated ${s.updatedAt}_`
+      : '_No saved config yet_';
     await interaction.editReply({
-      content: [
-        `**Alert channel:** ${ch}`,
-        `**Min level:** ${min}`,
-        `**Mention roles:** ${roles}`,
-        s.updatedAt ? `_Updated ${s.updatedAt}_` : '_No saved config yet_',
-      ].join('\n'),
+      embeds: [
+        embedConfigView({
+          alertChannel: ch,
+          minLevel: min,
+          mentionRoles: roles,
+          updatedNote,
+        }),
+      ],
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
-    await interaction.editReply({ content: `Could not load config: ${msg}` });
+    await interaction.editReply({ embeds: [embedConfigLoadFailed(msg)] });
   }
 }
 
@@ -112,16 +123,13 @@ export async function executeConfigSet(
   api: ApiClient,
 ): Promise<void> {
   if (!interaction.inGuild()) {
-    await interaction.reply({
-      ephemeral: true,
-      content: 'Use this command in a server.',
-    });
+    await interaction.reply({ ephemeral: true, embeds: [embedNeedGuild()] });
     return;
   }
   if (!canManageConfig(interaction)) {
     await interaction.reply({
       ephemeral: true,
-      content: 'You need **Manage Server** or **Administrator**.',
+      embeds: [embedNeedManageServer()],
     });
     return;
   }
@@ -132,7 +140,7 @@ export async function executeConfigSet(
   if (!channel && !minlevel) {
     await interaction.reply({
       ephemeral: true,
-      content: 'Provide at least one of **channel** or **minlevel**.',
+      embeds: [embedConfigNeedOptions()],
     });
     return;
   }
@@ -140,16 +148,14 @@ export async function executeConfigSet(
   if (channel && !isAllowedAlertChannelType(channel.type)) {
     await interaction.reply({
       ephemeral: true,
-      content: 'Pick a text, announcement, or forum channel.',
+      embeds: [embedConfigBadChannel()],
     });
     return;
   }
 
   await interaction.deferReply({ ephemeral: true });
   if (!api.guildRate.tryConsume(interaction.guildId)) {
-    await interaction.editReply({
-      content: 'Rate limit: try again shortly.',
-    });
+    await interaction.editReply({ embeds: [embedRateLimited()] });
     return;
   }
 
@@ -167,11 +173,9 @@ export async function executeConfigSet(
       actorDiscordId: interaction.user.id,
       config,
     });
-    await interaction.editReply({
-      content: 'Settings saved. Alerts will use the new channel and/or level.',
-    });
+    await interaction.editReply({ embeds: [embedConfigSaved()] });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
-    await interaction.editReply({ content: `Save failed: ${msg}` });
+    await interaction.editReply({ embeds: [embedConfigFailed(msg)] });
   }
 }

@@ -47,6 +47,8 @@ export type UserReportedPayload = {
   targetDiscordId: string;
   reporterDiscordId: string;
   guildId?: string | null;
+  /** Report reason (truncated in events for log/UI). */
+  reason?: string;
 };
 
 export type UserUpdatedPayload = {
@@ -66,6 +68,7 @@ export type ReportPendingPayload = {
   targetDiscordId: string;
   reporterDiscordId: string;
   guildId?: string | null;
+  reason?: string;
 };
 
 export type GuildMembersSyncPayload = {

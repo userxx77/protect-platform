@@ -25,6 +25,12 @@ import { EntitlementsService } from '../entitlements/entitlements.service';
 import { AuthzService } from '../auth/authz.service';
 import { AppRole, type RequestPrincipal } from '../auth/auth.types';
 
+function truncateEventReason(reason: string, max = 200): string {
+  const t = reason.replace(/\s+/g, ' ').trim();
+  if (t.length <= max) return t;
+  return `${t.slice(0, max - 1)}…`;
+}
+
 @Injectable()
 export class ReportsService {
   private readonly log = new Logger(ReportsService.name);
@@ -146,6 +152,7 @@ export class ReportsService {
             targetDiscordId: dto.targetDiscordId,
             reporterDiscordId: dto.reporterDiscordId,
             guildId: dto.guildId ?? null,
+            reason: truncateEventReason(dto.reason),
           },
         });
 
@@ -276,6 +283,7 @@ export class ReportsService {
               targetDiscordId: dto.targetDiscordId,
               reporterDiscordId: dto.reporterDiscordId,
               guildId: dto.guildId ?? null,
+              reason: truncateEventReason(dto.reason),
             },
           },
           {
@@ -420,6 +428,7 @@ export class ReportsService {
             targetDiscordId: dto.targetDiscordId,
             reporterDiscordId: dto.reporterDiscordId,
             guildId: existing.guildId ?? null,
+            reason: truncateEventReason(existing.reason),
           },
         },
         {

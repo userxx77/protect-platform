@@ -13,7 +13,14 @@
 | Variable | Purpose |
 |----------|---------|
 | `DISCORD_ADMIN_FEED_CHANNEL_ID` | Optional. Text channel ID where the bot posts embeds for **pending reports**, **guild discovered**, and (via Redis) **member sync** is driven. |
-| `ADMIN_DISCORD_IDS` | Same comma-separated Discord user IDs as API **`ADMIN_DISCORD_IDS`**. Required for **`/sentra-admin`** (slash) to authorize platform operators. |
+| `ADMIN_DISCORD_IDS` | Same comma-separated Discord user IDs as API **`ADMIN_DISCORD_IDS`**. Required for **`/sentra-admin`** and **`/sentra monitor`** (slash) to authorize platform operators. |
+
+## Environment (API)
+
+| Variable | Purpose |
+|----------|---------|
+| `SENTRA_AUTO_TRIAL_DAYS` | If set to a positive number, new guild joins (bot lifecycle) get a **TRIAL** entitlement for that many days instead of **INACTIVE** (so community `/report` works without a manual license step). |
+| `SENTRA_LICENSED_GUILD_IDS` | Optional comma-separated guild snowflakes always treated as **licensed** for community report gating (manual whitelist). |
 
 ## Discord admin slash command
 

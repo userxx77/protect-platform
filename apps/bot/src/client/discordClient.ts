@@ -23,6 +23,7 @@ import {
   sentraAdminCommandData,
   executeSentraAdmin,
 } from '../commands/sentra-admin';
+import { sentraCommandData, executeSentra } from '../commands/sentra';
 import { onGuildMemberAdd } from '../events/guildMemberAdd';
 import { onGuildJoined, onGuildRemoved } from '../events/guildJoinLeave';
 
@@ -83,7 +84,7 @@ export function createDiscordClient(api: ApiClient, env: Env): Client {
       if (i.commandName === 'check') {
         await executeCheck(i, api, client);
       } else if (i.commandName === 'report') {
-        await executeReport(i, api);
+        await executeReport(i, api, env);
       } else if (i.commandName === 'flag') {
         await executeFlag(i, api);
       } else if (i.commandName === 'help') {
@@ -97,6 +98,8 @@ export function createDiscordClient(api: ApiClient, env: Env): Client {
         }
       } else if (i.commandName === 'sentra-admin') {
         await executeSentraAdmin(i, api, env);
+      } else if (i.commandName === 'sentra') {
+        await executeSentra(i, env);
       }
     } catch (e) {
       botLog('error', 'interaction_handler', { error: String(e) });
@@ -132,6 +135,7 @@ export async function registerSlashCommands(env: Env, client: Client): Promise<v
     helpCommandData.toJSON(),
     configCommandData.toJSON(),
     sentraAdminCommandData.toJSON(),
+    sentraCommandData.toJSON(),
   ];
   const maxAttempts = 10;
   let lastErr: unknown;

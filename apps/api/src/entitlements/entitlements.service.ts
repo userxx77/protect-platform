@@ -1,13 +1,28 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { LicenseStatus, MemberSyncState } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class EntitlementsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly licensedGuildAllowlist: Set<string>;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    config: ConfigService,
+  ) {
+    const raw = config.get<string>('SENTRA_LICENSED_GUILD_IDS')?.trim() ?? '';
+    this.licensedGuildAllowlist = new Set(
+      raw
+        .split(',')
+        .map((s) => s.trim())
+        .filter((id) => /^\d{17,20}$/.test(id)),
+    );
+  }
 
   /** Active license: TRIAL or ACTIVE, within validFrom/validUntil window. */
   async isGuildLicensed(guildId: string): Promise<boolean> {
+    if (this.licensedGuildAllowlist.has(guildId)) return true;
     const row = await this.prisma.guildEntitlement.findUnique({
       where: { guildId },
     });

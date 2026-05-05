@@ -1,0 +1,58 @@
+import {
+  SlashCommandBuilder,
+  type ChatInputCommandInteraction,
+  EmbedBuilder,
+} from 'discord.js';
+import { isDiscordPlatformAdmin } from '@protect/shared';
+import type { Env } from '../config/env';
+import { SENTRA_DANGER } from '../embeds/sentra';
+import { embedMonitorHelp, embedOperatorsOnly } from '../embeds/commandEmbeds';
+
+export const sentraCommandData = new SlashCommandBuilder()
+  .setName('sentra')
+  .setDescription('Sentra operator tools')
+  .setDMPermission(false)
+  .addSubcommand((sub) =>
+    sub
+      .setName('monitor')
+      .setDescription('How to run the live event monitor (Redis tail) on your server'),
+  );
+
+export async function executeSentra(
+  interaction: ChatInputCommandInteraction,
+  env: Env,
+): Promise<void> {
+  const sub = interaction.options.getSubcommand(true);
+  if (sub !== 'monitor') {
+    await interaction.reply({
+      ephemeral: true,
+      embeds: [
+        new EmbedBuilder()
+          .setColor(SENTRA_DANGER)
+          .setTitle('Unknown subcommand')
+          .setDescription('Use `/sentra monitor`.'),
+      ],
+    });
+    return;
+  }
+
+  if (!isDiscordPlatformAdmin(interaction.user.id, env.ADMIN_DISCORD_IDS)) {
+    await interaction.reply({
+      ephemeral: true,
+      embeds: [embedOperatorsOnly()],
+    });
+    return;
+  }
+
+  const dash = env.WEB_URL?.replace(/\/$/, '') ?? 'your dashboard';
+  await interaction.reply({
+    ephemeral: true,
+    embeds: [
+      embedMonitorHelp({
+        dashboardHint: dash,
+        opsKeyHint:
+          'Set `SENTRA_OPS_STATS_KEY` in API `.env` (same value everywhere) so the stats footer on the CLI can call `/v1/public/platform-stats`.',
+      }),
+    ],
+  });
+}

@@ -6,9 +6,15 @@ export const SENTRA_WARNING = 0xfee75c;
 export const SENTRA_DANGER = 0xed4245;
 
 const FOOTER = 'Sentra · operator feed';
+const FOOTER_PRODUCT = 'Sentra · reputation & reports';
 
 export function sentraFooter(): { text: string } {
   return { text: FOOTER };
+}
+
+/** Footer for user-facing slash command embeds (non-operator feed). */
+export function productFooter(): { text: string } {
+  return { text: FOOTER_PRODUCT };
 }
 
 /** Discord CDN guild icon (png); pass guild id and icon hash from API/bot. */
