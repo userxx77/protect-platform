@@ -8,10 +8,10 @@ const compact = new Intl.NumberFormat('en', {
 
 export async function applyPresenceFromStats(
   client: Client,
-  stats: { usersTracked: number; serversActive: number },
+  stats: { trackedMemberDistinct: number; guildsActive: number },
 ): Promise<void> {
-  const u = compact.format(stats.usersTracked);
-  const s = stats.serversActive;
+  const u = compact.format(stats.trackedMemberDistinct);
+  const s = stats.guildsActive;
   await client.user?.setPresence({
     status: 'online',
     activities: [

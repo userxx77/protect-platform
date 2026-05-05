@@ -19,6 +19,10 @@ import {
   executeConfigView,
 } from '../commands/config';
 import { helpCommandData, executeHelp } from '../commands/help';
+import {
+  sentraAdminCommandData,
+  executeSentraAdmin,
+} from '../commands/sentra-admin';
 import { onGuildMemberAdd } from '../events/guildMemberAdd';
 import { onGuildJoined, onGuildRemoved } from '../events/guildJoinLeave';
 
@@ -91,6 +95,8 @@ export function createDiscordClient(api: ApiClient, env: Env): Client {
         } else if (sub === 'set') {
           await executeConfigSet(i, api);
         }
+      } else if (i.commandName === 'sentra-admin') {
+        await executeSentraAdmin(i, api, env);
       }
     } catch (e) {
       botLog('error', 'interaction_handler', { error: String(e) });
@@ -125,6 +131,7 @@ export async function registerSlashCommands(env: Env, client: Client): Promise<v
     flagCommandData.toJSON(),
     helpCommandData.toJSON(),
     configCommandData.toJSON(),
+    sentraAdminCommandData.toJSON(),
   ];
   const maxAttempts = 10;
   let lastErr: unknown;

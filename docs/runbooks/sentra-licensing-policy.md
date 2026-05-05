@@ -13,6 +13,16 @@
 | Variable | Purpose |
 |----------|---------|
 | `DISCORD_ADMIN_FEED_CHANNEL_ID` | Optional. Text channel ID where the bot posts embeds for **pending reports**, **guild discovered**, and (via Redis) **member sync** is driven. |
+| `ADMIN_DISCORD_IDS` | Same comma-separated Discord user IDs as API **`ADMIN_DISCORD_IDS`**. Required for **`/sentra-admin`** (slash) to authorize platform operators. |
+
+## Discord admin slash command
+
+In servers where the bot is present, users with a Discord ID listed in **`ADMIN_DISCORD_IDS`** (bot env, mirroring the API) may run:
+
+- **`/sentra-admin license`** — set `guild_id`, `status`, optional `valid_from` / `valid_until` / `plan_code` (calls `POST /v1/bot/admin/guilds/:id/entitlement` with bot key + actor id).
+- **`/sentra-admin sync-members`** — queue member cache sync (`POST /v1/bot/admin/guilds/:id/sync-members`).
+
+Commands are registered in **global** command scope when `DISCORD_GUILD_ID` is unset (production). With dev guild-only registration, register `/sentra-admin` in that same guild scope or temporarily use global registration.
 
 ## Stripe (placeholder)
 

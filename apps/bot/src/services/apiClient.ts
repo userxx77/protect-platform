@@ -14,9 +14,11 @@ function sleep(ms: number): Promise<void> {
 }
 
 export type PublicStats = {
-  usersTracked: number;
-  serversActive: number;
-  capturedAt: string;
+  guildsActive: number;
+  trackedMemberDistinct: number;
+  usersFlagged: number;
+  manualChecksTotal: number;
+  updatedAt: string;
 };
 
 export class ApiClient {
@@ -196,6 +198,41 @@ export class ApiClient {
   async postMembersSyncDone(guildId: string): Promise<unknown> {
     return this.requestJson(`/bot/guild/${guildId}/members/sync-done`, {
       method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async postIncrementCheckCounter(): Promise<unknown> {
+    return this.requestJson('/bot/stats/increment-check', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async postBotAdminEntitlement(
+    guildId: string,
+    actorDiscordId: string,
+    body: {
+      status: string;
+      validFrom: string;
+      validUntil?: string | null;
+      planCode?: string | null;
+    },
+  ): Promise<unknown> {
+    return this.requestJson(`/bot/admin/guilds/${guildId}/entitlement`, {
+      method: 'POST',
+      headers: { 'x-actor-discord-id': actorDiscordId },
+      body: JSON.stringify(body),
+    });
+  }
+
+  async postBotAdminSyncMembers(
+    guildId: string,
+    actorDiscordId: string,
+  ): Promise<unknown> {
+    return this.requestJson(`/bot/admin/guilds/${guildId}/sync-members`, {
+      method: 'POST',
+      headers: { 'x-actor-discord-id': actorDiscordId },
       body: JSON.stringify({}),
     });
   }

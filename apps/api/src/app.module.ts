@@ -27,6 +27,7 @@ import { EntitlementsModule } from './entitlements/entitlements.module';
 import { AdminModule } from './admin/admin.module';
 import { MeModule } from './me/me.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { PublicModule } from './platform-stats/public.module';
 
 @Module({
   imports: [
@@ -89,6 +90,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     AdminModule,
     MeModule,
     WebhooksModule,
+    PublicModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

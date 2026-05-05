@@ -135,6 +135,14 @@ Package script: `pnpm --filter @protect/api run ops:outbox-safe-requeue --`.
 
 No special single-leader worker: new processes join via Redis instance set and claim batches independently.
 
+## Memory on small VPS (e.g. 8&nbsp;GB RAM)
+
+Postgres, Redis, API, worker, bot, and web together can fit comfortably on 8&nbsp;GB if heaps are bounded and you monitor usage.
+
+- **Node heap**: in Compose or systemd, set per service, for example `NODE_OPTIONS=--max-old-space-size=512` (API may use `768` if needed). This caps runaway memory without fixing normal traffic spikes.
+- **Observe**: `docker stats` (or `htop`) after deploy; if a single container grows steadily, inspect logs and heap dumps rather than raising the limit blindly.
+- **Postgres**: keep `shared_buffers` roughly within ~25% of RAM on dedicated DB hosts; on an all-in-one VPS, the default Docker Postgres image is often acceptable — tune only after measuring.
+
 ## Related
 
 - [worker-recovery.md](./worker-recovery.md) — backlog, reclaim, idempotent dispatch, Redis loss.

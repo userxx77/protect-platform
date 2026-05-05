@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export * from './domain-events';
+export * from './admin-discord-ids';
 
 export const flagLevels = [
   'CLEAN',

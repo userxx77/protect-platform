@@ -257,6 +257,18 @@ model ProcessedEvent {
   @@map("processed_events")
 }
 
+/// Rolling aggregates + manual /check counter; refreshed periodically by worker.
+model PlatformStatsSnapshot {
+  id                    String   @id @default("default")
+  guildsActive          Int      @default(0) @map("guilds_active")
+  trackedMemberDistinct Int      @default(0) @map("tracked_member_distinct")
+  usersFlagged          Int      @default(0) @map("users_flagged")
+  manualChecksTotal     Int      @default(0) @map("manual_checks_total")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_stats_snapshot")
+}
+
 /// Stub for future FiveM / Minecraft / resell API keys
 model ApiClient {
   id           String   @id @default(uuid()) @db.Uuid

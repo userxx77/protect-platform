@@ -25,6 +25,7 @@ const schema = z.object({
   PROCESSED_EVENT_TTL_SEC: z.coerce.number().optional(),
   OUTBOX_BACKLOG_WARN: z.coerce.number().optional(),
   OUTBOX_BACKLOG_CRITICAL: z.coerce.number().optional(),
+  PLATFORM_STATS_INTERVAL_MS: z.coerce.number().optional().default(120_000),
 });
 
 export type WorkerEnv = z.infer<typeof schema>;

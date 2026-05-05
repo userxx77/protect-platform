@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
 import { processOutboxBatch } from './dispatch';
 import { runDecayJob } from './decay-job';
+import { runPlatformStatsRefreshSafe } from './platform-stats-job';
 import { loadWorkerEnv } from './env';
 import { logWorker } from './log';
 
@@ -43,6 +44,7 @@ const processedTtlSec = env.PROCESSED_EVENT_TTL_SEC ?? 604800;
 const backlogWarn = env.OUTBOX_BACKLOG_WARN ?? 1000;
 const backlogCritical = env.OUTBOX_BACKLOG_CRITICAL ?? 5000;
 const instanceId = env.WORKER_INSTANCE_ID ?? os.hostname();
+const platformStatsIntervalMs = env.PLATFORM_STATS_INTERVAL_MS ?? 120_000;
 
 let running = true;
 
@@ -125,6 +127,7 @@ async function main(): Promise<void> {
   await waitForDependencies();
 
   let lastDecayAt = 0;
+  let lastPlatformStatsAt = 0;
   logWorker('info', 'worker_started', { batch: effectiveBatch() });
 
   const onStop = (signal: string) => {
@@ -190,6 +193,11 @@ async function main(): Promise<void> {
       } catch (e) {
         logWorker('error', 'decay_job_error', { error: String(e) });
       }
+    }
+
+    if (running && now - lastPlatformStatsAt >= platformStatsIntervalMs) {
+      lastPlatformStatsAt = now;
+      await runPlatformStatsRefreshSafe(prisma);
     }
 
     if (!running) break;

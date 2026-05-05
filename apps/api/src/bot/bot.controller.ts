@@ -1,12 +1,14 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Headers, Param, Post, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiHeader,
   ApiOkResponse,
   ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
-import { PrismaService } from '../prisma/prisma.service';
+import { ConfigService } from '@nestjs/config';
+import { isDiscordPlatformAdmin } from '@protect/shared';
 import { BotOrJwtGuard } from '../auth/bot-or-jwt.guard';
 import { RbacGuard } from '../auth/rbac.guard';
 import { RequireRoles } from '../auth/roles.decorator';
@@ -16,6 +18,9 @@ import { BotProxyServerConfigDto } from '../servers/dto/bot-proxy-server-config.
 import { BotGuildLifecycleDto, BotMembersBatchDto } from '../servers/dto/bot-guild.dto';
 import { ActorKind } from '@prisma/client';
 import { EntitlementsService } from '../entitlements/entitlements.service';
+import { AdminGuildsService } from '../admin/admin-guilds.service';
+import { UpsertEntitlementBodyDto } from '../admin/dto/admin-guilds.dto';
+import { PlatformStatsService } from '../platform-stats/platform-stats.service';
 
 @ApiTags('bot')
 @Controller('bot')
@@ -24,10 +29,23 @@ import { EntitlementsService } from '../entitlements/entitlements.service';
 @UseGuards(BotOrJwtGuard, RbacGuard)
 export class BotController {
   constructor(
-    private readonly prisma: PrismaService,
     private readonly servers: ServersService,
     private readonly entitlements: EntitlementsService,
+    private readonly adminGuilds: AdminGuildsService,
+    private readonly config: ConfigService,
+    private readonly platformStats: PlatformStatsService,
   ) {}
+
+  private assertBotActorAdmin(actorHeader: string | undefined): string {
+    const actor = actorHeader?.trim();
+    if (
+      !actor ||
+      !isDiscordPlatformAdmin(actor, this.config.get<string>('ADMIN_DISCORD_IDS'))
+    ) {
+      throw new ForbiddenException('admin_actor_required');
+    }
+    return actor;
+  }
 
   @Get('guild/:guildId/summary')
   @RequireRoles(AppRole.BOT)
@@ -42,15 +60,39 @@ export class BotController {
     description: 'Aggregated counts for bot presence (no PII)',
   })
   async publicStats() {
-    const [usersTracked, serversActive] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.server.count(),
-    ]);
-    return {
-      usersTracked,
-      serversActive,
-      capturedAt: new Date().toISOString(),
-    };
+    return this.platformStats.getPublicSnapshot();
+  }
+
+  @Post('stats/increment-check')
+  @RequireRoles(AppRole.BOT)
+  @ApiOkResponse({ description: 'Bump manual /check counter' })
+  async incrementCheckCounter() {
+    await this.platformStats.incrementManualChecks();
+    return { ok: true as const };
+  }
+
+  @Post('admin/guilds/:guildId/entitlement')
+  @RequireRoles(AppRole.BOT)
+  @ApiHeader({ name: 'x-actor-discord-id', required: true })
+  @ApiBody({ type: UpsertEntitlementBodyDto })
+  async botUpsertEntitlement(
+    @Param('guildId') guildId: string,
+    @Body() body: UpsertEntitlementBodyDto,
+    @Headers('x-actor-discord-id') actorHeader?: string,
+  ) {
+    const actor = this.assertBotActorAdmin(actorHeader);
+    return this.adminGuilds.upsertEntitlement(guildId, body, actor);
+  }
+
+  @Post('admin/guilds/:guildId/sync-members')
+  @RequireRoles(AppRole.BOT)
+  @ApiHeader({ name: 'x-actor-discord-id', required: true })
+  async botRequestMemberSync(
+    @Param('guildId') guildId: string,
+    @Headers('x-actor-discord-id') actorHeader?: string,
+  ) {
+    this.assertBotActorAdmin(actorHeader);
+    return this.adminGuilds.requestMemberSync(guildId);
   }
 
   @Post('server/config')

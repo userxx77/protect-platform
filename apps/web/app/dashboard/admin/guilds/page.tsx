@@ -1,5 +1,6 @@
 import { dashboardApi } from '@/lib/api-server';
 import Link from 'next/link';
+import { GuildSyncButton } from './guild-sync-button';
 
 type EntRow = {
   guildId: string;
@@ -37,9 +38,10 @@ export default async function AdminGuildsPage() {
     <section className="ds-card">
       <h1 className="ds-h1">Guilds &amp; licenses</h1>
       <p className="ds-muted" style={{ marginTop: '0.35rem' }}>
-        Manage entitlements and member sync via API{' '}
-        <code className="ds-mono">POST /admin/guilds/:id/entitlement</code> and{' '}
-        <code className="ds-mono">POST /admin/guilds/:id/sync-members</code>. This page is read-only.
+        Entitlements: API{' '}
+        <code className="ds-mono">POST /admin/guilds/:id/entitlement</code> or Discord{' '}
+        <code className="ds-mono">/sentra-admin</code>. Member cache: use <strong>Sync now</strong> per row
+        or the same POST as before.
       </p>
       <div className="ds-table-wrap" style={{ marginTop: '1rem' }}>
         <table className="ds-table">
@@ -50,7 +52,7 @@ export default async function AdminGuildsPage() {
               <th>License</th>
               <th>Valid until</th>
               <th>Sync</th>
-              <th>Members</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -62,7 +64,12 @@ export default async function AdminGuildsPage() {
                 <td className="ds-mono">{r.entitlement?.validUntil ?? '—'}</td>
                 <td>{r.entitlement?.memberSyncState ?? '—'}</td>
                 <td>
-                  <Link href={`/dashboard/my-servers/${r.guildId}`} className="ds-muted">
+                  <GuildSyncButton guildId={r.guildId} />
+                  <Link
+                    href={`/dashboard/my-servers/${r.guildId}`}
+                    className="ds-muted"
+                    style={{ display: 'block', marginTop: '0.35rem', fontSize: '0.85rem' }}
+                  >
                     View cache
                   </Link>
                 </td>

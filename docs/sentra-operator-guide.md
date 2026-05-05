@@ -69,7 +69,7 @@ Ensure `.env` has correct `WEB_URL` / `NEXTAUTH_URL` (dashboard host), `NEXT_PUB
 
 If the browser shows **Caddy’s default page** instead of the app, follow **[VPS domain and TLS (Caddy)](runbooks/vps-domain-ssl-caddy.md)** and run `./scripts/verify-vps-routing.sh` on the server.
 
-Licensing, pending reports, and member sync: **[Sentra licensing & roles](runbooks/sentra-licensing-policy.md)**.
+Licensing, pending reports, and member sync: **[Sentra licensing & roles](runbooks/sentra-licensing-policy.md)**. Live Redis event stream: **[sentra-live-tail](runbooks/sentra-live-tail.md)**.
 
 ## Bot capabilities (summary)
 

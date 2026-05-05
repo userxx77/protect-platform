@@ -17,5 +17,6 @@ import { PrismaModule } from '../prisma/prisma.module';
   ],
   controllers: [AdminGuildsController],
   providers: [AdminGuildsService],
+  exports: [AdminGuildsService],
 })
 export class AdminModule {}

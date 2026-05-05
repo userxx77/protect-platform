@@ -30,6 +30,7 @@ export async function executeCheck(
     const u = await api.getUser(target.id);
     const embed = userStatusEmbed(u, 'Protect — user check');
     await interaction.editReply({ embeds: [embed] });
+    void api.postIncrementCheckCounter().catch(() => undefined);
 
     if (!interaction.guildId) return;
 
