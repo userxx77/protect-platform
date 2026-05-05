@@ -67,6 +67,8 @@ docker compose up -d --build
 
 Ensure `.env` has correct `WEB_URL` / `NEXTAUTH_URL` (dashboard host), `NEXT_PUBLIC_API_URL` / `API_PUBLIC_URL` (public `https://api…`), and internal `API_BASE_URL=http://api:3001` for web/bot in Compose. After changing `NEXT_PUBLIC_*`, run `docker compose up -d --build web`.
 
+If the browser shows **Caddy’s default page** instead of the app, follow **[VPS domain and TLS (Caddy)](runbooks/vps-domain-ssl-caddy.md)** and run `./scripts/verify-vps-routing.sh` on the server.
+
 ## Bot capabilities (summary)
 
 - **`/check`**, **`/report`**, **`/flag`** — reputation and intake (API enforces trust for flags).

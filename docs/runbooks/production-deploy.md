@@ -22,6 +22,8 @@ chmod +x setup.sh
 
 Operator-facing overview (dashboard vs bot vs env): see **[Sentra / Protect operator guide](../sentra-operator-guide.md)**.
 
+**Public HTTPS and domain (Caddy on the VPS):** see **[VPS domain and TLS (Caddy)](vps-domain-ssl-caddy.md)** — fix “default Caddy page”, DNS, Let’s Encrypt / Cloudflare, and `reverse_proxy` to Compose ports.
+
 Manual path: ensure `.env` uses Docker hostnames for `DATABASE_URL` / `REDIS_URL` (see `.env.example`), then:
 
 ```bash

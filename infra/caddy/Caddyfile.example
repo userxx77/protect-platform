@@ -2,7 +2,19 @@
 # Copy to your server (e.g. /etc/caddy/Caddyfile), adjust hosts and upstream ports,
 # then: caddy validate --config /etc/caddy/Caddyfile && systemctl reload caddy
 #
+# Full VPS steps: docs/runbooks/vps-domain-ssl-caddy.md
+#
 # Compose: WEB_PUBLISH_PORT=3000, API_PUBLISH_PORT=3001 on 127.0.0.1
+# If you changed publish ports in .env, change the reverse_proxy targets below.
+#
+# Cloudflare + Let’s Encrypt:
+# - HTTP-01 (default) needs DNS "grey cloud" on these names OR plain HTTP to this server :80.
+# - If you keep orange-cloud (proxied), use a Cloudflare Origin certificate:
+#     dashboard.sentra.gg {
+#         tls /etc/ssl/cloudflare/origin.pem /etc/ssl/cloudflare/origin.key
+#         reverse_proxy 127.0.0.1:3000
+#     }
+#   (Create cert in Cloudflare dashboard SSL/TLS -> Origin Server; paths are examples.)
 #
 # Apex → dashboard (recommended): one canonical hostname for OAuth.
 # Option A — redirect at the edge (cookies/session only on dashboard host):
