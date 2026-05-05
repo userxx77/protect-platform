@@ -1,0 +1,28 @@
+# Example reverse proxy for Protect / Sentra (HTTPS via Caddy).
+# Copy to your server (e.g. /etc/caddy/Caddyfile), adjust hosts and upstream ports,
+# then: caddy validate --config /etc/caddy/Caddyfile && systemctl reload caddy
+#
+# Compose: WEB_PUBLISH_PORT=3000, API_PUBLISH_PORT=3001 on 127.0.0.1
+#
+# Apex → dashboard (recommended): one canonical hostname for OAuth.
+# Option A — redirect at the edge (cookies/session only on dashboard host):
+dashboard.sentra.gg {
+	reverse_proxy 127.0.0.1:3000
+}
+
+api.sentra.gg {
+	reverse_proxy 127.0.0.1:3001
+}
+
+sentra.gg, www.sentra.gg {
+	redir https://dashboard.sentra.gg{uri} permanent
+}
+
+# Option B — same app on apex and dashboard: proxy both to 3000 and set in web .env:
+#   NEXT_PUBLIC_APEX_HOSTS=sentra.gg,www.sentra.gg
+#   NEXT_PUBLIC_APP_ORIGIN=https://dashboard.sentra.gg
+# (Rebuild the web image after changing NEXT_PUBLIC_*.)
+#
+# sentra.gg, www.sentra.gg {
+# 	reverse_proxy 127.0.0.1:3000
+# }

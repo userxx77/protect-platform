@@ -7,11 +7,11 @@ export default async function HomePage() {
     <main className="ds-shell-wide">
       <div className="ds-card" style={{ maxWidth: 560 }}>
         <p className="ds-badge" style={{ marginBottom: '0.75rem' }}>
-          Dashboard
+          Sentra
         </p>
         <h1 className="ds-hero-title">Protect</h1>
         <p className="ds-muted" style={{ marginBottom: '1.5rem' }}>
-          Anti-cheat reputation platform — manage flags, server alerts, and audit history.
+          Anti-cheat reputation for your Discord community — flags, server alerts, and audit history in one place.
         </p>
         {session ? (
           <p style={{ margin: 0 }}>

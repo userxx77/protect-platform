@@ -7,6 +7,22 @@ Single-page reference: where to configure things, who is admin, Discord bot beha
 - **Dashboard (Next.js):** sign in with Discord; manage flagged users, **server configuration**, audit log. Paths: `/dashboard`, `/dashboard/config`, `/dashboard/audit`.
 - **API:** application routes live under `https://your-api-host/v1/...` (see Swagger at `/docs` on the API host). Health: `/health`, `/ready` (no `/v1` prefix).
 
+### Production checklist (Sentra.gg)
+
+| Variable | Example | Note |
+|----------|---------|------|
+| `NEXTAUTH_URL` / `WEB_URL` | `https://dashboard.sentra.gg` | Must match the host users open in the browser (OAuth callback). |
+| `NEXT_PUBLIC_API_URL` / `API_PUBLIC_URL` | `https://api.sentra.gg` | Browser calls the API here; not `localhost`. |
+| `API_BASE_URL` (web + bot in Docker) | `http://api:3001` | Internal Compose network only. |
+
+**Discord Developer Portal → OAuth2 → Redirects:** add exactly:
+
+`https://dashboard.sentra.gg/api/auth/callback/discord`
+
+**Apex (`sentra.gg`):** Prefer a **301 redirect** to `https://dashboard.sentra.gg` in your reverse proxy so cookies and Discord callbacks stay on one host — see `infra/caddy/Caddyfile.example`. Alternatively, proxy apex to the same app and set `NEXT_PUBLIC_APEX_HOSTS` + `NEXT_PUBLIC_APP_ORIGIN` in `.env`, then **rebuild** the `web` image.
+
+**Cloudflare:** If Caddy cannot obtain Let’s Encrypt certificates (orange-cloud “proxied” mode), use **DNS only** for the hostnames, or use Cloudflare Origin Certificate / DNS-01.
+
 ## Who can change what
 
 - **Dashboard `POST /v1/server/config`:** requires **ADMIN** (not just “logged in”). Admins are resolved in the API from:
@@ -49,7 +65,7 @@ docker compose up -d --build
 ./validate-deployment.sh
 ```
 
-Ensure `.env` has correct `WEB_URL` / `NEXTAUTH_URL` (dashboard), `NEXT_PUBLIC_API_URL` / `API_PUBLIC_URL`, and internal `API_BASE_URL=http://api:3001` for web/bot in Compose.
+Ensure `.env` has correct `WEB_URL` / `NEXTAUTH_URL` (dashboard host), `NEXT_PUBLIC_API_URL` / `API_PUBLIC_URL` (public `https://api…`), and internal `API_BASE_URL=http://api:3001` for web/bot in Compose. After changing `NEXT_PUBLIC_*`, run `docker compose up -d --build web`.
 
 ## Bot capabilities (summary)
 
