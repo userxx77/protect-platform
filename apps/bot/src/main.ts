@@ -1,5 +1,5 @@
 import { Events } from 'discord.js';
-import http from 'node:http';
+import * as http from 'node:http';
 import { loadEnv } from './config/env';
 import { ApiClient } from './services/apiClient';
 import { createDiscordClient, registerSlashCommands } from './client/discordClient';

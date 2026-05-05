@@ -152,7 +152,11 @@ export class ApiClient {
 function normalizeHeaders(h: RequestInit['headers'] | undefined): Record<string, string> {
   if (!h) return {};
   if (h instanceof Headers) {
-    return Object.fromEntries(h.entries());
+    const out: Record<string, string> = {};
+    h.forEach((value, key) => {
+      out[key] = value;
+    });
+    return out;
   }
   if (Array.isArray(h)) {
     return Object.fromEntries(h) as Record<string, string>;

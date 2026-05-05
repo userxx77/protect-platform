@@ -79,12 +79,19 @@ BOT_API_KEY="$(prompt API_KEY "")"
 
 REDIS_PASSWORD="$(prompt REDIS_PASSWORD optional '')"
 
-echo "Public URLs (no trailing slash), e.g. https://app.example.com and https://api.example.com"
-WEB_URL="$(prompt WEB_URL "http://localhost:3000")"
-API_PUBLIC_URL="$(prompt API_PUBLIC_URL "http://localhost:3001")"
+echo ""
+echo "Public URLs (no trailing slash)."
+echo "  - Dashboard = waar Next.js + Discord OAuth draaien (NEXTAUTH_URL)."
+echo "  - API       = publieke API (browser / NEXT_PUBLIC_API_URL)."
+echo "  - Main site = optioneel (bv. marketing homepage); staat in .env als MAIN_SITE_URL."
 
-if [[ "$WEB_URL" == */ ]]; then WEB_URL="${WEB_URL%/}"; fi
+DASHBOARD_URL="$(prompt DASHBOARD_URL "https://dashboard.example.com")"
+API_PUBLIC_URL="$(prompt API_PUBLIC_URL "https://api.example.com")"
+MAIN_SITE_URL="$(prompt MAIN_SITE_URL optional "")"
+
+if [[ "$DASHBOARD_URL" == */ ]]; then DASHBOARD_URL="${DASHBOARD_URL%/}"; fi
 if [[ "$API_PUBLIC_URL" == */ ]]; then API_PUBLIC_URL="${API_PUBLIC_URL%/}"; fi
+if [[ -n "$MAIN_SITE_URL" && "$MAIN_SITE_URL" == */ ]]; then MAIN_SITE_URL="${MAIN_SITE_URL%/}"; fi
 
 # Docker internal Redis URL
 if [[ -n "$REDIS_PASSWORD" ]]; then
@@ -144,10 +151,15 @@ upsert_kv DASHBOARD_JWT_SECRET "$JWT_SECRET" "$ENV_FILE"
 upsert_kv BOT_API_KEY "$BOT_API_KEY" "$ENV_FILE"
 
 upsert_kv API_BASE_URL "http://api:3001" "$ENV_FILE"
-upsert_kv WEB_URL "$WEB_URL" "$ENV_FILE"
-upsert_kv NEXTAUTH_URL "$WEB_URL" "$ENV_FILE"
+upsert_kv WEB_URL "$DASHBOARD_URL" "$ENV_FILE"
+upsert_kv NEXTAUTH_URL "$DASHBOARD_URL" "$ENV_FILE"
 upsert_kv API_PUBLIC_URL "$API_PUBLIC_URL" "$ENV_FILE"
 upsert_kv NEXT_PUBLIC_API_URL "$API_PUBLIC_URL" "$ENV_FILE"
+if [[ -n "$MAIN_SITE_URL" ]]; then
+  upsert_kv MAIN_SITE_URL "$MAIN_SITE_URL" "$ENV_FILE"
+else
+  remove_kv MAIN_SITE_URL "$ENV_FILE"
+fi
 
 upsert_kv API_PORT "3001" "$ENV_FILE"
 
@@ -157,8 +169,10 @@ docker compose up -d --build
 
 echo ""
 echo "=== Done ==="
-echo "Web dashboard:    $WEB_URL"
-echo "API (public):     $API_PUBLIC_URL  (OpenAPI: $API_PUBLIC_URL/docs)"
+echo "Main site (reference): ${MAIN_SITE_URL:-"(not set — optional)"}"
+echo "Dashboard (Next.js):  $DASHBOARD_URL"
+echo "API (public):         $API_PUBLIC_URL  (OpenAPI: $API_PUBLIC_URL/docs)"
+echo "Discord OAuth redirect must include: ${DASHBOARD_URL}/api/auth/callback/discord"
 echo "Bot: ensure gateway intents (Guilds, Guild Members) are on for your app; slash commands register on bot start."
 echo ".env written at:  $ENV_FILE"
 echo "Validate:          chmod +x validate-deployment.sh && ./validate-deployment.sh"
