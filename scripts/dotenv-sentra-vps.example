@@ -1,0 +1,49 @@
+# Protect / Sentra — voorbeeld-.env op VPS met Docker Compose
+#
+# Eenmalig in de map van je repo (bijv. ~/protect-platform):
+#   cat scripts/dotenv-sentra-vps.example > .env
+#   nano .env
+#
+# Overschrijft .env. Maak eerst een backup als die al bestaat:
+#   cp .env .env.bak
+#
+# Secrets invullen / genereren:
+#   openssl rand -base64 32    → AUTH_SECRET
+#   openssl rand -base64 48    → BOT_API_KEY en hetzelfde voor alle services die het verwachten
+# Zelfde waarde: DASHBOARD_JWT_SECRET overal één lange random string.
+#
+# DATABASE_URL: moet hetzelfde wachtwoord bevatten als POSTGRES_* (Compose zet DB ook via POSTGRES_*).
+
+NODE_ENV=production
+
+POSTGRES_USER=protect
+POSTGRES_PASSWORD=VERVANG_LANG_WACHTWOORD
+POSTGRES_DB=protect
+DATABASE_URL=postgresql://protect:VERVANG_LANG_WACHTWOORD@postgres:5432/protect
+
+REDIS_URL=redis://redis:6379
+
+API_PORT=3001
+API_PUBLIC_URL=https://api.sentra.gg
+BOT_API_KEY=VERVANG_LANG_RANDOM_API_KEY
+DASHBOARD_JWT_SECRET=VERVANG_ZELFDE_JWT_SECRET_ALS_WEB
+
+ADMIN_DISCORD_IDS=JOUW_DISCORD_USER_ID
+
+DISCORD_BOT_TOKEN=
+DISCORD_APPLICATION_ID=
+
+API_BASE_URL=http://api:3001
+
+WEB_URL=https://dashboard.sentra.gg
+NEXTAUTH_URL=https://dashboard.sentra.gg
+AUTH_SECRET=VERVANG_openssl_rand_base64_32
+DISCORD_CLIENT_ID=
+DISCORD_CLIENT_SECRET=
+
+NEXT_PUBLIC_API_URL=https://api.sentra.gg
+
+# Alleen nodig als sentra.gg óók naar dezelfde app gaat (proxy) i.p.v. alleen Caddy-redirect.
+# Na uncomment: docker compose up -d --build web
+# NEXT_PUBLIC_APEX_HOSTS=sentra.gg,www.sentra.gg
+# NEXT_PUBLIC_APP_ORIGIN=https://dashboard.sentra.gg
