@@ -90,8 +90,18 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-export async function registerSlashCommands(env: Env): Promise<void> {
+/**
+ * Ensures slash commands exist in exactly one scope:
+ * - Guild mode: clears ALL global commands; clears guild command lists for every
+ *   guild the bot is in; then registers only in DISCORD_GUILD_ID.
+ * - Global mode: clears guild-scoped command lists for every guild the bot is in
+ *   (removes stale copies that stack with global), then registers globally only.
+ *
+ * Must run after Client ready so `client.guilds` is populated for global cleanup.
+ */
+export async function registerSlashCommands(env: Env, client: Client): Promise<void> {
   const rest = new REST().setToken(env.DISCORD_BOT_TOKEN);
+  const appId = env.DISCORD_APPLICATION_ID;
   const body = [
     checkCommandData.toJSON(),
     reportCommandData.toJSON(),
@@ -104,14 +114,26 @@ export async function registerSlashCommands(env: Env): Promise<void> {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      // Register in ONE scope only. Doing both global + guild shows duplicate
-      // slash commands in that guild (same names appear twice in the picker).
       if (env.DISCORD_GUILD_ID) {
+        await rest.put(Routes.applicationCommands(appId), { body: [] });
+        botLog('info', 'slash_cleared_global_before_guild', {
+          attempt,
+          guildId: env.DISCORD_GUILD_ID,
+        });
+        const guildsForClear = [...client.guilds.cache.values()];
+        const paceGuild = guildsForClear.length > 20 ? 75 : guildsForClear.length > 5 ? 35 : 0;
+        for (const g of guildsForClear) {
+          await rest.put(Routes.applicationGuildCommands(appId, g.id), {
+            body: [],
+          });
+          if (paceGuild) await sleep(paceGuild);
+        }
+        botLog('info', 'slash_cleared_all_guild_scopes_dev', {
+          attempt,
+          clearedGuilds: guildsForClear.length,
+        });
         await rest.put(
-          Routes.applicationGuildCommands(
-            env.DISCORD_APPLICATION_ID,
-            env.DISCORD_GUILD_ID,
-          ),
+          Routes.applicationGuildCommands(appId, env.DISCORD_GUILD_ID),
           { body },
         );
         botLog('info', 'slash_commands_registered_guild_only', {
@@ -119,9 +141,21 @@ export async function registerSlashCommands(env: Env): Promise<void> {
           guildId: env.DISCORD_GUILD_ID,
         });
       } else {
-        await rest.put(Routes.applicationCommands(env.DISCORD_APPLICATION_ID), {
-          body,
+        const guilds = [...client.guilds.cache.values()];
+        let cleared = 0;
+        const paceMs = guilds.length > 20 ? 75 : guilds.length > 5 ? 35 : 0;
+        for (const g of guilds) {
+          await rest.put(Routes.applicationGuildCommands(appId, g.id), {
+            body: [],
+          });
+          cleared++;
+          if (paceMs) await sleep(paceMs);
+        }
+        botLog('info', 'slash_cleared_guild_scopes', {
+          attempt,
+          guildCount: cleared,
         });
+        await rest.put(Routes.applicationCommands(appId), { body });
         botLog('info', 'slash_commands_registered_global', { attempt });
       }
       return;

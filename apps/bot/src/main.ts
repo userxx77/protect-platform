@@ -36,10 +36,14 @@ async function main() {
           dedupe: env.BOT_EVENT_DEDUPE,
         })
       : null;
-  await registerSlashCommands(env);
   const client = createDiscordClient(api, env);
   let stopPresence: (() => void) | undefined;
-  client.once(Events.ClientReady, () => {
+  client.once(Events.ClientReady, async () => {
+    try {
+      await registerSlashCommands(env, client);
+    } catch (e) {
+      botLog('error', 'slash_sync_failed', { error: String(e) });
+    }
     if (env.BOT_HEALTH_PORT != null) {
       startBotHealth(env.BOT_HEALTH_PORT!);
     }

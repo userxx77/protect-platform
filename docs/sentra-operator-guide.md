@@ -22,21 +22,23 @@ Configure **alert channel** and **minimum flag level** in the dashboard (Server 
 
 ## Slash commands and `DISCORD_GUILD_ID`
 
-The bot registers **either** global **or** guild scoped commands (never both), so you do not get duplicate `/check`, `/report`, `/flag` in one guild.
+On each **Discord ready**, the bot **reconciles** commands so you should only see **one** set per guild:
+
+- **Global mode** (`DISCORD_GUILD_ID` empty): clears **all global** definitions’ competing **guild** command lists (for every guild the bot is currently in), then registers **global** commands only. That removes old guild-scoped copies that were stacking with global (duplicate `/report`, etc.).
+- **Guild mode** (`DISCORD_GUILD_ID` set): clears **global** commands, clears **guild** command lists for every guild in cache, then registers commands **only** on that guild id (dev / single-guild instant updates).
+
+Sync runs **after** the gateway connection is ready so the guild list is known. Very large guild counts add a short startup delay due to per-guild API calls.
 
 | `.env` | Behavior |
 |--------|----------|
-| `DISCORD_GUILD_ID` **empty** | **Global** commands — all servers; Discord can take up to ~1 hour to sync new/updated commands. |
-| `DISCORD_GUILD_ID` **set** | **Guild-only** commands for that id — instant, but **only that guild** sees the commands. |
+| `DISCORD_GUILD_ID` **empty** | **Global** commands — all servers; initial Discord sync can take up to ~1 hour for some clients. |
+| `DISCORD_GUILD_ID` **set** | **Guild-only** for that id — instant in that guild; others have no commands until you switch back to global. |
 
-**Production / multi-guild:** leave `DISCORD_GUILD_ID` empty after you no longer need instant dev registration.
+**Production / multi-guild:** leave `DISCORD_GUILD_ID` empty.
 
-### Cleaning up old duplicate guild commands (one-time)
+### If duplicates still appear
 
-If you previously had duplicates from an older build:
-
-1. Deploy the current bot image, then in the [Discord Developer Portal](https://discord.com/developers/applications) restart or clear application commands for the test guild if needed, **or**
-2. Call Discord’s REST API: `PUT /applications/{app.id}/guilds/{guild.id}/commands` with body `[]` to clear guild commands, then restart the bot so it re-registers a single set.
+Restart the bot after deploy so reconciliation runs. Client-side, try reloading Discord (Ctrl+R). Rarely, wait for global command propagation.
 
 ## After deploy on the VPS
 
