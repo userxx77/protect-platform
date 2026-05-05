@@ -6,6 +6,7 @@
     "sentra-tail": "./dist/index.js"
   },
   "scripts": {
+    "prebuild": "pnpm --filter @protect/shared run build",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "lint": "echo ok"
