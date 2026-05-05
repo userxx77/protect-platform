@@ -5,7 +5,12 @@ import { botLog } from '../log';
 import type { ApiClient } from './apiClient';
 import type { Env } from '../config/env';
 import { syncGuildMembersToApi } from './memberSync';
-import { sendAdminFeedMessage } from './adminFeed';
+import { sendAdminFeedEmbed } from './adminFeed';
+import {
+  embedGuildDiscovered,
+  embedReportPending,
+  embedUnknownGuildSync,
+} from '../embeds/sentra';
 
 const CHANNELS = [
   'protect:user.flagged',
@@ -78,49 +83,52 @@ export function startEventSubscriber(
         if (env.type === 'guild.members.sync') {
           const gid = env.payload?.guildId;
           if (gid) {
-            const g = client.guilds.cache.get(gid);
-            if (g) {
-              await syncGuildMembersToApi(g, api);
-            } else {
-              botLog('warn', 'member_sync_guild_not_cached', { guildId: gid });
+            let g = client.guilds.cache.get(gid);
+            if (!g) {
+              try {
+                g = await client.guilds.fetch(gid);
+              } catch {
+                await sendAdminFeedEmbed(
+                  client,
+                  botEnv,
+                  embedUnknownGuildSync({ guildId: gid }),
+                );
+                botLog('warn', 'member_sync_guild_fetch_failed', { guildId: gid });
+                return;
+              }
             }
+            await syncGuildMembersToApi(g, api, client, botEnv);
           }
           return;
         }
 
         if (env.type === 'report.pending') {
           const { reportId, targetDiscordId, reporterDiscordId, guildId } = env.payload;
-          await sendAdminFeedMessage(
+          await sendAdminFeedEmbed(
             client,
             botEnv,
-            'Report pending review',
-            [
-              `Report **${reportId ?? '—'}**`,
-              `Target: <@${targetDiscordId ?? '0'}> (\`${targetDiscordId ?? '—'}\`)`,
-              `Reporter: <@${reporterDiscordId ?? '0'}>`,
-              guildId ? `Guild: \`${guildId}\`` : '',
-            ]
-              .filter(Boolean)
-              .join('\n'),
+            embedReportPending({
+              reportId,
+              targetDiscordId,
+              reporterDiscordId,
+              guildId: guildId ?? undefined,
+            }),
           );
           return;
         }
 
         if (env.type === 'guild.discovered') {
           const { guildId, name, approximateMemberCount } = env.payload;
-          await sendAdminFeedMessage(
+          const g = guildId ? client.guilds.cache.get(guildId) : undefined;
+          await sendAdminFeedEmbed(
             client,
             botEnv,
-            'Bot joined a server',
-            [
-              `**${name ?? 'Unknown guild'}**`,
-              guildId ? `ID: \`${guildId}\`` : '',
-              approximateMemberCount != null
-                ? `~${approximateMemberCount} members`
-                : '',
-            ]
-              .filter(Boolean)
-              .join('\n'),
+            embedGuildDiscovered({
+              guildId: guildId ?? '—',
+              name: name ?? null,
+              approximateMemberCount: approximateMemberCount ?? null,
+              iconHash: g?.icon ?? null,
+            }),
           );
           return;
         }

@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthOnlyGuard } from '../auth/jwt-admin.guard';
 import { RbacGuard } from '../auth/rbac.guard';
@@ -7,6 +7,7 @@ import { RequireRoles } from '../auth/roles.decorator';
 import { AppRole, type RequestPrincipal } from '../auth/auth.types';
 import { AdminGuildsService } from './admin-guilds.service';
 import { UpsertEntitlementBodyDto } from './dto/admin-guilds.dto';
+import { PlatformStatsService } from '../platform-stats/platform-stats.service';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -14,7 +15,16 @@ import { UpsertEntitlementBodyDto } from './dto/admin-guilds.dto';
 @UseGuards(JwtAuthOnlyGuard, RbacGuard)
 @RequireRoles(AppRole.ADMIN)
 export class AdminGuildsController {
-  constructor(private readonly adminGuilds: AdminGuildsService) {}
+  constructor(
+    private readonly adminGuilds: AdminGuildsService,
+    private readonly platformStats: PlatformStatsService,
+  ) {}
+
+  @Get('admin/platform-stats')
+  @ApiOkResponse({ description: 'Platform snapshot for dashboard admins' })
+  platformStatsSnapshot() {
+    return this.platformStats.getPublicSnapshot();
+  }
 
   @Get('admin/guilds')
   list() {

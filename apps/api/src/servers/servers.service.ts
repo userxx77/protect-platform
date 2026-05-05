@@ -5,6 +5,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { UpsertServerConfigDto } from './dto/server-config.dto';
 import { OutboxService } from '../events/outbox.service';
+import { EntitlementsService } from '../entitlements/entitlements.service';
+
+export type GuildMemberBatchRow = {
+  discordUserId: string;
+  username?: string | null;
+  globalName?: string | null;
+  avatarHash?: string | null;
+};
 
 @Injectable()
 export class ServersService {
@@ -12,6 +20,7 @@ export class ServersService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly outbox: OutboxService,
+    private readonly entitlements: EntitlementsService,
   ) {}
 
   async getByGuildId(guildId: string) {
@@ -89,6 +98,9 @@ export class ServersService {
     discordName?: string | null;
     iconHash?: string | null;
     approximateMemberCount?: number | null;
+    ownerDiscordId?: string | null;
+    vanityUrlCode?: string | null;
+    premiumTier?: number | null;
     event: 'join' | 'leave';
   }): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
@@ -101,6 +113,9 @@ export class ServersService {
           discordName: dto.discordName ?? null,
           iconHash: dto.iconHash ?? null,
           approximateMemberCount: dto.approximateMemberCount ?? null,
+          ownerDiscordId: dto.ownerDiscordId ?? null,
+          vanityUrlCode: dto.vanityUrlCode ?? null,
+          premiumTier: dto.premiumTier ?? null,
           botJoinedAt: dto.event === 'join' ? new Date() : null,
           removedAt,
         },
@@ -108,6 +123,9 @@ export class ServersService {
           discordName: dto.discordName ?? undefined,
           iconHash: dto.iconHash ?? undefined,
           approximateMemberCount: dto.approximateMemberCount ?? undefined,
+          ownerDiscordId: dto.ownerDiscordId ?? undefined,
+          vanityUrlCode: dto.vanityUrlCode ?? undefined,
+          premiumTier: dto.premiumTier ?? undefined,
           ...(dto.event === 'join'
             ? { botJoinedAt: new Date(), removedAt: null }
             : { removedAt }),
@@ -155,21 +173,49 @@ export class ServersService {
 
   async batchUpsertGuildMembers(
     guildId: string,
-    discordUserIds: string[],
+    members: GuildMemberBatchRow[],
     source = 'SYNC',
-  ): Promise<{ inserted: number }> {
-    if (discordUserIds.length === 0) return { inserted: 0 };
-    const data = discordUserIds.map((discordUserId) => ({
-      id: randomUUID(),
-      guildId,
-      discordUserId,
-      source,
-    }));
-    const r = await this.prisma.guildMemberCache.createMany({
-      data,
-      skipDuplicates: true,
+  ): Promise<{ upserted: number }> {
+    if (members.length === 0) return { upserted: 0 };
+
+    const ent = await this.prisma.guildEntitlement.findUnique({
+      where: { guildId },
+      select: { memberSyncState: true },
     });
-    return { inserted: r.count };
+    if (ent?.memberSyncState === MemberSyncState.QUEUED) {
+      await this.entitlements.setMemberSyncState(guildId, MemberSyncState.RUNNING);
+    }
+
+    let n = 0;
+    await this.prisma.$transaction(async (tx) => {
+      for (const m of members) {
+        await tx.guildMemberCache.upsert({
+          where: {
+            guildId_discordUserId: {
+              guildId,
+              discordUserId: m.discordUserId,
+            },
+          },
+          create: {
+            id: randomUUID(),
+            guildId,
+            discordUserId: m.discordUserId,
+            username: m.username ?? null,
+            globalName: m.globalName ?? null,
+            avatarHash: m.avatarHash ?? null,
+            source,
+          },
+          update: {
+            username: m.username ?? null,
+            globalName: m.globalName ?? null,
+            avatarHash: m.avatarHash ?? null,
+            source,
+          },
+        });
+        n += 1;
+      }
+    });
+    return { upserted: n };
   }
 
   async markMemberSyncIdle(guildId: string): Promise<void> {

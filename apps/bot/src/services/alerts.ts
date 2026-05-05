@@ -1,4 +1,5 @@
 import { EmbedBuilder, type ColorResolvable } from 'discord.js';
+import { SENTRA_PRIMARY, sentraFooter } from '../embeds/sentra';
 
 const levelColors: Record<string, ColorResolvable> = {
   CLEAN: 0x57f287,
@@ -24,7 +25,7 @@ export function userStatusEmbed(
   user: { discordId: string; flagLevel: string; flagScore: number; flagCount?: number },
   title: string,
 ): EmbedBuilder {
-  const color = levelColors[user.flagLevel] ?? 0x5865f2;
+  const color = levelColors[user.flagLevel] ?? SENTRA_PRIMARY;
   return new EmbedBuilder()
     .setTitle(title)
     .setColor(color)
@@ -38,6 +39,7 @@ export function userStatusEmbed(
         inline: true,
       },
     )
+    .setFooter(sentraFooter())
     .setTimestamp(new Date());
 }
 
@@ -45,7 +47,7 @@ export function alertEmbed(
   user: { discordId: string; flagLevel: string; flagScore: number },
   context: string,
 ): EmbedBuilder {
-  const e = userStatusEmbed(user, 'Protect — reputation alert');
+  const e = userStatusEmbed(user, 'Sentra — reputation alert');
   e.setDescription(context);
   return e;
 }

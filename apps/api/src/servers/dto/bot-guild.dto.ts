@@ -1,5 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsOptional, IsString, Matches } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  ValidateNested,
+} from 'class-validator';
 
 export class BotGuildLifecycleDto {
   @ApiProperty()
@@ -24,11 +32,50 @@ export class BotGuildLifecycleDto {
   @ApiPropertyOptional()
   @IsOptional()
   approximateMemberCount?: number | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{17,20}$/)
+  ownerDiscordId?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  vanityUrlCode?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  premiumTier?: number | null;
+}
+
+export class GuildMemberBatchItemDto {
+  @ApiProperty()
+  @IsString()
+  @Matches(/^\d{17,20}$/)
+  discordUserId!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  username?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  globalName?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  avatarHash?: string | null;
 }
 
 export class BotMembersBatchDto {
-  @ApiProperty({ type: [String] })
+  @ApiProperty({ type: [GuildMemberBatchItemDto] })
   @IsArray()
-  @Matches(/^\d{17,20}$/, { each: true })
-  discordUserIds!: string[];
+  @ValidateNested({ each: true })
+  @Type(() => GuildMemberBatchItemDto)
+  members!: GuildMemberBatchItemDto[];
 }

@@ -1,10 +1,18 @@
 import Link from 'next/link';
 import { auth } from '@/auth';
 import { dashboardApi } from '@/lib/api-server';
+import { userAvatarUrl } from '@/lib/discord-cdn';
 
 type MembersRes = {
   guildId: string;
-  items: Array<{ discordUserId: string; firstSeenAt: string; source: string }>;
+  items: Array<{
+    discordUserId: string;
+    username: string | null;
+    globalName: string | null;
+    avatarHash: string | null;
+    firstSeenAt: string;
+    source: string;
+  }>;
 };
 
 export default async function GuildMembersPage({
@@ -50,19 +58,40 @@ export default async function GuildMembersPage({
         <table className="ds-table">
           <thead>
             <tr>
-              <th>Discord user</th>
+              <th aria-label="Avatar" />
+              <th>Member</th>
+              <th>Username</th>
+              <th>User ID</th>
               <th>First seen</th>
               <th>Source</th>
             </tr>
           </thead>
           <tbody>
-            {data.items.map((r) => (
-              <tr key={r.discordUserId}>
-                <td className="ds-mono">{r.discordUserId}</td>
-                <td className="ds-mono">{r.firstSeenAt}</td>
-                <td>{r.source}</td>
-              </tr>
-            ))}
+            {data.items.map((r) => {
+              const av = userAvatarUrl(r.discordUserId, r.avatarHash);
+              const display = r.globalName?.trim() || r.username?.trim() || null;
+              return (
+                <tr key={r.discordUserId}>
+                  <td style={{ width: 44, verticalAlign: 'middle' }}>
+                    {av ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={av} alt="" width={32} height={32} style={{ borderRadius: '50%' }} />
+                    ) : (
+                      <span className="ds-muted">—</span>
+                    )}
+                  </td>
+                  <td>{display ?? <span className="ds-muted">—</span>}</td>
+                  <td className="ds-mono" style={{ fontSize: '0.88rem' }}>
+                    {r.username ? `@${r.username}` : '—'}
+                  </td>
+                  <td className="ds-mono" style={{ fontSize: '0.85rem' }}>
+                    {r.discordUserId}
+                  </td>
+                  <td className="ds-mono">{r.firstSeenAt}</td>
+                  <td>{r.source}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

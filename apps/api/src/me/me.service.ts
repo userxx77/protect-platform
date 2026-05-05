@@ -82,6 +82,9 @@ export class MeService {
       take: 500,
       select: {
         discordUserId: true,
+        username: true,
+        globalName: true,
+        avatarHash: true,
         firstSeenAt: true,
         source: true,
       },
@@ -91,6 +94,9 @@ export class MeService {
       guildId,
       items: rows.map((r) => ({
         discordUserId: r.discordUserId,
+        username: r.username,
+        globalName: r.globalName,
+        avatarHash: r.avatarHash,
         firstSeenAt: r.firstSeenAt.toISOString(),
         source: r.source,
       })),

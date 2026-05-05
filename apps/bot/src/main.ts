@@ -43,6 +43,10 @@ async function main() {
       subStop = startEventSubscriber(env.REDIS_URL, api, client, env, {
         dedupe: env.BOT_EVENT_DEDUPE,
       });
+    } else {
+      botLog('warn', 'redis_url_missing_subscriber_disabled', {
+        msg: 'Member sync and domain-event fan-out require REDIS_URL on the bot.',
+      });
     }
     if (env.BOT_HEALTH_PORT != null) {
       startBotHealth(env.BOT_HEALTH_PORT!);

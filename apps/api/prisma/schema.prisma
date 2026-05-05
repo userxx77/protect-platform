@@ -145,6 +145,9 @@ model Server {
   approximateMemberCount Int? @map("approximate_member_count")
   botJoinedAt       DateTime? @map("bot_joined_at")
   removedAt         DateTime? @map("removed_at")
+  ownerDiscordId    String?   @map("owner_discord_id")
+  vanityUrlCode     String?   @map("vanity_url_code")
+  premiumTier       Int?      @map("premium_tier")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -177,6 +180,9 @@ model GuildMemberCache {
   id              String   @id @default(uuid()) @db.Uuid
   guildId         String   @map("guild_id")
   discordUserId   String   @map("discord_user_id")
+  username        String?  @map("username")
+  globalName      String?  @map("global_name")
+  avatarHash      String?  @map("avatar_hash")
   firstSeenAt     DateTime @default(now()) @map("first_seen_at")
   source          String   @default("SYNC") @map("source")
 

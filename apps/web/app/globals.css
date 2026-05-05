@@ -316,6 +316,15 @@ code {
   margin-bottom: 0.5rem;
 }
 
+.ds-nav-group-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 0.35rem 0.75rem 0.2rem;
+}
+
 .ds-nav-link {
   display: block;
   padding: 0.55rem 0.75rem;

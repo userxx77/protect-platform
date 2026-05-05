@@ -181,6 +181,9 @@ export class ApiClient {
     discordName?: string | null;
     iconHash?: string | null;
     approximateMemberCount?: number | null;
+    ownerDiscordId?: string | null;
+    vanityUrlCode?: string | null;
+    premiumTier?: number | null;
   }): Promise<unknown> {
     return this.requestJson('/bot/guild/lifecycle', {
       method: 'POST',
@@ -188,10 +191,18 @@ export class ApiClient {
     });
   }
 
-  async postMembersBatch(guildId: string, discordUserIds: string[]): Promise<{ inserted: number }> {
-    return this.requestJson<{ inserted: number }>(`/bot/guild/${guildId}/members/batch`, {
+  async postMembersBatch(
+    guildId: string,
+    members: Array<{
+      discordUserId: string;
+      username?: string | null;
+      globalName?: string | null;
+      avatarHash?: string | null;
+    }>,
+  ): Promise<{ upserted: number }> {
+    return this.requestJson<{ upserted: number }>(`/bot/guild/${guildId}/members/batch`, {
       method: 'POST',
-      body: JSON.stringify({ discordUserIds }),
+      body: JSON.stringify({ members }),
     });
   }
 

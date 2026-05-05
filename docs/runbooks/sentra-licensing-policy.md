@@ -41,6 +41,10 @@ Commands are registered in **global** command scope when `DISCORD_GUILD_ID` is u
 
 Non-admin requests must include their manageable guild ids in `manageable` so the API can enforce scope.
 
+### Cached member identity fields
+
+`guild_member_cache` may store **Discord usernames**, **global display names**, and **avatar hashes** (not full CDN URLs) to power dashboard and operator tooling. This is intentional for support and moderation workflows; avoid retaining rows longer than your product policy requires and restrict database exports accordingly.
+
 ## Migrations
 
 After deploy, from repo root (or `apps/api`):

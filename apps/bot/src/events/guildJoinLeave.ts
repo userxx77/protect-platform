@@ -8,6 +8,9 @@ export async function onGuildJoined(guild: Guild, api: ApiClient): Promise<void>
     discordName: guild.name,
     iconHash: guild.icon,
     approximateMemberCount: guild.memberCount,
+    ownerDiscordId: guild.ownerId,
+    vanityUrlCode: guild.vanityURLCode,
+    premiumTier: guild.premiumTier,
   });
 }
 
@@ -18,5 +21,8 @@ export async function onGuildRemoved(guild: Guild, api: ApiClient): Promise<void
     discordName: guild.name,
     iconHash: guild.icon,
     approximateMemberCount: guild.memberCount,
+    ownerDiscordId: guild.ownerId,
+    vanityUrlCode: guild.vanityURLCode,
+    premiumTier: guild.premiumTier,
   });
 }

@@ -1,11 +1,16 @@
 import { dashboardApi } from '@/lib/api-server';
 import Link from 'next/link';
+import { guildIconUrl } from '@/lib/discord-cdn';
 import { GuildSyncButton } from './guild-sync-button';
 
 type EntRow = {
   guildId: string;
   discordName: string | null;
+  iconHash: string | null;
   approximateMemberCount: number | null;
+  ownerDiscordId: string | null;
+  vanityUrlCode: string | null;
+  premiumTier: number | null;
   botJoinedAt: string | null;
   removedAt: string | null;
   updatedAt: string;
@@ -47,8 +52,10 @@ export default async function AdminGuildsPage() {
         <table className="ds-table">
           <thead>
             <tr>
+              <th aria-label="Icon" />
               <th>Name</th>
               <th>Guild ID</th>
+              <th>Owner</th>
               <th>License</th>
               <th>Valid until</th>
               <th>Sync</th>
@@ -56,10 +63,28 @@ export default async function AdminGuildsPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {rows.map((r) => {
+              const ic = guildIconUrl(r.guildId, r.iconHash);
+              return (
               <tr key={r.guildId}>
-                <td>{r.discordName ?? '—'}</td>
+                <td style={{ width: 48 }}>
+                  {ic ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={ic} alt="" width={36} height={36} style={{ borderRadius: 8 }} />
+                  ) : (
+                    <span className="ds-muted">—</span>
+                  )}
+                </td>
+                <td>
+                  {r.discordName ?? '—'}
+                  {r.vanityUrlCode ? (
+                    <span className="ds-muted" style={{ display: 'block', fontSize: '0.8rem' }}>
+                      .gg/{r.vanityUrlCode}
+                    </span>
+                  ) : null}
+                </td>
                 <td className="ds-mono">{r.guildId}</td>
+                <td className="ds-mono">{r.ownerDiscordId ?? '—'}</td>
                 <td>{r.entitlement?.status ?? '—'}</td>
                 <td className="ds-mono">{r.entitlement?.validUntil ?? '—'}</td>
                 <td>{r.entitlement?.memberSyncState ?? '—'}</td>
@@ -74,7 +99,7 @@ export default async function AdminGuildsPage() {
                   </Link>
                 </td>
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
       </div>

@@ -127,9 +127,15 @@ async function formatLine(
   return `${head}\n  ${pc.dim(JSON.stringify(p))}`;
 }
 
+function opsStatsHeaders(): Record<string, string> | undefined {
+  const k = process.env.SENTRA_OPS_STATS_KEY?.trim();
+  if (!k) return undefined;
+  return { Authorization: `Bearer ${k}` };
+}
+
 async function printStatsFooter(url: string): Promise<void> {
   try {
-    const r = await fetch(url);
+    const r = await fetch(url, { headers: opsStatsHeaders() });
     if (!r.ok) return;
     const s = (await r.json()) as {
       guildsActive?: number;
@@ -162,6 +168,14 @@ async function main(): Promise<void> {
   const statsUrl = apiBase.includes('/v1')
     ? `${apiBase}/public/platform-stats`
     : `${apiBase}/v1/public/platform-stats`;
+
+  if (statsSec > 0 && !process.env.SENTRA_OPS_STATS_KEY?.trim()) {
+    process.stderr.write(
+      pc.yellow(
+        'SENTRA_OPS_STATS_KEY is unset — platform-stats footer requests will fail until you set it (same value as API).\n',
+      ),
+    );
+  }
 
   process.stdout.write(
     pc.green(

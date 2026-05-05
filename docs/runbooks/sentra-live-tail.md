@@ -18,6 +18,7 @@ pnpm --filter @protect/ops-cli run build
 | `REDIS_URL` | **Required.** Same Redis as API/worker/bot. |
 | `DISCORD_BOT_TOKEN` | Optional. Enables `--enrich` name resolution via Discord REST. |
 | `API_PUBLIC_URL` or `API_BASE_URL` | Base URL for periodic stats (default `http://127.0.0.1:3001`). Used to call `GET /v1/public/platform-stats`. |
+| `SENTRA_OPS_STATS_KEY` | **Required** for the stats footer when `--stats-interval` > 0. Must match the API env value; the CLI sends `Authorization: Bearer …`. |
 
 ## Run
 
@@ -34,14 +35,14 @@ pnpm --filter @protect/ops-cli exec node apps/ops-cli/dist/index.js
 Flags:
 
 - **`--enrich`** — resolve Discord usernames and guild names (needs `DISCORD_BOT_TOKEN`). Without it, IDs are shown.
-- **`--stats-interval=N`** — seconds between summary lines from the public stats API (default `30`, max `600`).
+- **`--stats-interval=N`** — seconds between summary lines from the operator-only stats API (default `30`, max `600`). Requires **`SENTRA_OPS_STATS_KEY`** in the environment (same secret as the API).
 
 ## Docker Compose (one-off)
 
 From the host with Compose network access (replace network and Redis URL as appropriate):
 
 ```bash
-docker compose run --rm -e REDIS_URL=redis://redis:6379 -e API_BASE_URL=http://api:3001 ops-cli
+docker compose run --rm -e REDIS_URL=redis://redis:6379 -e API_BASE_URL=http://api:3001 -e SENTRA_OPS_STATS_KEY="$SENTRA_OPS_STATS_KEY" ops-cli
 ```
 
 Add a `ops-cli` service in `docker-compose.yml` only if you want this pattern regularly; otherwise run the binary on the host with `REDIS_URL` pointing at the published port.

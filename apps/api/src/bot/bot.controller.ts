@@ -121,7 +121,7 @@ export class BotController {
     @Param('guildId') guildId: string,
     @Body() body: BotMembersBatchDto,
   ) {
-    return this.servers.batchUpsertGuildMembers(guildId, body.discordUserIds);
+    return this.servers.batchUpsertGuildMembers(guildId, body.members);
   }
 
   @Post('guild/:guildId/members/sync-done')

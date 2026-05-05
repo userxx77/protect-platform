@@ -23,7 +23,11 @@ export class AdminGuildsService {
     return rows.map((r) => ({
       guildId: r.guildId,
       discordName: r.discordName,
+      iconHash: r.iconHash,
       approximateMemberCount: r.approximateMemberCount,
+      ownerDiscordId: r.ownerDiscordId,
+      vanityUrlCode: r.vanityUrlCode,
+      premiumTier: r.premiumTier,
       botJoinedAt: r.botJoinedAt?.toISOString() ?? null,
       removedAt: r.removedAt?.toISOString() ?? null,
       updatedAt: r.updatedAt.toISOString(),
