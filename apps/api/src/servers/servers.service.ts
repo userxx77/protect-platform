@@ -22,6 +22,24 @@ export class ServersService {
     };
   }
 
+  async listSummaries() {
+    const rows = await this.prisma.server.findMany({
+      orderBy: { updatedAt: 'desc' },
+      select: { guildId: true, config: true, updatedAt: true },
+    });
+    return rows.map((r) => {
+      const cfg = (r.config ?? {}) as Record<string, unknown>;
+      return {
+        guildId: r.guildId,
+        updatedAt: r.updatedAt.toISOString(),
+        alertChannelId:
+          typeof cfg.alertChannelId === 'string' ? cfg.alertChannelId : null,
+        alertMinLevel:
+          typeof cfg.alertMinLevel === 'string' ? cfg.alertMinLevel : null,
+      };
+    });
+  }
+
   async upsertConfig(
     dto: UpsertServerConfigDto,
     actorDiscordId: string,

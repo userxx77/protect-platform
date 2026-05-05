@@ -8,11 +8,13 @@ declare module 'next-auth' {
       email?: string | null;
       image?: string | null;
     };
+    manageableGuilds: { id: string; name: string }[];
   }
 }
 
 declare module 'next-auth/jwt' {
   interface JWT {
     discordId?: string;
+    manageableGuilds?: { id: string; name: string }[];
   }
 }

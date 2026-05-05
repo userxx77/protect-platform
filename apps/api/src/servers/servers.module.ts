@@ -8,5 +8,6 @@ import { EventsModule } from '../events/events.module';
   imports: [AuditModule, EventsModule],
   controllers: [ServersController],
   providers: [ServersService],
+  exports: [ServersService],
 })
 export class ServersModule {}

@@ -13,6 +13,12 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+export type PublicStats = {
+  usersTracked: number;
+  serversActive: number;
+  capturedAt: string;
+};
+
 export class ApiClient {
   private readonly base: string;
   private readonly circuit: CircuitBreaker;
@@ -97,6 +103,21 @@ export class ApiClient {
       }
       throw e;
     }
+  }
+
+  async getPublicStats(): Promise<PublicStats> {
+    return this.requestJson<PublicStats>('/bot/public-stats');
+  }
+
+  async postBotServerConfig(body: {
+    guildId: string;
+    actorDiscordId: string;
+    config: Record<string, unknown>;
+  }): Promise<unknown> {
+    return this.requestJson('/bot/server/config', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
   }
 
   async getUser(discordId: string): Promise<import('./apiTypes').UserApiResponse> {

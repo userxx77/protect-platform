@@ -20,6 +20,8 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
+Operator-facing overview (dashboard vs bot vs env): see **[Sentra / Protect operator guide](../sentra-operator-guide.md)**.
+
 Manual path: ensure `.env` uses Docker hostnames for `DATABASE_URL` / `REDIS_URL` (see `.env.example`), then:
 
 ```bash

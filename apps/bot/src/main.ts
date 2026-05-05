@@ -5,6 +5,7 @@ import { ApiClient } from './services/apiClient';
 import { createDiscordClient, registerSlashCommands } from './client/discordClient';
 import { waitForApiReady } from './client/apiReadiness';
 import { startEventSubscriber } from './services/eventSubscriber';
+import { startPresenceLoop } from './services/presence';
 import { botLog } from './log';
 
 function startBotHealth(port: number): void {
@@ -36,16 +37,19 @@ async function main() {
         })
       : null;
   await registerSlashCommands(env);
-  const client = createDiscordClient(api);
-  if (env.BOT_HEALTH_PORT != null) {
-    client.once(Events.ClientReady, () => {
+  const client = createDiscordClient(api, env);
+  let stopPresence: (() => void) | undefined;
+  client.once(Events.ClientReady, () => {
+    if (env.BOT_HEALTH_PORT != null) {
       startBotHealth(env.BOT_HEALTH_PORT!);
-    });
-  }
+    }
+    stopPresence = startPresenceLoop(client, api, 300_000);
+  });
   await client.login(env.DISCORD_BOT_TOKEN);
 
   const shutdown = async () => {
     botLog('info', 'bot_shutdown', {});
+    stopPresence?.();
     await subStop?.stop();
     client.destroy();
     process.exit(0);

@@ -20,6 +20,7 @@ import { RequestIdHeaderInterceptor } from './common/request-id-header.intercept
 import { MetricsModule } from './metrics/metrics.module';
 import { HttpMetricsMiddleware } from './metrics/http-metrics.middleware';
 import { InternalModule } from './internal/internal.module';
+import { BotModule } from './bot/bot.module';
 import { ApiReadOnlyMiddleware } from './common/api-read-only.middleware';
 import { OutboxBackpressureMiddleware } from './common/outbox-backpressure.middleware';
 
@@ -79,6 +80,7 @@ import { OutboxBackpressureMiddleware } from './common/outbox-backpressure.middl
     IntegrationsModule,
     MetricsModule,
     InternalModule,
+    BotModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

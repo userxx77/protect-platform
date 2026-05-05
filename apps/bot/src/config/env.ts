@@ -28,6 +28,17 @@ const envSchema = z.object({
       const n = Number(s);
       return Number.isFinite(n) && n > 0 ? n : undefined;
     }),
+  /** Public dashboard URL (shown in /help); optional */
+  WEB_URL: z
+    .string()
+    .url()
+    .optional()
+    .transform((s) => {
+      if (s === undefined || s.trim() === '') {
+        return undefined;
+      }
+      return s.trim().replace(/\/$/, '');
+    }),
   DISCORD_GUILD_ID: z
     .string()
     .optional()

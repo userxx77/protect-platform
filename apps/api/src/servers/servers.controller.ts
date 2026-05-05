@@ -17,6 +17,12 @@ import { UpsertServerConfigDto } from './dto/server-config.dto';
 export class ServersController {
   constructor(private readonly servers: ServersService) {}
 
+  @Get('servers')
+  @RequireRoles(AppRole.ADMIN)
+  async listServers() {
+    return this.servers.listSummaries();
+  }
+
   @Get('server/:id')
   @RequireRoles(AppRole.BOT, AppRole.USER, AppRole.TRUSTED, AppRole.ADMIN)
   async getServer(@Param('id') id: string) {

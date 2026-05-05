@@ -13,9 +13,15 @@ import { botLog } from '../log';
 import { checkCommandData, executeCheck } from '../commands/check';
 import { reportCommandData, executeReport } from '../commands/report';
 import { flagCommandData, executeFlag } from '../commands/flag';
+import {
+  configCommandData,
+  executeConfigSet,
+  executeConfigView,
+} from '../commands/config';
+import { helpCommandData, executeHelp } from '../commands/help';
 import { onGuildMemberAdd } from '../events/guildMemberAdd';
 
-export function createDiscordClient(api: ApiClient): Client {
+export function createDiscordClient(api: ApiClient, env: Env): Client {
   const client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
@@ -59,6 +65,15 @@ export function createDiscordClient(api: ApiClient): Client {
         await executeReport(i, api);
       } else if (i.commandName === 'flag') {
         await executeFlag(i, api);
+      } else if (i.commandName === 'help') {
+        await executeHelp(i, env);
+      } else if (i.commandName === 'config') {
+        const sub = i.options.getSubcommand();
+        if (sub === 'view') {
+          await executeConfigView(i, api);
+        } else if (sub === 'set') {
+          await executeConfigSet(i, api);
+        }
       }
     } catch (e) {
       botLog('error', 'interaction_handler', { error: String(e) });
@@ -81,6 +96,8 @@ export async function registerSlashCommands(env: Env): Promise<void> {
     checkCommandData.toJSON(),
     reportCommandData.toJSON(),
     flagCommandData.toJSON(),
+    helpCommandData.toJSON(),
+    configCommandData.toJSON(),
   ];
   const maxAttempts = 10;
   let lastErr: unknown;
