@@ -15,6 +15,9 @@ COPY apps/api/prisma apps/api/prisma
 COPY apps/worker apps/worker
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @protect/shared build
+# Prisma resolves the API package root from the schema path; without this file,
+# prisma generate can try npx auto-install against /repo/apps and fail in Docker.
+RUN printf '%s\n' '{"name":"@protect/api","private":true,"version":"0.0.0"}' > apps/api/package.json
 RUN pnpm --filter @protect/worker run build
 
 FROM base AS runner
