@@ -87,11 +87,8 @@ export async function registerSlashCommands(env: Env): Promise<void> {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      await rest.put(Routes.applicationCommands(env.DISCORD_APPLICATION_ID), {
-        body,
-      });
-      botLog('info', 'slash_commands_registered_global', { attempt });
-
+      // Register in ONE scope only. Doing both global + guild shows duplicate
+      // slash commands in that guild (same names appear twice in the picker).
       if (env.DISCORD_GUILD_ID) {
         await rest.put(
           Routes.applicationGuildCommands(
@@ -100,10 +97,15 @@ export async function registerSlashCommands(env: Env): Promise<void> {
           ),
           { body },
         );
-        botLog('info', 'slash_commands_registered_guild', {
+        botLog('info', 'slash_commands_registered_guild_only', {
           attempt,
           guildId: env.DISCORD_GUILD_ID,
         });
+      } else {
+        await rest.put(Routes.applicationCommands(env.DISCORD_APPLICATION_ID), {
+          body,
+        });
+        botLog('info', 'slash_commands_registered_global', { attempt });
       }
       return;
     } catch (e) {

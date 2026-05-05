@@ -69,6 +69,7 @@ DISCORD_CLIENT_SECRET="$(prompt DISCORD_CLIENT_SECRET "")"
   exit 1
 }
 
+echo "DISCORD_GUILD_ID optional — leave empty for global slash commands (all servers). If set, commands register in that guild only (instant; use for single-guild dev)."
 DISCORD_GUILD_ID="$(prompt DISCORD_GUILD_ID "")"
 
 JWT_SECRET="$(prompt JWT_SECRET "")"
