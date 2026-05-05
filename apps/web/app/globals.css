@@ -1,0 +1,26 @@
+:root {
+  font-family: system-ui, sans-serif;
+  background: #0f1115;
+  color: #e6e8ee;
+}
+
+a {
+  color: #7aa2ff;
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th,
+td {
+  border: 1px solid #2a2f3a;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}

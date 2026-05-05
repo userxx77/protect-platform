@@ -1,0 +1,206 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FlagLevel {
+  CLEAN
+  SUSPICIOUS
+  HIGH_RISK
+  CONFIRMED_CHEATER
+}
+
+enum ReportStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  SPAM
+}
+
+enum FlagSource {
+  TRUSTED_COMMAND
+  COMMUNITY_REPORT
+  ADMIN_OVERRIDE
+  API
+  REPORT_ESCALATION
+  SYSTEM
+}
+
+enum AuditAction {
+  FLAG_CREATED
+  REPORT_CREATED
+  REPORT_REJECTED_ABUSE
+  SERVER_CONFIG_UPDATED
+  TRUST_GRANTED
+  USER_TOUCHED
+  ROLE_ASSIGNED
+  API_CLIENT_CREATED
+}
+
+enum ActorKind {
+  USER
+  BOT
+  SYSTEM
+}
+
+enum PlatformRole {
+  ADMIN
+  USER
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  DISPATCHED
+  FAILED
+}
+
+model User {
+  id          String    @id @default(uuid()) @db.Uuid
+  discordId   String    @unique @map("discord_id")
+  flagScore   Int       @default(0) @map("flag_score")
+  flagLevel   FlagLevel @default(CLEAN) @map("flag_level")
+  /// Bumped on every aggregate-changing write (flags/score/level); monotonic ordering aid.
+  stateVersion Int      @default(0) @map("state_version")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  flags         Flag[]
+  reportsAsTarget Report[] @relation("ReportTarget")
+
+  @@map("users")
+}
+
+model Flag {
+  id              String     @id @default(uuid()) @db.Uuid
+  userId          String     @map("user_id") @db.Uuid
+  weight          Int
+  /// Future decay: when FLAG_DECAY_ENABLED, recompute from effectiveWeight
+  effectiveWeight Int?       @map("effective_weight")
+  reason          String
+  source          FlagSource @default(TRUSTED_COMMAND)
+  actorDiscordId  String     @map("actor_discord_id")
+  guildId         String?    @map("guild_id")
+  createdAt       DateTime   @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("flags")
+}
+
+model Report {
+  id                String       @id @default(uuid()) @db.Uuid
+  reporterDiscordId String       @map("reporter_discord_id")
+  reportedUserId    String       @map("reported_user_id") @db.Uuid
+  guildId           String?      @map("guild_id")
+  reason            String
+  dedupeKey         String?      @map("dedupe_key")
+  status            ReportStatus @default(PENDING)
+  createdAt         DateTime     @default(now()) @map("created_at")
+  resolvedAt        DateTime?    @map("resolved_at")
+  resolverNote      String?      @map("resolver_note")
+
+  reportedUser User @relation("ReportTarget", fields: [reportedUserId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([reporterDiscordId, reportedUserId, guildId, createdAt(sort: Desc)])
+  @@map("reports")
+}
+
+model Server {
+  id        String   @id @default(uuid()) @db.Uuid
+  guildId   String   @unique @map("guild_id")
+  config    Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("servers")
+}
+
+model TrustedUser {
+  id                 String   @id @default(uuid()) @db.Uuid
+  discordUserId      String   @unique @map("discord_user_id")
+  trustLevel         Int      @map("trust_level")
+  grantedAt          DateTime @default(now()) @map("granted_at")
+  grantedByDiscordId String?  @map("granted_by_discord_id")
+
+  @@map("trusted_users")
+}
+
+/// Dashboard / platform RBAC (ADMIN | USER). TRUSTED is derived from TrustedUser.
+model PlatformAccount {
+  id             String       @id @default(uuid()) @db.Uuid
+  discordUserId  String       @unique @map("discord_user_id")
+  role           PlatformRole @default(USER)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@map("platform_accounts")
+}
+
+model AuditLog {
+  id              String      @id @default(uuid()) @db.Uuid
+  timestamp       DateTime    @default(now())
+  actorDiscordId  String?     @map("actor_discord_id")
+  actorKind       ActorKind   @default(USER) @map("actor_kind")
+  action          AuditAction
+  entityType      String      @map("entity_type")
+  entityId        String      @map("entity_id")
+  targetId        String?     @map("target_id")
+  correlationId   String?     @map("correlation_id")
+  metadata        Json        @default("{}")
+
+  @@index([timestamp(sort: Desc)])
+  @@index([action, timestamp(sort: Desc)])
+  @@index([targetId, timestamp(sort: Desc)])
+  @@index([correlationId, timestamp(sort: Desc)])
+  @@map("audit_logs")
+}
+
+model OutboxEvent {
+  id                  String       @id @default(uuid()) @db.Uuid
+  type                String
+  payload             Json
+  correlationId       String?      @map("correlation_id")
+  idempotencyKey      String?      @unique @map("idempotency_key")
+  status              OutboxStatus @default(PENDING)
+  attempts            Int          @default(0)
+  nextRetryAt         DateTime?    @map("next_retry_at")
+  lastError           String?      @map("last_error")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+  dispatchedAt        DateTime?    @map("dispatched_at")
+  processingStartedAt DateTime?    @map("processing_started_at")
+
+  @@index([status, createdAt])
+  @@index([status, nextRetryAt])
+  @@index([status, processingStartedAt])
+  @@map("outbox_events")
+}
+
+/// Audit trail for successfully fan-out events (idempotent consumer contract).
+model ProcessedEvent {
+  eventId    String   @id @map("event_id") @db.Uuid
+  recordedAt DateTime @default(now()) @map("recorded_at")
+
+  @@index([recordedAt(sort: Desc)])
+  @@map("processed_events")
+}
+
+/// Stub for future FiveM / Minecraft / resell API keys
+model ApiClient {
+  id           String   @id @default(uuid()) @db.Uuid
+  label        String
+  hashedSecret String   @map("hashed_secret")
+  scopes       Json     @default("[]")
+  tenantId     String?  @map("tenant_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("api_clients")
+}

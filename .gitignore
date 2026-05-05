@@ -1,0 +1,24 @@
+node_modules
+dist
+.next
+.turbo
+.env
+.env.local
+*.log
+coverage
+.DS_Store
+apps/api/prisma/*.db
+apps/api/generated
+
+# Build artifacts (do not commit compiled output in src/ or test/)
+*.tsbuildinfo
+apps/worker/src/dispatch.js
+apps/worker/src/dispatch.js.map
+apps/worker/src/dispatch.d.ts
+apps/api/test/helpers/bootstrap-integration-app.js
+apps/api/test/helpers/bootstrap-integration-app.js.map
+apps/api/test/helpers/bootstrap-integration-app.d.ts
+apps/api/test/integration/redis-optional.integration.spec.js
+apps/api/test/integration/redis-optional.integration.spec.js.map
+apps/api/test/integration/scenarios-ab.integration.spec.js
+apps/api/test/integration/scenarios-ab.integration.spec.js.map
