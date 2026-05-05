@@ -9,7 +9,7 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable pnpm
 
 FROM base AS build
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
 COPY packages/shared packages/shared
 COPY apps/api/prisma apps/api/prisma
 COPY apps/worker apps/worker
