@@ -1,6 +1,6 @@
 -- PlatformRole: checker tier (Postgres 15+: IF NOT EXISTS avoids duplicate-label errors)
+-- Default CHECKER is applied in the following migration so this file commits before using the new label.
 ALTER TYPE "PlatformRole" ADD VALUE IF NOT EXISTS 'CHECKER';
-ALTER TABLE "platform_accounts" ALTER COLUMN "role" SET DEFAULT 'CHECKER';
 
 -- Audit: flag admin CRUD
 ALTER TYPE "AuditAction" ADD VALUE IF NOT EXISTS 'FLAG_DELETED';
