@@ -12,7 +12,8 @@ import {
   FlagSource,
   ReportStatus,
 } from '@prisma/client';
-import { COMMUNITY_REPORT_REQUIRES_USER_ROLE_MESSAGE } from '@protect/shared';
+import { COMMUNITY_REPORT_REQUIRES_USER_ROLE_MESSAGE, parseAdminDiscordIds } from '@protect/shared';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { OutboxService } from '../events/outbox.service';
@@ -47,9 +48,23 @@ export class ReportsService {
     private readonly entitlements: EntitlementsService,
     private readonly authz: AuthzService,
     private readonly tickets: TicketsService,
+    private readonly config: ConfigService,
   ) {}
 
   private async assertCommunityReporterEligible(reporterDiscordId: string): Promise<void> {
+    const legacy = parseAdminDiscordIds(
+      this.config.get<string>('ADMIN_DISCORD_IDS') ?? '',
+    );
+    if (legacy.includes(reporterDiscordId)) {
+      return;
+    }
+    const trusted = await this.prisma.trustedUser.findUnique({
+      where: { discordUserId: reporterDiscordId },
+      select: { discordUserId: true },
+    });
+    if (trusted) {
+      return;
+    }
     const account = await this.prisma.platformAccount.findUnique({
       where: { discordUserId: reporterDiscordId },
       select: { role: true },
@@ -83,17 +98,22 @@ export class ReportsService {
   async create(dto: CreateReportDto, principal: RequestPrincipal) {
     this.assertReporterAccess(dto, principal);
 
-    const instant = await this.reporterInstantApplies(dto);
-    if (!instant) {
+    const guildId = dto.guildId?.trim();
+    const isCommunityInGuild = !!guildId;
+
+    if (isCommunityInGuild) {
       await this.assertCommunityReporterEligible(dto.reporterDiscordId);
-      if (!dto.guildId) {
-        throw new BadRequestException('guildId is required for community reports');
-      }
-      const licensed = await this.entitlements.isGuildLicensed(dto.guildId);
+      const licensed = await this.entitlements.isGuildLicensed(guildId);
       if (!licensed) {
         throw new ForbiddenException('This server has no active Sentra license for reports');
       }
-      return this.createPendingReport(dto);
+      return this.createPendingReport({ ...dto, guildId });
+    }
+
+    const instant = await this.reporterInstantApplies(dto);
+    if (!instant) {
+      await this.assertCommunityReporterEligible(dto.reporterDiscordId);
+      throw new BadRequestException('guildId is required for community reports');
     }
 
     return this.createInstantReport(dto);

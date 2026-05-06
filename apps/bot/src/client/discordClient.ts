@@ -117,13 +117,10 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Ensures slash commands exist in exactly one scope:
- * - Guild mode: clears ALL global commands; clears guild command lists for every
- *   guild the bot is in; then registers only in DISCORD_GUILD_ID.
- * - Global mode: clears guild-scoped command lists for every guild the bot is in
- *   (removes stale copies that stack with global), then registers globally only.
- *
- * Must run after Client ready so `client.guilds` is populated for global cleanup.
+ * Slash command registration:
+ * - global (default): clear per-guild command lists, register application commands globally
+ *   so every server the bot is in can use /check, /report, etc.
+ * - guild: dev single-guild — register only in DISCORD_GUILD_ID (requires env DISCORD_GUILD_ID).
  */
 export async function registerSlashCommands(env: Env, client: Client): Promise<void> {
   const rest = new REST().setToken(env.DISCORD_BOT_TOKEN);
@@ -139,10 +136,12 @@ export async function registerSlashCommands(env: Env, client: Client): Promise<v
   ];
   const maxAttempts = 10;
   let lastErr: unknown;
+  const useGuildScope =
+    env.DISCORD_SLASH_SCOPE === 'guild' && !!env.DISCORD_GUILD_ID;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      if (env.DISCORD_GUILD_ID) {
+      if (useGuildScope) {
         await rest.put(Routes.applicationCommands(appId), { body: [] });
         botLog('info', 'slash_cleared_global_before_guild', {
           attempt,
@@ -161,7 +160,7 @@ export async function registerSlashCommands(env: Env, client: Client): Promise<v
           clearedGuilds: guildsForClear.length,
         });
         await rest.put(
-          Routes.applicationGuildCommands(appId, env.DISCORD_GUILD_ID),
+          Routes.applicationGuildCommands(appId, env.DISCORD_GUILD_ID!),
           { body },
         );
         botLog('info', 'slash_commands_registered_guild_only', {
@@ -169,6 +168,12 @@ export async function registerSlashCommands(env: Env, client: Client): Promise<v
           guildId: env.DISCORD_GUILD_ID,
         });
       } else {
+        if (env.DISCORD_GUILD_ID) {
+          botLog('info', 'slash_scope_global_ignoring_dev_guild_id', {
+            msg: 'DISCORD_SLASH_SCOPE is global; commands available in all guilds. DISCORD_GUILD_ID is ignored for registration.',
+            guildId: env.DISCORD_GUILD_ID,
+          });
+        }
         const guilds = [...client.guilds.cache.values()];
         let cleared = 0;
         const paceMs = guilds.length > 20 ? 75 : guilds.length > 5 ? 35 : 0;

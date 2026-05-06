@@ -43,12 +43,24 @@ export async function syncGuildMembersToApi(
   try {
     await guild.members.fetch();
     const members = [...guild.members.cache.values()];
-    const rows: MemberProfileRow[] = members.map((m) => ({
-      discordUserId: m.id,
-      username: m.user.username,
-      globalName: m.user.globalName ?? null,
-      avatarHash: m.user.avatar,
-    }));
+    const rows: MemberProfileRow[] = await Promise.all(
+      members.map(async (m) => {
+        let user = m.user;
+        if (user.partial) {
+          try {
+            user = await user.fetch();
+          } catch {
+            /* keep partial user; avatar may be missing */
+          }
+        }
+        return {
+          discordUserId: m.id,
+          username: user.username,
+          globalName: user.globalName ?? null,
+          avatarHash: user.avatar,
+        };
+      }),
+    );
     const chunkSize = 400;
     for (let i = 0; i < rows.length; i += chunkSize) {
       const slice = rows.slice(i, i + chunkSize);

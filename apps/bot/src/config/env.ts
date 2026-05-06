@@ -48,6 +48,11 @@ const envSchema = z.object({
       }
       return s.trim();
     }),
+  /**
+   * global (default): slash commands for every server the bot is in.
+   * guild: dev-only — register only in DISCORD_GUILD_ID (fast refresh).
+   */
+  DISCORD_SLASH_SCOPE: z.enum(['global', 'guild']).optional().default('global'),
   /** Optional: channel ID for admin feed embeds (join, pending reports, sync). */
   DISCORD_ADMIN_FEED_CHANNEL_ID: z
     .string()
@@ -83,7 +88,13 @@ export function loadEnv(): Env {
     );
     throw new Error('Invalid environment');
   }
-  return parsed.data;
+  const data = parsed.data;
+  if (data.DISCORD_SLASH_SCOPE === 'guild' && !data.DISCORD_GUILD_ID) {
+    throw new Error(
+      'DISCORD_SLASH_SCOPE=guild requires DISCORD_GUILD_ID (or use DISCORD_SLASH_SCOPE=global for production)',
+    );
+  }
+  return data;
 }
 
 export function apiBaseV1(env: Env): string {
