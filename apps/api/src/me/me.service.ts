@@ -60,6 +60,7 @@ export class MeService {
     guildId: string,
     principal: RequestPrincipal,
     manageableGuildIds: string,
+    opts?: { take?: number; skip?: number },
   ) {
     const isAdmin = this.authz.principalHasAnyRole(principal, [AppRole.ADMIN]);
     if (!isAdmin) {
@@ -76,10 +77,16 @@ export class MeService {
       }
     }
 
+    const rawTake = opts?.take ?? 10;
+    const take = Math.min(500, Math.max(1, Math.floor(rawTake)));
+    const rawSkip = opts?.skip ?? 0;
+    const skip = Math.max(0, Math.floor(rawSkip));
+
     const rows = await this.prisma.guildMemberCache.findMany({
       where: { guildId },
-      orderBy: { firstSeenAt: 'desc' },
-      take: 500,
+      orderBy: [{ firstSeenAt: 'desc' }, { discordUserId: 'desc' }],
+      skip,
+      take: take + 1,
       select: {
         discordUserId: true,
         username: true,
@@ -90,9 +97,16 @@ export class MeService {
       },
     });
 
+    const hasMore = rows.length > take;
+    const pageRows = hasMore ? rows.slice(0, take) : rows;
+
     return {
       guildId,
-      items: rows.map((r) => ({
+      take,
+      skip,
+      hasMore,
+      nextSkip: hasMore ? skip + take : null,
+      items: pageRows.map((r) => ({
         discordUserId: r.discordUserId,
         username: r.username,
         globalName: r.globalName,

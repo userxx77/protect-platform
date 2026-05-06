@@ -14,6 +14,20 @@ export function apiV1Base(): string {
   return raw.endsWith('/v1') ? raw : `${raw}/v1`;
 }
 
+function parseJsonBody<T>(text: string, path: string, status: number): T {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    throw new Error(`API ${path} returned HTTP ${status} with an empty body`);
+  }
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch {
+    throw new Error(
+      `API ${path} returned HTTP ${status} with non-JSON body: ${trimmed.slice(0, 240)}`,
+    );
+  }
+}
+
 export async function getDashboardBearer(): Promise<string> {
   const session = await auth();
   if (!session?.user?.id) {
@@ -48,15 +62,27 @@ export async function dashboardApi<T = unknown>(
 
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(`${res.status} ${text}`);
+    const hint = text.trim().slice(0, 400);
+    throw new Error(
+      hint ? `HTTP ${res.status} ${path}: ${hint}` : `HTTP ${res.status} ${path}`,
+    );
   }
-  return text ? (JSON.parse(text) as T) : (null as T);
+  const method = (init.method ?? 'GET').toUpperCase();
+  const trimmed = text.trim();
+  if (!trimmed) {
+    if (method === 'DELETE' || method === 'HEAD' || res.status === 204) {
+      return undefined as T;
+    }
+    throw new Error(`API ${path} returned HTTP ${res.status} with an empty body`);
+  }
+  return parseJsonBody<T>(trimmed, path, res.status);
 }
 
 export async function dashboardFormPost(path: string, formData: FormData): Promise<void> {
   const token = await getDashboardBearer();
   const base = apiV1Base();
-  const res = await fetch(`${base}${path.startsWith('/') ? path : `/${path}`}`, {
+  const p = path.startsWith('/') ? path : `/${path}`;
+  const res = await fetch(`${base}${p}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -65,6 +91,9 @@ export async function dashboardFormPost(path: string, formData: FormData): Promi
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(`${res.status} ${text}`);
+    const hint = text.trim().slice(0, 400);
+    throw new Error(
+      hint ? `HTTP ${res.status} ${p}: ${hint}` : `HTTP ${res.status} ${p}`,
+    );
   }
 }

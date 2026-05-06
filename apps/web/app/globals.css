@@ -37,17 +37,40 @@
   }
   html {
     height: 100%;
+    background-color: var(--color-background);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background-image:
+        radial-gradient(820px 520px at 86% -8%, oklch(0.55 0.25 295 / 0.13), transparent 62%),
+        radial-gradient(720px 500px at -12% 112%, oklch(0.48 0.22 285 / 0.1), transparent 58%);
+      animation: sentraAmbientDrift 22s ease-in-out infinite;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background-image:
+        radial-gradient(800px 500px at 85% -10%, oklch(0.55 0.25 295 / 0.1), transparent 60%),
+        radial-gradient(700px 500px at -10% 110%, oklch(0.45 0.2 280 / 0.08), transparent 60%);
+    }
   }
   body {
-    background-color: var(--color-background);
+    background: transparent;
     color: var(--color-foreground);
     font-family: var(--font-sans);
     font-size: 14.5px;
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
-    background-image:
-      radial-gradient(800px 500px at 85% -10%, oklch(0.55 0.25 295 / 0.1), transparent 60%),
-      radial-gradient(700px 500px at -10% 110%, oklch(0.45 0.2 280 / 0.08), transparent 60%);
     min-height: 100%;
     margin: 0;
   }
@@ -66,22 +89,51 @@
   }
 }
 
+@keyframes sentraAmbientDrift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.92;
+  }
+  33% {
+    transform: translate(2.5%, 1.2%) scale(1.02);
+    opacity: 1;
+  }
+  66% {
+    transform: translate(-1.8%, -1.5%) scale(1.01);
+    opacity: 0.95;
+  }
+}
+
 .card-surface {
-  background: color-mix(in oklab, var(--color-surface) 70%, transparent);
+  background: color-mix(in oklab, var(--color-surface) 72%, transparent);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   backdrop-filter: blur(6px);
+  box-shadow:
+    0 0 0 1px oklch(0.55 0.25 295 / 0.06),
+    0 12px 40px -24px oklch(0.55 0.25 295 / 0.32);
 }
 .card-hover {
   transition:
-    transform 0.25s ease,
-    border-color 0.25s ease,
-    box-shadow 0.25s ease;
+    transform 0.28s ease,
+    border-color 0.28s ease,
+    box-shadow 0.28s ease;
 }
 .card-hover:hover {
   transform: translateY(-2px);
-  border-color: var(--color-border-strong);
-  box-shadow: 0 18px 50px -25px oklch(0.55 0.25 295 / 0.45);
+  border-color: color-mix(in oklab, var(--color-primary) 38%, var(--color-border));
+  box-shadow:
+    0 0 0 1px oklch(0.55 0.25 295 / 0.1),
+    0 22px 55px -28px oklch(0.55 0.25 295 / 0.5);
+}
+
+/* Shell: sidebar depth + Sentra rail glow */
+.sentra-sidebar {
+  background: color-mix(in oklab, var(--color-background) 72%, transparent);
+  backdrop-filter: blur(14px);
+  border-right: 1px solid color-mix(in oklab, var(--color-primary) 20%, var(--color-border));
+  box-shadow: inset -8px 0 32px -18px oklch(0.55 0.25 295 / 0.14);
 }
 
 .live-dot {
@@ -141,11 +193,26 @@
     padding: 2rem 1.25rem;
   }
   .ds-card {
-    background: color-mix(in oklab, var(--color-surface) 70%, transparent);
+    position: relative;
+    background: color-mix(in oklab, var(--color-surface) 72%, transparent);
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     padding: 1.35rem 1.5rem;
     backdrop-filter: blur(8px);
+    box-shadow:
+      0 0 0 1px oklch(0.55 0.25 295 / 0.06),
+      0 12px 40px -24px oklch(0.55 0.25 295 / 0.35);
+    transition:
+      transform 0.28s ease,
+      border-color 0.28s ease,
+      box-shadow 0.28s ease;
+  }
+  .ds-card:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in oklab, var(--color-primary) 38%, var(--color-border));
+    box-shadow:
+      0 0 0 1px oklch(0.55 0.25 295 / 0.12),
+      0 22px 55px -28px oklch(0.55 0.25 295 / 0.55);
   }
   .ds-h1 {
     margin: 0 0 0.35rem;

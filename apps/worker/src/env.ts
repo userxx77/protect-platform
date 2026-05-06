@@ -26,6 +26,8 @@ const schema = z.object({
   OUTBOX_BACKLOG_WARN: z.coerce.number().optional(),
   OUTBOX_BACKLOG_CRITICAL: z.coerce.number().optional(),
   PLATFORM_STATS_INTERVAL_MS: z.coerce.number().optional().default(120_000),
+  /** 0 = disabled. Default 24h: enqueue full member sync for each licensed guild once per interval bucket. */
+  MEMBER_SYNC_INTERVAL_MS: z.coerce.number().optional().default(86_400_000),
 });
 
 export type WorkerEnv = z.infer<typeof schema>;

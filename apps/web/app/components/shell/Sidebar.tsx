@@ -89,7 +89,7 @@ export function Sidebar({
 }) {
   const initial = userName.replace(/^@/, '').charAt(0).toUpperCase() || '?';
   return (
-    <aside className="bg-background/60 flex h-full w-60 flex-col border-r border-border px-3 py-4">
+    <aside className="sentra-sidebar flex h-full w-60 flex-col px-3 py-4">
       <div className="px-2 pb-4">
         <Logo />
       </div>

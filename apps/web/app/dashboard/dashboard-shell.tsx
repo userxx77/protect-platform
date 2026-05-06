@@ -31,7 +31,7 @@ export function DashboardShell({
             aria-label="Close menu backdrop"
             onClick={() => setOpen(false)}
           />
-          <div className="bg-background absolute left-0 top-0 h-full w-64 shadow-xl">
+          <div className="sentra-sidebar absolute left-0 top-0 h-full w-64 shadow-xl">
             <button
               type="button"
               className="text-muted-foreground hover:text-foreground absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-md"

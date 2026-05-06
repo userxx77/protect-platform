@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
 import { processOutboxBatch } from './dispatch';
 import { runDecayJob } from './decay-job';
+import { runMemberSyncSchedule } from './member-sync-schedule-job';
 import { runPlatformStatsRefreshSafe } from './platform-stats-job';
 import { loadWorkerEnv } from './env';
 import { logWorker } from './log';
@@ -45,6 +46,7 @@ const backlogWarn = env.OUTBOX_BACKLOG_WARN ?? 1000;
 const backlogCritical = env.OUTBOX_BACKLOG_CRITICAL ?? 5000;
 const instanceId = env.WORKER_INSTANCE_ID ?? os.hostname();
 const platformStatsIntervalMs = env.PLATFORM_STATS_INTERVAL_MS ?? 120_000;
+const memberSyncIntervalMs = env.MEMBER_SYNC_INTERVAL_MS ?? 86_400_000;
 
 let running = true;
 
@@ -128,6 +130,7 @@ async function main(): Promise<void> {
 
   let lastDecayAt = 0;
   let lastPlatformStatsAt = 0;
+  let lastMemberSyncScheduleAt = 0;
   logWorker('info', 'worker_started', { batch: effectiveBatch() });
 
   const onStop = (signal: string) => {
@@ -192,6 +195,19 @@ async function main(): Promise<void> {
         await runDecayJob(prisma, redis);
       } catch (e) {
         logWorker('error', 'decay_job_error', { error: String(e) });
+      }
+    }
+
+    if (
+      running &&
+      memberSyncIntervalMs > 0 &&
+      now - lastMemberSyncScheduleAt >= memberSyncIntervalMs
+    ) {
+      lastMemberSyncScheduleAt = now;
+      try {
+        await runMemberSyncSchedule(prisma, memberSyncIntervalMs);
+      } catch (e) {
+        logWorker('error', 'member_sync_schedule_error', { error: String(e) });
       }
     }
 

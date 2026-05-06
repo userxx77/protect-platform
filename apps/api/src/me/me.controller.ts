@@ -36,12 +36,20 @@ export class MeController {
   members(
     @Param('guildId') guildId: string,
     @Query('manageable') manageable: string,
+    @Query('take') takeStr: string | undefined,
+    @Query('skip') skipStr: string | undefined,
     @Req() req: Request & { principal?: RequestPrincipal },
   ) {
+    const take = takeStr !== undefined ? Number(takeStr) : undefined;
+    const skip = skipStr !== undefined ? Number(skipStr) : undefined;
     return this.me.listGuildMembers(
       guildId,
       req.principal!,
       manageable ?? '',
+      {
+        take: Number.isFinite(take) ? take : undefined,
+        skip: Number.isFinite(skip) ? skip : undefined,
+      },
     );
   }
 }
