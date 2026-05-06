@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react';
 import { requestMemberSyncAction, type SyncMemberSyncState } from './actions';
+import { Button } from '@/components/ui/button';
 
 export function GuildSyncButton({ guildId }: { guildId: string }) {
   const [state, formAction, isPending] = useActionState<
@@ -10,25 +11,18 @@ export function GuildSyncButton({ guildId }: { guildId: string }) {
   >(requestMemberSyncAction, null);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-      <form action={formAction} style={{ margin: 0 }}>
+    <div className="flex flex-col gap-1">
+      <form action={formAction} className="m-0">
         <input type="hidden" name="guildId" value={guildId} />
-        <button
-          type="submit"
-          disabled={isPending}
-          className="ds-btn ds-btn-ghost"
-          style={{ fontSize: '0.85rem' }}
-        >
+        <Button type="submit" variant="outline" size="sm" disabled={isPending}>
           {isPending ? 'Queuing…' : 'Sync now'}
-        </button>
+        </Button>
       </form>
       {state?.ok === false ? (
-        <span className="ds-alert ds-alert-error" style={{ fontSize: '0.8rem' }}>
-          {state.error}
-        </span>
+        <span className="text-destructive text-[11px]">{state.error}</span>
       ) : null}
       {state?.ok === true ? (
-        <span className="ds-hint" style={{ fontSize: '0.8rem' }}>
+        <span className="text-muted-foreground text-[11px]">
           Sync queued. Status updates when the bot finishes.
         </span>
       ) : null}

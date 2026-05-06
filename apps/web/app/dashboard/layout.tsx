@@ -1,49 +1,21 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
-import { DashboardNavLink } from '@/app/components/DashboardNavLink';
-import { DashboardSignOut } from '@/app/components/DashboardSignOut';
 import { isPlatformAdminDiscordId } from '@/lib/platform-admin';
+import { DashboardShell } from '@/app/dashboard/dashboard-shell';
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session) {
     redirect('/api/auth/signin');
   }
   const showAdmin = isPlatformAdminDiscordId(session.user?.id);
+  const userName = session.user?.name?.trim() || session.user?.id || 'User';
+  const manageable = session.manageableGuilds?.length ?? 0;
+  const userHint = manageable ? `${manageable} manageable server(s)` : undefined;
+
   return (
-    <div className="ds-dashboard">
-      <aside className="ds-sidebar" aria-label="Dashboard navigation">
-        <div className="ds-brand">Sentra</div>
-        <div className="ds-nav-group-label">Overview</div>
-        <DashboardNavLink href="/dashboard">Flagged users</DashboardNavLink>
-        <DashboardNavLink href="/dashboard/tickets">Support tickets</DashboardNavLink>
-        <div className="ds-nav-group-label" style={{ marginTop: '0.75rem' }}>
-          Moderation
-        </div>
-        <DashboardNavLink href="/dashboard/config">Server config</DashboardNavLink>
-        <DashboardNavLink href="/dashboard/audit">Audit log</DashboardNavLink>
-        {showAdmin ? (
-          <>
-            <div className="ds-nav-group-label" style={{ marginTop: '0.75rem' }}>
-              Platform admin
-            </div>
-            <DashboardNavLink href="/dashboard/admin/stats">Snapshot</DashboardNavLink>
-            <DashboardNavLink href="/dashboard/admin/guilds">Guilds &amp; licenses</DashboardNavLink>
-            <DashboardNavLink href="/dashboard/admin/tickets">Tickets &amp; evidence</DashboardNavLink>
-          </>
-        ) : null}
-        <div className="ds-sidebar-footer">
-          <DashboardNavLink href="/">Home</DashboardNavLink>
-          <div style={{ marginTop: '0.5rem' }}>
-            <DashboardSignOut />
-          </div>
-        </div>
-      </aside>
-      <div className="ds-main">{children}</div>
-    </div>
+    <DashboardShell showAdmin={showAdmin} userName={userName} userHint={userHint}>
+      {children}
+    </DashboardShell>
   );
 }

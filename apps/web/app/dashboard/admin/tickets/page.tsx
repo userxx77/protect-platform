@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { dashboardApi } from '@/lib/api-server';
 import { patchTicketAction, resolveTicketAction } from './actions';
+import { Card } from '@/components/ui/card';
+import { Table, Thead, Tbody, Tr, Th, Td } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 
 type TicketRow = {
   id: string;
@@ -15,85 +18,88 @@ type TicketRow = {
   adminNote: string | null;
 };
 
-type ListResponse = { items: TicketRow[] };
+type AdminDashTickets = {
+  tickets: { items: TicketRow[] };
+  ticketBuckets: { open: number; pending: number; closed: number };
+};
 
 export default async function AdminTicketsPage() {
-  let data: ListResponse;
+  let data: AdminDashTickets;
   try {
-    data = await dashboardApi<ListResponse>('/admin/tickets');
+    data = await dashboardApi<AdminDashTickets>('/admin/dashboard');
   } catch (e) {
     return (
-      <section className="ds-card">
-        <h1 className="ds-h1">Tickets</h1>
-        <div className="ds-alert ds-alert-error" style={{ marginTop: '1rem' }}>
-          {e instanceof Error ? e.message : 'Failed to load'}
-        </div>
-      </section>
+      <div className="border-destructive/35 bg-destructive/10 rounded-lg border p-6 text-sm">
+        <h1 className="text-lg font-semibold">Tickets</h1>
+        <p className="text-muted-foreground mt-2">{e instanceof Error ? e.message : 'Failed to load'}</p>
+      </div>
     );
   }
 
   return (
-    <section className="ds-card">
-      <h1 className="ds-h1">Support tickets</h1>
-      <p className="ds-muted" style={{ marginTop: '0.35rem' }}>
-        Evidence workflow tied to community reports.
-      </p>
-      <div className="ds-table-wrap" style={{ marginTop: '1rem' }}>
-        <table className="ds-table">
-          <thead>
-            <tr>
-              <th>Updated</th>
-              <th>Status</th>
-              <th>Target</th>
-              <th>Reporter</th>
-              <th>Report</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.items.map((t) => (
-              <tr key={t.id}>
-                <td className="ds-mono">{t.updatedAt}</td>
-                <td>{t.status}</td>
-                <td className="ds-mono">{t.targetDiscordId}</td>
-                <td className="ds-mono">{t.reporterDiscordId}</td>
-                <td className="ds-mono">{t.reportStatus}</td>
-                <td>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                    <form
-                      action={patchTicketAction.bind(null, t.id, 'NEEDS_EVIDENCE')}
-                      style={{ display: 'inline' }}
-                    >
-                      <button type="submit" className="ds-btn ds-btn-ghost" title="Ask reporter for evidence">
+    <>
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold tracking-tight">Support tickets</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Evidence workflow. Open / pending / closed:{' '}
+          <span className="text-foreground font-medium">
+            {data.ticketBuckets.open} · {data.ticketBuckets.pending} · {data.ticketBuckets.closed}
+          </span>
+        </p>
+      </div>
+
+      <Card className="!p-0 overflow-hidden">
+        <Table>
+          <Thead>
+            <Tr>
+              <Th>Updated</Th>
+              <Th>Status</Th>
+              <Th>Target</Th>
+              <Th>Reporter</Th>
+              <Th>Report</Th>
+              <Th>Actions</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {data.tickets.items.map((t) => (
+              <Tr key={t.id}>
+                <Td className="font-mono text-[11px] text-muted-foreground">{t.updatedAt}</Td>
+                <Td>{t.status}</Td>
+                <Td className="font-mono text-[11px]">{t.targetDiscordId}</Td>
+                <Td className="font-mono text-[11px]">{t.reporterDiscordId}</Td>
+                <Td className="font-mono text-[11px]">{t.reportStatus}</Td>
+                <Td>
+                  <div className="flex flex-wrap gap-1">
+                    <form action={patchTicketAction.bind(null, t.id, 'NEEDS_EVIDENCE')}>
+                      <Button type="submit" variant="outline" size="sm" title="Ask reporter for evidence">
                         Request evidence
-                      </button>
+                      </Button>
                     </form>
-                    <form
-                      action={patchTicketAction.bind(null, t.id, 'UNDER_REVIEW')}
-                      style={{ display: 'inline' }}
-                    >
-                      <button type="submit" className="ds-btn ds-btn-ghost">
+                    <form action={patchTicketAction.bind(null, t.id, 'UNDER_REVIEW')}>
+                      <Button type="submit" variant="outline" size="sm">
                         Mark reviewing
-                      </button>
+                      </Button>
                     </form>
                     {t.reportStatus === 'PENDING' ? (
-                      <form action={resolveTicketAction.bind(null, t.id)} style={{ display: 'inline' }}>
-                        <button type="submit" className="ds-btn">
+                      <form action={resolveTicketAction.bind(null, t.id)}>
+                        <Button type="submit" size="sm">
                           Approve report
-                        </button>
+                        </Button>
                       </form>
                     ) : null}
-                    <Link className="ds-btn ds-btn-ghost" href={`/dashboard/admin/users/${t.targetDiscordId}`}>
-                      User flags
-                    </Link>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/dashboard/admin/users/${t.targetDiscordId}`}>User flags</Link>
+                    </Button>
                   </div>
-                </td>
-              </tr>
+                </Td>
+              </Tr>
             ))}
-          </tbody>
-        </table>
-      </div>
-      {data.items.length === 0 ? <p className="ds-hint">No tickets.</p> : null}
-    </section>
+          </Tbody>
+        </Table>
+      </Card>
+      {data.tickets.items.length === 0 ? (
+        <p className="text-muted-foreground mt-4 text-sm">No tickets.</p>
+      ) : null}
+    </>
   );
 }

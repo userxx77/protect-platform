@@ -5,7 +5,13 @@
 #   cp .env.example .env   # or ./setup.sh
 #   docker compose up -d --build
 #
-# API runs `prisma migrate deploy` on startup (see apps/api/docker-entrypoint.sh).
+# Startup / "Waiting" on api (healthcheck):
+#   1) docker compose logs api --tail 100 — look for api_entrypoint_migrate_retry vs migrate_ok.
+#   2) Until /ready returns 200 (DB + Redis), the api container stays "starting".
+#   3) Wrong REDIS_URL/auth → /ready 503 until healthcheck fails — fix .env.
+#
+# Migrations: the `migrate` one-shot service runs prisma migrate deploy before api/worker start.
+# API sets SKIP_PRISMA_MIGRATE=1 so it does not re-run migrate in the entrypoint.
 # Local infra only: docker compose up -d postgres redis
 
 services:
@@ -55,6 +61,21 @@ services:
       retries: 5
     restart: unless-stopped
 
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-protect}:${POSTGRES_PASSWORD:-protect}@postgres:5432/${POSTGRES_DB:-protect}
+    entrypoint:
+      ["/bin/sh", "-c", "cd /repo/apps/api && npx prisma migrate deploy"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   api:
     build:
       context: .
@@ -66,11 +87,14 @@ services:
       NODE_ENV: production
       API_PORT: "3001"
       TICKET_UPLOAD_DIR: /data/ticket-uploads
+      SKIP_PRISMA_MIGRATE: "1"
     volumes:
       - ticket_uploads:/data/ticket-uploads
     ports:
       - "${API_PUBLISH_PORT:-3001}:3001"
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -97,11 +121,11 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-protect}:${POSTGRES_PASSWORD:-protect}@postgres:5432/${POSTGRES_DB:-protect}
       NODE_ENV: production
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      api:
         condition: service_healthy
     restart: unless-stopped
 

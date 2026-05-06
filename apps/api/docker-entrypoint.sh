@@ -2,6 +2,12 @@
 set -e
 cd /repo/apps/api
 
+skip_raw="${SKIP_PRISMA_MIGRATE:-}"
+if [ "$skip_raw" = "1" ] || [ "$skip_raw" = "true" ] || [ "$skip_raw" = "yes" ]; then
+  echo "{\"msg\":\"api_entrypoint_migrate_skipped\",\"timestamp\":\"$(date -Iseconds)\"}"
+  exec node dist/main.js
+fi
+
 max_attempts="${PRISMA_MIGRATE_MAX_ATTEMPTS:-60}"
 attempt=1
 sleep_sec="${PRISMA_MIGRATE_RETRY_SEC:-2}"

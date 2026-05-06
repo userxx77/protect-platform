@@ -9,14 +9,16 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Protect',
+  title: 'Sentra · Protect',
   description: 'Anti-cheat intelligence dashboard',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className={inter.className}>{children}</body>
+    <html lang="en" className="dark h-full">
+      <body className={`${inter.variable} min-h-full font-sans antialiased`}>
+        {children}
+      </body>
     </html>
   );
 }

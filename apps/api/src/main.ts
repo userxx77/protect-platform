@@ -37,16 +37,20 @@ async function bootstrap() {
     }),
   );
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('Protect API')
-    .setDescription('Anti-cheat intelligence platform (v1 routes are prefixed unless excluded)')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' })
-    .addTag('integrations', 'Future game server clients')
-    .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('docs', app, document);
+  const swaggerOff =
+    process.env.SWAGGER_ENABLED === '0' || process.env.SWAGGER_ENABLED === 'false';
+  if (!swaggerOff) {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('Protect API')
+      .setDescription('Anti-cheat intelligence platform (v1 routes are prefixed unless excluded)')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' })
+      .addTag('integrations', 'Future game server clients')
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('docs', app, document);
+  }
 
   const port = process.env.API_PORT ?? '3001';
   await app.listen(port);

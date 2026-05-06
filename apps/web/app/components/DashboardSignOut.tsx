@@ -1,16 +1,17 @@
 'use client';
 
 import { signOut } from 'next-auth/react';
+import { Button } from '@/components/ui/button';
 
 export function DashboardSignOut() {
   return (
-    <button
+    <Button
       type="button"
-      className="ds-btn ds-btn-ghost"
-      style={{ width: '100%' }}
+      variant="outline"
+      className="w-full"
       onClick={() => void signOut({ callbackUrl: '/' })}
     >
       Sign out
-    </button>
+    </Button>
   );
 }

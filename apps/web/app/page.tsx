@@ -1,33 +1,36 @@
 import Link from 'next/link';
 import { auth } from '@/auth';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 export default async function HomePage() {
   const session = await auth();
   return (
-    <main className="ds-shell-wide">
-      <div className="ds-card" style={{ maxWidth: 560 }}>
-        <p className="ds-badge" style={{ marginBottom: '0.75rem' }}>
+    <main className="flex min-h-screen flex-col items-center justify-center px-4">
+      <Card className="card-hover w-full max-w-lg p-8">
+        <p className="bg-primary-soft text-primary mb-3 inline-block rounded-full border border-primary/25 px-2 py-0.5 text-[11px] font-semibold">
           Sentra
         </p>
-        <h1 className="ds-hero-title">Protect</h1>
-        <p className="ds-muted" style={{ marginBottom: '1.5rem' }}>
-          Anti-cheat reputation for your Discord community — flags, server alerts, and audit history in one place.
+        <h1 className="text-3xl font-semibold tracking-tight">Protect</h1>
+        <p className="text-muted-foreground mt-3 text-base leading-relaxed">
+          Anti-cheat reputation for your Discord community — flags, server alerts, and audit history in
+          one place.
         </p>
-        {session ? (
-          <p style={{ margin: 0 }}>
-            <span className="ds-muted">Signed in as {session.user?.name}. </span>
-            <Link href="/dashboard" className="ds-btn" style={{ display: 'inline-flex', marginLeft: '0.5rem' }}>
-              Open dashboard
-            </Link>
-          </p>
-        ) : (
-          <p style={{ margin: 0 }}>
-            <Link href="/api/auth/signin" className="ds-btn">
-              Sign in with Discord
-            </Link>
-          </p>
-        )}
-      </div>
+        <div className="mt-6">
+          {session ? (
+            <p className="text-muted-foreground text-sm">
+              Signed in as {session.user?.name}.{' '}
+              <Button asChild className="ml-2">
+                <Link href="/dashboard">Open dashboard</Link>
+              </Button>
+            </p>
+          ) : (
+            <Button asChild>
+              <Link href="/api/auth/signin">Sign in with Discord</Link>
+            </Button>
+          )}
+        </div>
+      </Card>
     </main>
   );
 }

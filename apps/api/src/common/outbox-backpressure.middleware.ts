@@ -15,7 +15,7 @@ export class OutboxBackpressureMiddleware implements NestMiddleware {
   ) {}
 
   use(req: Request, res: Response, next: NextFunction): void {
-    void this.handle(req, res, next);
+    void this.handle(req, res, next).catch(() => next());
   }
 
   private async handle(

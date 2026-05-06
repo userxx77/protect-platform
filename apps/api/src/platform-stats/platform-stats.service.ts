@@ -28,9 +28,16 @@ export class PlatformStatsService {
     ]);
     const trackedMemberDistinct = Number(distinctRows[0]?.count ?? 0);
 
-    await this.prisma.platformStatsSnapshot.update({
+    await this.prisma.platformStatsSnapshot.upsert({
       where: { id: SNAPSHOT_ID },
-      data: {
+      create: {
+        id: SNAPSHOT_ID,
+        guildsActive,
+        trackedMemberDistinct,
+        usersFlagged,
+        manualChecksTotal: 0,
+      },
+      update: {
         guildsActive,
         trackedMemberDistinct,
         usersFlagged,
@@ -70,6 +77,15 @@ export class PlatformStatsService {
         usersFlagged: row.usersFlagged,
         manualChecksTotal: row.manualChecksTotal,
         updatedAt: row.updatedAt.toISOString(),
+      };
+    }
+    if (process.env.API_SNAPSHOT_REFRESH_ON_MISS === '0') {
+      return {
+        guildsActive: 0,
+        trackedMemberDistinct: 0,
+        usersFlagged: 0,
+        manualChecksTotal: 0,
+        updatedAt: new Date().toISOString(),
       };
     }
     await this.refreshAggregates().catch(() => undefined);

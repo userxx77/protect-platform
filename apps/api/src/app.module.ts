@@ -29,6 +29,7 @@ import { MeModule } from './me/me.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { PublicModule } from './platform-stats/public.module';
 import { TicketsModule } from './tickets/tickets.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -93,6 +94,7 @@ import { TicketsModule } from './tickets/tickets.module';
     WebhooksModule,
     PublicModule,
     TicketsModule,
+    DashboardModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

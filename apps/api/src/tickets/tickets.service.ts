@@ -46,6 +46,21 @@ function normalizeLinks(raw: unknown): string[] {
     .filter((s) => s.length > 0 && s.length < 4000);
 }
 
+function aggregateTicketBucketCounts(
+  rows: { status: SupportTicketStatus; _count: number }[],
+): { open: number; pending: number; closed: number } {
+  const m = Object.fromEntries(rows.map((r) => [r.status, r._count])) as Record<
+    string,
+    number
+  >;
+  const n = (k: string) => m[k] ?? 0;
+  return {
+    open: n('OPEN') + n('NEEDS_EVIDENCE'),
+    pending: n('EVIDENCE_SUBMITTED') + n('UNDER_REVIEW'),
+    closed: n('RESOLVED') + n('REJECTED'),
+  };
+}
+
 @Injectable()
 export class TicketsService {
   constructor(
@@ -140,23 +155,30 @@ export class TicketsService {
 
   async listMine(principal: RequestPrincipal) {
     const discordId = this.assertTicketUser(principal);
-    const rows = await this.prisma.supportTicket.findMany({
-      where: { reporterDiscordId: discordId },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        report: {
-          select: {
-            id: true,
-            status: true,
-            reason: true,
-            reportedUser: { select: { discordId: true } },
+    const [rows, statusAgg] = await Promise.all([
+      this.prisma.supportTicket.findMany({
+        where: { reporterDiscordId: discordId },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          report: {
+            select: {
+              id: true,
+              status: true,
+              reason: true,
+              reportedUser: { select: { discordId: true } },
+            },
+          },
+          attachments: {
+            select: { id: true, mimeType: true, sizeBytes: true, createdAt: true },
           },
         },
-        attachments: {
-          select: { id: true, mimeType: true, sizeBytes: true, createdAt: true },
-        },
-      },
-    });
+      }),
+      this.prisma.supportTicket.groupBy({
+        by: ['status'],
+        where: { reporterDiscordId: discordId },
+        _count: true,
+      }),
+    ]);
     return {
       items: rows.map((r) => ({
         id: r.id,
@@ -178,6 +200,9 @@ export class TicketsService {
           createdAt: a.createdAt.toISOString(),
         })),
       })),
+      ticketBuckets: aggregateTicketBucketCounts(
+        statusAgg.map((r) => ({ status: r.status, _count: r._count })),
+      ),
     };
   }
 
@@ -325,19 +350,25 @@ export class TicketsService {
   }
 
   async adminList() {
-    const rows = await this.prisma.supportTicket.findMany({
-      orderBy: { updatedAt: 'desc' },
-      take: 200,
-      include: {
-        report: {
-          select: {
-            id: true,
-            status: true,
-            reportedUser: { select: { discordId: true } },
+    const [rows, statusAgg] = await Promise.all([
+      this.prisma.supportTicket.findMany({
+        orderBy: { updatedAt: 'desc' },
+        take: 200,
+        include: {
+          report: {
+            select: {
+              id: true,
+              status: true,
+              reportedUser: { select: { discordId: true } },
+            },
           },
         },
-      },
-    });
+      }),
+      this.prisma.supportTicket.groupBy({
+        by: ['status'],
+        _count: true,
+      }),
+    ]);
     return {
       items: rows.map((r) => ({
         id: r.id,
@@ -351,6 +382,9 @@ export class TicketsService {
         reportStatus: r.report.status,
         adminNote: r.adminNote,
       })),
+      ticketBuckets: aggregateTicketBucketCounts(
+        statusAgg.map((r) => ({ status: r.status, _count: r._count })),
+      ),
     };
   }
 
