@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { FlagLevel } from '@prisma/client';
+import { IsBoolean, IsEnum, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class CreateFlagDto {
   @ApiProperty()
@@ -29,4 +30,9 @@ export class CreateFlagDto {
   @IsOptional()
   @IsBoolean()
   adminOverride?: boolean;
+
+  @ApiPropertyOptional({ enum: FlagLevel, description: 'Trusted /flag severity → server maps to weight (required for bot).' })
+  @IsOptional()
+  @IsEnum(FlagLevel)
+  severity?: FlagLevel;
 }

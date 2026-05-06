@@ -4,6 +4,7 @@ import { patchTicketAction, resolveTicketAction } from './actions';
 import { Card } from '@/components/ui/card';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { FlagLevelBadge } from '@/components/flag-level-badge';
 
 type TicketRow = {
   id: string;
@@ -15,6 +16,8 @@ type TicketRow = {
   updatedAt: string;
   targetDiscordId: string;
   reportStatus: string;
+  reportReason?: string;
+  allegedFlagLevel?: string | null;
   adminNote: string | null;
 };
 
@@ -52,6 +55,7 @@ export default async function AdminTicketsPage() {
         <Table>
           <Thead>
             <Tr>
+              <Th>Severity</Th>
               <Th>Updated</Th>
               <Th>Status</Th>
               <Th>Target</Th>
@@ -63,6 +67,9 @@ export default async function AdminTicketsPage() {
           <Tbody>
             {data.tickets.items.map((t) => (
               <Tr key={t.id}>
+                <Td>
+                  <FlagLevelBadge level={t.allegedFlagLevel} />
+                </Td>
                 <Td className="font-mono text-[11px] text-muted-foreground">{t.updatedAt}</Td>
                 <Td>{t.status}</Td>
                 <Td className="font-mono text-[11px]">{t.targetDiscordId}</Td>

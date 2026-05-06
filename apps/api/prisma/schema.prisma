@@ -130,6 +130,8 @@ model Report {
   reporterDiscordId String       @map("reporter_discord_id")
   reportedUserId    String       @map("reported_user_id") @db.Uuid
   guildId           String?      @map("guild_id")
+  /** Severity indicated by reporter (slash choice); distinct from aggregate User.flagLevel. */
+  allegedFlagLevel  FlagLevel?   @map("alleged_flag_level")
   reason            String
   dedupeKey         String?      @map("dedupe_key")
   status            ReportStatus @default(PENDING)

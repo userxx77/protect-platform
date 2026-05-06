@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, type ChatInputCommandInteraction } from 'discord.js';
+import { discordSlashLevelChoices, flagLevelDisplayName } from '@protect/shared';
 import type { ApiClient } from '../services/apiClient';
 import type { Env } from '../config/env';
 import {
@@ -19,6 +20,13 @@ export const reportCommandData = new SlashCommandBuilder()
   .setDMPermission(false)
   .addUserOption((o) =>
     o.setName('user').setDescription('Member to report').setRequired(true),
+  )
+  .addStringOption((o) =>
+    o
+      .setName('level')
+      .setDescription('How serious is this report?')
+      .setRequired(true)
+      .addChoices(...discordSlashLevelChoices.map((c) => ({ name: c.name, value: c.value }))),
   )
   .addStringOption((o) =>
     o
@@ -43,6 +51,7 @@ export async function executeReport(
     return;
   }
   const target = interaction.options.getUser('user', true);
+  const level = interaction.options.getString('level', true);
   const reason = interaction.options.getString('reason', true);
   await interaction.deferReply({ ephemeral: true });
   if (!api.guildRate.tryConsume(interaction.guildId)) {
@@ -62,12 +71,14 @@ export async function executeReport(
       targetDiscordId: target.id,
       reason,
       guildId: interaction.guildId ?? undefined,
-    })) as { pendingReview?: boolean };
+      allegedFlagLevel: level,
+    })) as { pendingReview?: boolean; allegedFlagLevel?: string | null };
+    const levelLabel = flagLevelDisplayName(data?.allegedFlagLevel ?? level);
     if (data && typeof data === 'object' && data.pendingReview === true) {
-      await interaction.editReply({ embeds: [embedReportSuccessPending()] });
+      await interaction.editReply({ embeds: [embedReportSuccessPending(levelLabel)] });
       return;
     }
-    await interaction.editReply({ embeds: [embedReportSuccessInstant(target.id)] });
+    await interaction.editReply({ embeds: [embedReportSuccessInstant(target.id, levelLabel)] });
   } catch (e) {
     if (isReportLicenseForbiddenError(e)) {
       await interaction.editReply({

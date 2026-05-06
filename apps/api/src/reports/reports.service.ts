@@ -84,6 +84,20 @@ export class ReportsService {
     }
   }
 
+  /**
+   * Bot and guild-scoped (community) reports must include reporter severity.
+   */
+  private assertAllegedFlagLevelIfRequired(
+    dto: CreateReportDto,
+    principal: RequestPrincipal,
+  ): void {
+    const guildScoped = !!dto.guildId?.trim();
+    const fromBot = principal.identity.kind === 'bot';
+    if ((fromBot || guildScoped) && dto.allegedFlagLevel == null) {
+      throw new BadRequestException('allegedFlagLevel is required');
+    }
+  }
+
   private async reporterInstantApplies(dto: CreateReportDto): Promise<boolean> {
     const reporterPrincipal = await this.authz.resolvePrincipal({
       kind: 'user',
@@ -97,6 +111,7 @@ export class ReportsService {
 
   async create(dto: CreateReportDto, principal: RequestPrincipal) {
     this.assertReporterAccess(dto, principal);
+    this.assertAllegedFlagLevelIfRequired(dto, principal);
 
     const guildId = dto.guildId?.trim();
     const isCommunityInGuild = !!guildId;
@@ -160,6 +175,7 @@ export class ReportsService {
             reporterDiscordId: dto.reporterDiscordId,
             reportedUserId: reported.id,
             guildId: dto.guildId ?? null,
+            allegedFlagLevel: dto.allegedFlagLevel ?? null,
             reason: dto.reason,
             dedupeKey,
             status: ReportStatus.PENDING,
@@ -188,6 +204,7 @@ export class ReportsService {
             reporterDiscordId: dto.reporterDiscordId,
             guildId: dto.guildId ?? null,
             reason: truncateEventReason(dto.reason),
+            allegedFlagLevel: dto.allegedFlagLevel ?? null,
           },
         });
 
@@ -204,6 +221,7 @@ export class ReportsService {
         id: result.report.id,
         status: result.report.status,
         createdAt: result.report.createdAt,
+        allegedFlagLevel: result.report.allegedFlagLevel,
         pendingReview: true as const,
       };
     } catch (e) {
@@ -256,6 +274,7 @@ export class ReportsService {
             reporterDiscordId: dto.reporterDiscordId,
             reportedUserId: reported.id,
             guildId: dto.guildId ?? null,
+            allegedFlagLevel: dto.allegedFlagLevel ?? null,
             reason: dto.reason,
             dedupeKey,
             status: ReportStatus.ACCEPTED,
@@ -325,6 +344,7 @@ export class ReportsService {
               reporterDiscordId: dto.reporterDiscordId,
               guildId: dto.guildId ?? null,
               reason: truncateEventReason(dto.reason),
+              allegedFlagLevel: dto.allegedFlagLevel ?? null,
             },
           },
           {
@@ -349,6 +369,7 @@ export class ReportsService {
         id: result.report.id,
         status: result.report.status,
         createdAt: result.report.createdAt,
+        allegedFlagLevel: result.report.allegedFlagLevel,
         appliedFlagWeight: result.weight,
         targetFlagLevel: result.userAfter.flagLevel,
         pendingReview: false as const,
@@ -379,6 +400,7 @@ export class ReportsService {
         targetDiscordId: r.reportedUser.discordId,
         guildId: r.guildId,
         reason: r.reason,
+        allegedFlagLevel: r.allegedFlagLevel,
         status: r.status,
         createdAt: r.createdAt.toISOString(),
         ticketId: r.supportTicket?.id ?? null,
@@ -473,6 +495,7 @@ export class ReportsService {
             reporterDiscordId: dto.reporterDiscordId,
             guildId: existing.guildId ?? null,
             reason: truncateEventReason(existing.reason),
+            allegedFlagLevel: existing.allegedFlagLevel,
           },
         },
         {

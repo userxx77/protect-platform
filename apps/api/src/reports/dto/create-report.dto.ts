@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { FlagLevel } from '@prisma/client';
+import { IsEnum, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class CreateReportDto {
   @ApiProperty()
@@ -23,4 +24,9 @@ export class CreateReportDto {
   @IsString()
   @Matches(/^\d{17,20}$/)
   guildId?: string;
+
+  @ApiPropertyOptional({ enum: FlagLevel, description: 'Reporter-indicated severity (required for bot and guild/community reports).' })
+  @IsOptional()
+  @IsEnum(FlagLevel)
+  allegedFlagLevel?: FlagLevel;
 }

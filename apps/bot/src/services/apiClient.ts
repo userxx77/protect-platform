@@ -140,6 +140,7 @@ export class ApiClient {
     targetDiscordId: string;
     reason: string;
     guildId?: string;
+    allegedFlagLevel?: string;
   }): Promise<unknown> {
     return this.requestJson('/report', {
       method: 'POST',
@@ -153,6 +154,7 @@ export class ApiClient {
     reason: string;
     guildId?: string;
     adminOverride?: boolean;
+    severity?: string;
   }): Promise<unknown> {
     return this.requestJson('/flag', {
       method: 'POST',

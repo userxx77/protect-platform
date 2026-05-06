@@ -5,6 +5,7 @@ import {
   EmbedBuilder,
   type ColorResolvable,
 } from 'discord.js';
+import { flagLevelDisplayName } from '@protect/shared';
 import { shouldAlert } from './alerts';
 import { SENTRA_WARNING } from '../embeds/sentra';
 
@@ -17,15 +18,7 @@ const levelColors: Record<string, ColorResolvable> = {
   CONFIRMED_CHEATER: 0xf87171,
 };
 
-export function displayFlagLevel(level: string): string {
-  const map: Record<string, string> = {
-    CLEAN: 'Safe',
-    SUSPICIOUS: 'Suspicious',
-    HIGH_RISK: 'Flagged',
-    CONFIRMED_CHEATER: 'Cheater',
-  };
-  return map[level] ?? level;
-}
+export { flagLevelDisplayName as displayFlagLevel } from '@protect/shared';
 
 export type ServerConfigLike = {
   joinHoldEnabled?: boolean;
@@ -81,7 +74,7 @@ export function joinHoldModerationEmbed(input: {
       { name: 'Server', value: input.guildName, inline: true },
       {
         name: 'Sentra level',
-        value: displayFlagLevel(input.user.flagLevel),
+        value: flagLevelDisplayName(input.user.flagLevel),
         inline: true,
       },
       { name: 'Score', value: String(input.user.flagScore), inline: true },

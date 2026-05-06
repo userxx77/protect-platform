@@ -1,7 +1,10 @@
 import { z } from 'zod';
 
+import { FlagActionLevelSchema } from './flag-levels';
+
 export * from './domain-events';
 export * from './admin-discord-ids';
+export * from './flag-levels';
 
 export const flagLevels = [
   'CLEAN',
@@ -30,6 +33,8 @@ export const CreateFlagBodySchema = z.object({
   actorDiscordId: z.string().regex(/^\d{17,20}$/),
   reason: z.string().min(1).max(2000),
   guildId: z.string().regex(/^\d{17,20}$/).optional(),
+  /** Trusted /flag severity → server maps to weight. */
+  severity: FlagActionLevelSchema.optional(),
 });
 
 export type CreateFlagBody = z.infer<typeof CreateFlagBodySchema>;
@@ -39,6 +44,8 @@ export const CreateReportBodySchema = z.object({
   targetDiscordId: z.string().regex(/^\d{17,20}$/),
   reason: z.string().min(1).max(2000),
   guildId: z.string().regex(/^\d{17,20}$/).optional(),
+  /** Reporter-indicated severity (bot/dashboard). */
+  allegedFlagLevel: FlagActionLevelSchema.optional(),
 });
 
 export type CreateReportBody = z.infer<typeof CreateReportBodySchema>;

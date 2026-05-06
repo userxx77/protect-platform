@@ -31,6 +31,32 @@ export class FlagPolicyService {
     return Number(this.config.get('FLAG_WEIGHT_COMMUNITY_REPORT') ?? 1);
   }
 
+  /**
+   * Trusted /flag tier → weight. Defaults align with `FLAG_THRESHOLD_*` (same keys as level thresholds).
+   */
+  trustedCommandWeightForSeverity(level: FlagLevel): number {
+    const suspicious = Number(
+      this.config.get('FLAG_WEIGHT_TIER_SUSPICIOUS') ?? this.suspicious,
+    );
+    const highRisk = Number(
+      this.config.get('FLAG_WEIGHT_TIER_HIGH_RISK') ?? this.highRisk,
+    );
+    const confirmed = Number(
+      this.config.get('FLAG_WEIGHT_TIER_CONFIRMED') ?? this.confirmed,
+    );
+    switch (level) {
+      case FlagLevel.SUSPICIOUS:
+        return suspicious;
+      case FlagLevel.HIGH_RISK:
+        return highRisk;
+      case FlagLevel.CONFIRMED_CHEATER:
+        return confirmed;
+      case FlagLevel.CLEAN:
+      default:
+        return suspicious;
+    }
+  }
+
   adminOverrideWeight(): number {
     return Number(this.config.get('FLAG_WEIGHT_ADMIN_OVERRIDE') ?? 100);
   }

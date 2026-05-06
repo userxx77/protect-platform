@@ -42,6 +42,10 @@ export class FlagsService {
       throw new ForbiddenException('adminOverride requires ADMIN session');
     }
 
+    if (principal.identity.kind === 'bot' && !useAdminOverride && dto.severity == null) {
+      throw new BadRequestException('severity is required');
+    }
+
     let weight: number;
     let source: FlagSource;
 
@@ -55,7 +59,10 @@ export class FlagsService {
       if (!trusted) {
         throw new ForbiddenException('Actor is not a trusted user');
       }
-      weight = this.policy.flagWeightFromTrustLevel(trusted.trustLevel);
+      weight =
+        dto.severity != null
+          ? this.policy.trustedCommandWeightForSeverity(dto.severity)
+          : this.policy.flagWeightFromTrustLevel(trusted.trustLevel);
       source = FlagSource.TRUSTED_COMMAND;
     }
 

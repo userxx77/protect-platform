@@ -12,12 +12,12 @@ export default async function MyTicketsPage() {
     data = await dashboardApi<ListResponse>('/me/tickets');
   } catch (e) {
     return (
-      <div className="border-destructive/35 bg-destructive/10 rounded-lg border p-6 text-sm">
-        <h1 className="text-lg font-semibold">Support tickets</h1>
-        <p className="text-muted-foreground mt-2">
+      <section className="ds-card">
+        <h1 className="ds-h1">Support tickets</h1>
+        <div className="ds-alert ds-alert-error mt-4">
           {e instanceof Error ? e.message : 'Failed to load'} (User role required for tickets.)
-        </p>
-      </div>
+        </div>
+      </section>
     );
   }
 

@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { flagLevelDisplayName, flagLevels } from '@protect/shared';
 import { dashboardApi } from '@/lib/api-server';
 import { deleteFlagAction, patchFlagAction } from './actions';
+import { FlagLevelBadge } from '@/components/flag-level-badge';
 
 type FlagRow = {
   id: string;
@@ -47,8 +49,14 @@ export default async function AdminUserFlagsPage({
       <h1 className="ds-h1" style={{ marginTop: '0.75rem' }}>
         Flags · <span className="ds-mono">{data.discordId}</span>
       </h1>
-      <p className="ds-muted">
-        Level <strong>{data.flagLevel}</strong> · Score <strong>{data.flagScore}</strong>
+      <div className="flex flex-wrap items-center gap-2" style={{ marginTop: '0.5rem' }}>
+        <FlagLevelBadge level={data.flagLevel} />
+        <p className="ds-muted" style={{ margin: 0 }}>
+          Score <strong>{data.flagScore}</strong>
+        </p>
+      </div>
+      <p className="ds-hint" style={{ marginTop: '0.65rem', maxWidth: '40rem' }}>
+        Level key: {flagLevels.map((lvl) => `${flagLevelDisplayName(lvl)} (${lvl})`).join(' · ')}
       </p>
       <div className="ds-table-wrap" style={{ marginTop: '1rem' }}>
         <table className="ds-table">

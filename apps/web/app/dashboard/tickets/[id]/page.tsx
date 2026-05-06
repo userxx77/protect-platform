@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { dashboardApi } from '@/lib/api-server';
 import { submitEvidenceAction } from '../actions';
+import { FlagLevelBadge } from '@/components/flag-level-badge';
 
 type TicketDetail = {
   id: string;
@@ -14,6 +15,7 @@ type TicketDetail = {
   targetDiscordId: string;
   reportStatus: string;
   reportReason: string;
+  allegedFlagLevel?: string | null;
   attachments: Array<{
     id: string;
     mimeType: string;
@@ -35,7 +37,9 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
           {e instanceof Error ? e.message : 'Not found'}
         </div>
         <p style={{ marginTop: '1rem' }}>
-          <Link href="/dashboard/tickets">Back to tickets</Link>
+          <Link href="/dashboard/tickets" className="ds-btn ds-btn-ghost">
+            Back to tickets
+          </Link>
         </p>
       </section>
     );
@@ -49,30 +53,57 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
   return (
     <section className="ds-card">
       <p>
-        <Link href="/dashboard/tickets">← Tickets</Link>
+        <Link href="/dashboard/tickets" className="ds-btn ds-btn-ghost">
+          ← Tickets
+        </Link>
       </p>
       <h1 className="ds-h1" style={{ marginTop: '0.75rem' }}>
-        Ticket · {t.status}
+        Ticket
+        <span className="text-muted-foreground ds-muted ml-2 text-[0.55em] font-semibold tracking-wide uppercase">
+          {t.status.replace(/_/g, ' ')}
+        </span>
       </h1>
       <p className="ds-muted" style={{ marginTop: '0.35rem' }}>
-        Report {t.reportStatus} · Target{' '}
+        Report <strong>{t.reportStatus}</strong> · Target{' '}
         <span className="ds-mono">{t.targetDiscordId}</span>
       </p>
-      {t.adminNote ? (
-        <div className="ds-alert" style={{ marginTop: '1rem' }}>
-          <strong>Staff note:</strong> {t.adminNote}
+
+      <div style={{ marginTop: '1.25rem' }}>
+        <h2 className="ds-h2" style={{ marginTop: 0 }}>
+          Report
+        </h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <FlagLevelBadge level={t.allegedFlagLevel} />
+        </div>
+        <p style={{ marginTop: '0.65rem', maxWidth: '42rem' }}>{t.reportReason}</p>
+      </div>
+
+      {t.userMessage ? (
+        <div style={{ marginTop: '1.25rem' }}>
+          <h2 className="ds-h2" style={{ marginTop: 0 }}>
+            Message from staff
+          </h2>
+          <p>{t.userMessage}</p>
         </div>
       ) : null}
-      <div style={{ marginTop: '1rem' }}>
-        <strong>Reason</strong>
-        <p>{t.reportReason}</p>
-      </div>
+
+      {t.adminNote ? (
+        <div className="ds-alert ds-alert-warn" style={{ marginTop: '1.25rem' }}>
+          <span className="ds-label" style={{ marginBottom: '0.25rem' }}>
+            Staff note
+          </span>
+          {t.adminNote}
+        </div>
+      ) : null}
+
       {links.length > 0 ? (
-        <div style={{ marginTop: '1rem' }}>
-          <strong>Links</strong>
-          <ul>
+        <div style={{ marginTop: '1.25rem' }}>
+          <h2 className="ds-h2" style={{ marginTop: 0 }}>
+            Evidence links
+          </h2>
+          <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
             {links.map((u) => (
-              <li key={u}>
+              <li key={u} style={{ marginBottom: '0.35rem' }}>
                 <a href={u} target="_blank" rel="noreferrer">
                   {u}
                 </a>
@@ -81,13 +112,20 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
           </ul>
         </div>
       ) : null}
+
       {t.attachments.length > 0 ? (
-        <div style={{ marginTop: '1rem' }}>
-          <strong>Images</strong>
-          <ul>
+        <div style={{ marginTop: '1.25rem' }}>
+          <h2 className="ds-h2" style={{ marginTop: 0 }}>
+            Images
+          </h2>
+          <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
             {t.attachments.map((a) => (
-              <li key={a.id}>
-                <a href={`/dashboard/tickets/${t.id}/attachments/${a.id}`} target="_blank" rel="noreferrer">
+              <li key={a.id} style={{ marginBottom: '0.35rem' }}>
+                <a
+                  href={`/dashboard/tickets/${t.id}/attachments/${a.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   {a.mimeType} ({a.sizeBytes} bytes)
                 </a>
               </li>
@@ -100,30 +138,37 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
         <form
           action={submitEvidenceAction.bind(null, t.id)}
           encType="multipart/form-data"
-          style={{ marginTop: '1.5rem', maxWidth: 480 }}
+          style={{ marginTop: '1.75rem', maxWidth: 520 }}
         >
           <h2 className="ds-h2">Submit evidence</h2>
           <p className="ds-muted">Images (JPEG, PNG, WebP, GIF) and optional links.</p>
-          <label style={{ display: 'block', marginTop: '0.75rem' }}>
-            Links (one per line)
+          <div className="ds-field" style={{ marginTop: '0.75rem' }}>
+            <label className="ds-label" htmlFor="linksText">
+              Links (one per line)
+            </label>
             <textarea
+              id="linksText"
               className="ds-input"
               name="linksText"
               rows={4}
-              style={{ display: 'block', width: '100%', marginTop: '0.35rem' }}
+              style={{ display: 'block', maxWidth: '100%' }}
             />
-          </label>
-          <label style={{ display: 'block', marginTop: '0.75rem' }}>
-            Images
+          </div>
+          <div className="ds-field">
+            <label className="ds-label" htmlFor="evidence-images">
+              Images
+            </label>
             <input
+              id="evidence-images"
               type="file"
               name="images"
               accept="image/jpeg,image/png,image/webp,image/gif"
               multiple
-              style={{ display: 'block', marginTop: '0.35rem' }}
+              className="ds-input"
+              style={{ padding: '0.45rem' }}
             />
-          </label>
-          <button type="submit" className="ds-btn" style={{ marginTop: '1rem' }}>
+          </div>
+          <button type="submit" className="ds-btn">
             Submit evidence
           </button>
         </form>

@@ -1,5 +1,6 @@
 import { dashboardApi } from '@/lib/api-server';
 import { approveReportAction, rejectReportAction } from './actions';
+import { FlagLevelBadge } from '@/components/flag-level-badge';
 
 type PendingItem = {
   id: string;
@@ -7,6 +8,7 @@ type PendingItem = {
   targetDiscordId: string;
   guildId: string | null;
   reason: string;
+  allegedFlagLevel?: string | null;
   createdAt: string;
   ticketId?: string | null;
   ticketStatus?: string | null;
@@ -39,6 +41,7 @@ export default async function AdminReportsPage() {
         <table className="ds-table">
           <thead>
             <tr>
+              <th>Severity</th>
               <th>Created</th>
               <th>Target</th>
               <th>Reporter</th>
@@ -51,6 +54,14 @@ export default async function AdminReportsPage() {
           <tbody>
             {data.items.map((r) => (
               <tr key={r.id}>
+                <td>
+                  <FlagLevelBadge level={r.allegedFlagLevel} />
+                  {r.allegedFlagLevel == null ? (
+                    <span className="ds-hint" style={{ marginLeft: '0.25rem' }}>
+                      —
+                    </span>
+                  ) : null}
+                </td>
                 <td className="ds-mono">{r.createdAt}</td>
                 <td className="ds-mono">{r.targetDiscordId}</td>
                 <td className="ds-mono">{r.reporterDiscordId}</td>

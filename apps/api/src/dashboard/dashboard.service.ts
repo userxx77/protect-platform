@@ -23,6 +23,7 @@ export type MeDashboardTicketPreview = {
   targetDiscordId: string;
   reportStatus: string;
   reportReason: string;
+  allegedFlagLevel: string | null;
 };
 
 export type MeDashboardReportPreview = {
@@ -239,6 +240,7 @@ export class DashboardService {
             id: true,
             status: true,
             reason: true,
+            allegedFlagLevel: true,
             reportedUser: { select: { discordId: true } },
           },
         },
@@ -254,6 +256,7 @@ export class DashboardService {
       targetDiscordId: r.report.reportedUser.discordId,
       reportStatus: r.report.status,
       reportReason: r.report.reason,
+      allegedFlagLevel: r.report.allegedFlagLevel,
     }));
   }
 

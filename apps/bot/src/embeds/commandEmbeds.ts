@@ -65,24 +65,40 @@ export function embedReportLicenseDenied(dashboardUrl: string | undefined): Embe
     .setTimestamp(new Date());
 }
 
-export function embedReportSuccessPending(): EmbedBuilder {
-  return baseEmbed(SENTRA_SUCCESS)
+export function embedReportSuccessPending(reportedSeverityLabel?: string): EmbedBuilder {
+  const b = baseEmbed(SENTRA_SUCCESS)
     .setTitle('Report queued for review')
     .setDescription(
       'Thanks — your report is in the **moderation queue**. Reputation only updates after staff **approve** it in the Sentra dashboard. You will not see a score change until then.',
     )
     .setFooter(productFooter())
     .setTimestamp(new Date());
+  if (reportedSeverityLabel?.trim()) {
+    b.addFields({
+      name: 'Your severity',
+      value: reportedSeverityLabel,
+      inline: true,
+    });
+  }
+  return b;
 }
 
-export function embedReportSuccessInstant(targetId: string): EmbedBuilder {
-  return baseEmbed(SENTRA_SUCCESS)
+export function embedReportSuccessInstant(targetId: string, reportedSeverityLabel?: string): EmbedBuilder {
+  const b = baseEmbed(SENTRA_SUCCESS)
     .setTitle('Report recorded')
     .setDescription(
       `Your report for <@${targetId}> was recorded. No further action is needed from you.`,
     )
     .setFooter(productFooter())
     .setTimestamp(new Date());
+  if (reportedSeverityLabel?.trim()) {
+    b.addFields({
+      name: 'Your severity',
+      value: reportedSeverityLabel,
+      inline: true,
+    });
+  }
+  return b;
 }
 
 export function embedReportFailed(message: string): EmbedBuilder {
@@ -97,16 +113,24 @@ export function embedFlagSuccess(input: {
   flagLevel: string;
   flagScore: number;
   weightApplied: number | string;
+  /** Display label for the tier chosen on /flag */
+  severityLabel?: string;
 }): EmbedBuilder {
-  return baseEmbed(SENTRA_SUCCESS)
-    .setTitle('Flag applied')
-    .addFields(
-      { name: 'Level', value: input.flagLevel, inline: true },
-      { name: 'Score', value: String(input.flagScore), inline: true },
-      { name: 'Weight', value: `+${input.weightApplied}`, inline: true },
-    )
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+  const fields = [
+    { name: 'Aggregate level', value: input.flagLevel, inline: true },
+    { name: 'Score', value: String(input.flagScore), inline: true },
+    { name: 'Weight', value: `+${input.weightApplied}`, inline: true },
+  ] as const;
+  const b = baseEmbed(SENTRA_SUCCESS).setTitle('Flag applied').setFooter(productFooter()).setTimestamp(new Date());
+  if (input.severityLabel?.trim()) {
+    b.addFields(
+      { name: 'Flag tier', value: input.severityLabel, inline: true },
+      ...fields,
+    );
+  } else {
+    b.addFields(...fields);
+  }
+  return b;
 }
 
 export function embedFlagFailed(message: string): EmbedBuilder {

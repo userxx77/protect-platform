@@ -165,6 +165,7 @@ export class TicketsService {
               id: true,
               status: true,
               reason: true,
+              allegedFlagLevel: true,
               reportedUser: { select: { discordId: true } },
             },
           },
@@ -193,6 +194,7 @@ export class TicketsService {
         targetDiscordId: r.report.reportedUser.discordId,
         reportStatus: r.report.status,
         reportReason: r.report.reason,
+        allegedFlagLevel: r.report.allegedFlagLevel,
         attachments: r.attachments.map((a) => ({
           id: a.id,
           mimeType: a.mimeType,
@@ -216,6 +218,7 @@ export class TicketsService {
             id: true,
             status: true,
             reason: true,
+            allegedFlagLevel: true,
             reportedUser: { select: { discordId: true } },
           },
         },
@@ -238,6 +241,7 @@ export class TicketsService {
       targetDiscordId: row.report.reportedUser.discordId,
       reportStatus: row.report.status,
       reportReason: row.report.reason,
+      allegedFlagLevel: row.report.allegedFlagLevel,
       attachments: row.attachments.map((a) => ({
         id: a.id,
         mimeType: a.mimeType,
@@ -359,6 +363,8 @@ export class TicketsService {
             select: {
               id: true,
               status: true,
+              reason: true,
+              allegedFlagLevel: true,
               reportedUser: { select: { discordId: true } },
             },
           },
@@ -380,6 +386,8 @@ export class TicketsService {
         updatedAt: r.updatedAt.toISOString(),
         targetDiscordId: r.report.reportedUser.discordId,
         reportStatus: r.report.status,
+        reportReason: r.report.reason,
+        allegedFlagLevel: r.report.allegedFlagLevel,
         adminNote: r.adminNote,
       })),
       ticketBuckets: aggregateTicketBucketCounts(
