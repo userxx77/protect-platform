@@ -4,7 +4,7 @@ import { embedHelp } from '../embeds/commandEmbeds';
 
 export const helpCommandData = new SlashCommandBuilder()
   .setName('help')
-  .setDescription('Sentra commands and dashboard link');
+  .setDescription('Command list, setup hints, and dashboard link');
 
 export async function executeHelp(
   interaction: ChatInputCommandInteraction,

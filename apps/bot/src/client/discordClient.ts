@@ -19,6 +19,7 @@ import {
   executeConfigView,
 } from '../commands/config';
 import { helpCommandData, executeHelp } from '../commands/help';
+import { setupCommandData, executeSetup } from '../commands/setup';
 import {
   sentraAdminCommandData,
   executeSentraAdmin,
@@ -26,6 +27,10 @@ import {
 import { sentraCommandData, executeSentra } from '../commands/sentra';
 import { onGuildMemberAdd } from '../events/guildMemberAdd';
 import { onGuildJoined, onGuildRemoved } from '../events/guildJoinLeave';
+import {
+  executeJoinHoldButton,
+  isJoinHoldButton,
+} from '../interactions/joinHoldButton';
 
 export function createDiscordClient(api: ApiClient, env: Env): Client {
   const client = new Client({
@@ -79,6 +84,21 @@ export function createDiscordClient(api: ApiClient, env: Env): Client {
   });
 
   client.on(Events.InteractionCreate, async (i: Interaction) => {
+    if (i.isButton() && isJoinHoldButton(i.customId)) {
+      try {
+        await executeJoinHoldButton(i);
+      } catch (e) {
+        botLog('error', 'join_hold_button_handler', { error: String(e) });
+        if (i.isRepliable() && !i.replied && !i.deferred) {
+          await i.reply({
+            content: 'Something went wrong handling that action.',
+            ephemeral: true,
+          });
+        }
+      }
+      return;
+    }
+
     if (!i.isChatInputCommand()) return;
     try {
       if (i.commandName === 'check') {
@@ -89,6 +109,8 @@ export function createDiscordClient(api: ApiClient, env: Env): Client {
         await executeFlag(i, api);
       } else if (i.commandName === 'help') {
         await executeHelp(i, env);
+      } else if (i.commandName === 'setup') {
+        await executeSetup(i);
       } else if (i.commandName === 'config') {
         const sub = i.options.getSubcommand();
         if (sub === 'view') {
@@ -130,6 +152,7 @@ export async function registerSlashCommands(env: Env, client: Client): Promise<v
     reportCommandData.toJSON(),
     flagCommandData.toJSON(),
     helpCommandData.toJSON(),
+    setupCommandData.toJSON(),
     configCommandData.toJSON(),
     sentraAdminCommandData.toJSON(),
     sentraCommandData.toJSON(),

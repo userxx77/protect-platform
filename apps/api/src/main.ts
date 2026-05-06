@@ -2,8 +2,32 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, RequestMethod } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
+import type { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { validateProcessEnv } from './config/env.validation';
 import { AppModule } from './app.module';
+
+function buildCorsOptions(): CorsOptions {
+  const raw = process.env.CORS_ORIGINS?.trim();
+  const allowList = raw
+    ? raw.split(',').map((s) => s.trim()).filter(Boolean)
+    : [];
+  if (process.env.NODE_ENV === 'production') {
+    if (allowList.length > 0) {
+      return {
+        origin: (origin, cb) => {
+          if (!origin) {
+            cb(null, true);
+            return;
+          }
+          cb(null, allowList.includes(origin));
+        },
+        credentials: true,
+      };
+    }
+    return { origin: false };
+  }
+  return { origin: true, credentials: true };
+}
 
 async function bootstrap() {
   validateProcessEnv();
@@ -27,7 +51,7 @@ async function bootstrap() {
     ],
   });
 
-  app.enableCors({ origin: true, credentials: true });
+  app.enableCors(buildCorsOptions());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -38,7 +62,10 @@ async function bootstrap() {
   );
 
   const swaggerOff =
-    process.env.SWAGGER_ENABLED === '0' || process.env.SWAGGER_ENABLED === 'false';
+    process.env.SWAGGER_ENABLED === '0' ||
+    process.env.SWAGGER_ENABLED === 'false' ||
+    (process.env.NODE_ENV === 'production' &&
+      process.env.SWAGGER_ENABLED !== 'true');
   if (!swaggerOff) {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('Protect API')

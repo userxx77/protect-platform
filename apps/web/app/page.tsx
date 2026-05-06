@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { auth } from '@/auth';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { discordSignInPath } from '@/lib/discord-signin';
 
 export default async function HomePage() {
   const session = await auth();
@@ -26,7 +27,7 @@ export default async function HomePage() {
             </p>
           ) : (
             <Button asChild>
-              <Link href="/api/auth/signin">Sign in with Discord</Link>
+              <Link href={discordSignInPath('/dashboard')}>Sign in with Discord</Link>
             </Button>
           )}
         </div>

@@ -9,9 +9,10 @@ import { embedCheckFailed, embedRateLimited } from '../embeds/commandEmbeds';
 
 export const checkCommandData = new SlashCommandBuilder()
   .setName('check')
-  .setDescription('Look up a user reputation')
+  .setDescription('Look up Sentra reputation for a member')
+  .setDMPermission(false)
   .addUserOption((o) =>
-    o.setName('user').setDescription('Discord user').setRequired(true),
+    o.setName('user').setDescription('Member to look up').setRequired(true),
   );
 
 export async function executeCheck(

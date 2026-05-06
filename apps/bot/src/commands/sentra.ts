@@ -10,12 +10,12 @@ import { embedMonitorHelp, embedOperatorsOnly } from '../embeds/commandEmbeds';
 
 export const sentraCommandData = new SlashCommandBuilder()
   .setName('sentra')
-  .setDescription('Sentra operator tools')
+  .setDescription('Platform operator utilities')
   .setDMPermission(false)
   .addSubcommand((sub) =>
     sub
       .setName('monitor')
-      .setDescription('How to run the live event monitor (Redis tail) on your server'),
+      .setDescription('Stream the live Redis event log from your application server'),
   );
 
 export async function executeSentra(

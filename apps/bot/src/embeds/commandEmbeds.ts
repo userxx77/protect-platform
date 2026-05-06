@@ -67,9 +67,9 @@ export function embedReportLicenseDenied(dashboardUrl: string | undefined): Embe
 
 export function embedReportSuccessPending(): EmbedBuilder {
   return baseEmbed(SENTRA_SUCCESS)
-    .setTitle('Report received')
+    .setTitle('Report queued for review')
     .setDescription(
-      'Your report is **pending staff review**. You will not see score changes until it is approved. Thank you.',
+      'Thanks — your report is in the **moderation queue**. Reputation only updates after staff **approve** it in the Sentra dashboard. You will not see a score change until then.',
     )
     .setFooter(productFooter())
     .setTimestamp(new Date());
@@ -77,8 +77,10 @@ export function embedReportSuccessPending(): EmbedBuilder {
 
 export function embedReportSuccessInstant(targetId: string): EmbedBuilder {
   return baseEmbed(SENTRA_SUCCESS)
-    .setTitle('Report submitted')
-    .setDescription(`Thank you. Report recorded for <@${targetId}>.`)
+    .setTitle('Report recorded')
+    .setDescription(
+      `Your report for <@${targetId}> was recorded. No further action is needed from you.`,
+    )
     .setFooter(productFooter())
     .setTimestamp(new Date());
 }
@@ -119,13 +121,32 @@ export function embedConfigView(fields: {
   alertChannel: string;
   minLevel: string;
   mentionRoles: string;
+  joinHoldEnabled: string;
+  joinHoldMinutes: string;
+  joinHoldMinLevel: string;
   updatedNote: string;
 }): EmbedBuilder {
   return baseEmbed(SENTRA_PRIMARY)
-    .setTitle('Alert settings')
+    .setTitle('Alert & join hold settings')
     .addFields(
       { name: 'Alert channel', value: fields.alertChannel, inline: true },
-      { name: 'Minimum level', value: fields.minLevel, inline: true },
+      { name: 'Alert min level', value: fields.minLevel, inline: true },
+      { name: '\u200b', value: '\u200b', inline: true },
+      {
+        name: 'Join hold',
+        value: fields.joinHoldEnabled,
+        inline: true,
+      },
+      {
+        name: 'Hold duration (min)',
+        value: fields.joinHoldMinutes,
+        inline: true,
+      },
+      {
+        name: 'Hold min level',
+        value: fields.joinHoldMinLevel,
+        inline: true,
+      },
       { name: 'Mention roles', value: fields.mentionRoles, inline: false },
       { name: '\u200b', value: fields.updatedNote, inline: false },
     )
@@ -136,7 +157,9 @@ export function embedConfigView(fields: {
 export function embedConfigSaved(): EmbedBuilder {
   return baseEmbed(SENTRA_SUCCESS)
     .setTitle('Settings saved')
-    .setDescription('Alerts will use the new channel and/or minimum level.')
+    .setDescription(
+      'Alert channel, levels, and join hold options are updated where you changed them.',
+    )
     .setFooter(productFooter())
     .setTimestamp(new Date());
 }
@@ -159,24 +182,165 @@ export function embedConfigLoadFailed(message: string): EmbedBuilder {
 
 export function embedHelp(dashboardUrl: string): EmbedBuilder {
   return baseEmbed(SENTRA_PRIMARY)
-    .setTitle('Sentra commands')
-    .setDescription('Reputation checks, community reports, and server alerts.')
+    .setTitle('Sentra · Command reference')
+    .setDescription('Reputation checks, community reports, trust flags, and staff alerts.')
     .addFields(
       {
-        name: 'Commands',
+        name: 'Member commands',
         value: [
-          '`/check` — Look up a user',
-          '`/report` — Submit a community report',
-          '`/flag` — Trusted flag (requires trusted role in Sentra)',
-          '`/config` — Alert channel & level — **Manage Server**',
-          '`/sentra monitor` — Operator: live log instructions',
+          '`/check` — Look up Sentra reputation for a user',
+          '`/report` — Submit a community report (pending staff review)',
+          '`/flag` — Trusted reporters: weighted flag (API-enforced role)',
+          '`/help` — This overview',
         ].join('\n'),
+        inline: false,
+      },
+      {
+        name: 'Server setup',
+        value: [
+          '`/setup` — Guided setup (alerts, reports, permissions)',
+          '`/config` — Alerts, optional **join hold** (timeout + moderation buttons) — **Manage Server**',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: 'Operators',
+        value:
+          '`/sentra monitor` — Live event tail instructions (platform admins only)',
         inline: false,
       },
       {
         name: 'Dashboard',
         value: dashboardUrl,
         inline: false,
+      },
+    )
+    .setFooter(productFooter())
+    .setTimestamp(new Date());
+}
+
+export function embedSetupStart(guildName: string): EmbedBuilder {
+  return baseEmbed(SENTRA_PRIMARY)
+    .setTitle('Getting started with Sentra')
+    .setDescription(
+      `Here is the fastest path to a clean rollout on **${guildName}**.`,
+    )
+    .addFields(
+      {
+        name: '1 · License',
+        value:
+          'Your server needs an **active Sentra license**. Platform admins can use `/sentra-admin` or the billing dashboard.',
+      },
+      {
+        name: '2 · Alerts',
+        value:
+          'Pick a staff channel and minimum risk level with `/config set`, or open `/setup alerts` for a step-by-step.',
+      },
+      {
+        name: '3 · Permissions',
+        value: 'Run `/setup permissions` so moderation roles match what Sentra expects.',
+      },
+    )
+    .setFooter(productFooter())
+    .setTimestamp(new Date());
+}
+
+export function embedSetupAlerts(): EmbedBuilder {
+  return baseEmbed(SENTRA_PRIMARY)
+    .setTitle('Alert channel setup')
+    .setDescription(
+      'High-signal join and manual **check** alerts post to one channel. **Join hold** can time risky members out and post Kick/Ban/Release buttons in the same channel.',
+    )
+    .addFields(
+      {
+        name: 'Step 1',
+        value:
+          'Run `/config view` — confirm whether an alert channel is already saved.',
+      },
+      {
+        name: 'Step 2',
+        value:
+          'Run `/config set` and pick a **text**, **announcement**, or **forum** channel staff can monitor.',
+      },
+      {
+        name: 'Step 3',
+        value:
+          'Set **minlevel** to `SUSPICIOUS`, `HIGH_RISK`, or stricter so CLEAN members do not ping the room.',
+      },
+      {
+        name: 'Step 4 · Join hold (optional)',
+        value:
+          'In `/config set`, set **joinhold_enabled** and tune **joinhold_minlevel** / **joinhold_minutes**. Give the bot **Moderate Members**, **Kick Members**, and **Ban Members** so timeouts and buttons work.',
+        inline: false,
+      },
+      {
+        name: 'Mentions',
+        value:
+          'Role mentions (if configured in the dashboard) follow the same rules — tune minlevel to avoid alert fatigue.',
+        inline: false,
+      },
+    )
+    .setFooter(productFooter())
+    .setTimestamp(new Date());
+}
+
+export function embedSetupReports(): EmbedBuilder {
+  return baseEmbed(SENTRA_PRIMARY)
+    .setTitle('Community reports')
+    .setDescription(
+      '`/report` sends structured reports to your Sentra operators. Abuse is logged; quality reports help everyone.',
+    )
+    .addFields(
+      {
+        name: 'Who can report',
+        value:
+          'Discord accounts with **User** access in Sentra can submit community reports. Checker-only accounts should use `/check` or trusted `/flag` where applicable.',
+      },
+      {
+        name: 'What happens next',
+        value:
+          'Most reports are **queued**. Staff **approve or reject** in the dashboard before reputation changes apply.',
+      },
+      {
+        name: 'Tips',
+        value:
+          'Use a clear, factual **reason** and avoid ping storms — one solid report beats volume.',
+      },
+    )
+    .setFooter(productFooter())
+    .setTimestamp(new Date());
+}
+
+export function embedSetupPermissions(): EmbedBuilder {
+  return baseEmbed(SENTRA_PRIMARY)
+    .setTitle('Bot permissions checklist')
+    .setDescription(
+      'Sentra needs a small, predictable permission set. Grant only what your security model allows.',
+    )
+    .addFields(
+      {
+        name: 'Recommended',
+        value: [
+          '**View channels** — Read channel metadata for alerts',
+          '**Send messages** & **embed links** — Post alert embeds',
+          '**Read message history** — Consistent delivery in busy channels',
+        ].join('\n'),
+      },
+      {
+        name: 'Members',
+        value:
+          '**Guild members intent** is enabled so joins sync to Sentra. Invite the bot with **applications.commands** scope.',
+      },
+      {
+        name: 'Join hold actions',
+        value:
+          '**Moderate Members** (timeouts), **Kick Members**, and **Ban Members** — the bot role must sit **above** members it moderates.',
+        inline: false,
+      },
+      {
+        name: 'Staff commands',
+        value:
+          '`/config` requires **Manage Server** or **Administrator** on the invoker, not the bot.',
       },
     )
     .setFooter(productFooter())
@@ -253,7 +417,9 @@ export function embedNeedManageServer(): EmbedBuilder {
 export function embedConfigNeedOptions(): EmbedBuilder {
   return baseEmbed(SENTRA_WARNING)
     .setTitle('Nothing to update')
-    .setDescription('Provide at least one of **channel** or **minlevel**.')
+    .setDescription(
+      'Set at least one option: **channel**, **minlevel**, or a **join hold** field.',
+    )
     .setFooter(productFooter())
     .setTimestamp(new Date());
 }

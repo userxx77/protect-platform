@@ -39,6 +39,7 @@ type EventEnvelope = {
     reportId?: string;
     targetDiscordId?: string;
     reporterDiscordId?: string;
+    reason?: string;
     name?: string | null;
     approximateMemberCount?: number | null;
   };
@@ -108,7 +109,24 @@ export function startEventSubscriber(
         }
 
         if (env.type === 'report.pending') {
-          const { reportId, targetDiscordId, reporterDiscordId, guildId } = env.payload;
+          const { reportId, targetDiscordId, reporterDiscordId, guildId, reason } =
+            env.payload;
+          let guildName: string | null = null;
+          let guildIconUrl: string | null = null;
+          if (guildId) {
+            let g = client.guilds.cache.get(guildId);
+            if (!g) {
+              try {
+                g = await client.guilds.fetch(guildId);
+              } catch {
+                g = undefined;
+              }
+            }
+            if (g) {
+              guildName = g.name;
+              guildIconUrl = g.iconURL({ size: 128 });
+            }
+          }
           await sendAdminFeedEmbed(
             client,
             botEnv,
@@ -117,6 +135,9 @@ export function startEventSubscriber(
               targetDiscordId,
               reporterDiscordId,
               guildId: guildId ?? undefined,
+              reason,
+              guildName,
+              guildIconUrl,
             }),
           );
           return;

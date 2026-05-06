@@ -7,6 +7,7 @@ import {
   embedReportLicenseDenied,
   embedReportSuccessInstant,
   embedReportSuccessPending,
+  embedNeedGuild,
   embedRateLimited,
   isReportCommunityRoleForbiddenError,
   isReportLicenseForbiddenError,
@@ -14,10 +15,17 @@ import {
 
 export const reportCommandData = new SlashCommandBuilder()
   .setName('report')
-  .setDescription('Report a user to Sentra')
-  .addUserOption((o) => o.setName('user').setDescription('Target user').setRequired(true))
+  .setDescription('Submit a community report for staff review')
+  .setDMPermission(false)
+  .addUserOption((o) =>
+    o.setName('user').setDescription('Member to report').setRequired(true),
+  )
   .addStringOption((o) =>
-    o.setName('reason').setDescription('Reason').setRequired(true).setMaxLength(2000),
+    o
+      .setName('reason')
+      .setDescription('Clear summary for moderators (facts, not pings)')
+      .setRequired(true)
+      .setMaxLength(2000),
   );
 
 function dashboardUrlEnv(env: Env): string | undefined {
@@ -30,6 +38,10 @@ export async function executeReport(
   api: ApiClient,
   env: Env,
 ): Promise<void> {
+  if (!interaction.inGuild()) {
+    await interaction.reply({ ephemeral: true, embeds: [embedNeedGuild()] });
+    return;
+  }
   const target = interaction.options.getUser('user', true);
   const reason = interaction.options.getString('reason', true);
   await interaction.deferReply({ ephemeral: true });

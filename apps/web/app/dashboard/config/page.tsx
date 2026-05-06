@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { saveServerConfig } from './actions';
 import { dashboardApi } from '@/lib/api-server';
@@ -8,6 +7,9 @@ type ServerRow = {
   updatedAt: string;
   alertChannelId: string | null;
   alertMinLevel: string | null;
+  joinHoldEnabled: boolean | null;
+  joinHoldDurationMinutes: number | null;
+  joinHoldMinLevel: string | null;
 };
 
 export default async function ServerConfigPage({
@@ -17,9 +19,6 @@ export default async function ServerConfigPage({
 }) {
   const sp = await searchParams;
   const session = await auth();
-  if (!session?.user?.id) {
-    redirect('/api/auth/signin');
-  }
 
   let servers: ServerRow[] = [];
   let listError: string | null = null;
@@ -29,14 +28,14 @@ export default async function ServerConfigPage({
     listError = e instanceof Error ? e.message : 'Could not load server list';
   }
 
-  const manageable = session.manageableGuilds ?? [];
+  const manageable = session?.manageableGuilds ?? [];
 
   return (
     <section className="ds-card">
       <h1 className="ds-h1">Server configuration</h1>
       <p className="ds-muted" style={{ marginTop: '0.35rem' }}>
-        Saves alert settings per guild (API admin). Discord: use <code>/config</code> with{' '}
-        <strong>Manage Server</strong>. Guild appears here after the first save.
+        Saves alert and join-hold settings per guild (API admin). Discord: use <code>/config</code>{' '}
+        with <strong>Manage Server</strong>. Guild appears here after the first save.
       </p>
       {sp?.saved ? (
         <div className="ds-alert ds-alert-success" style={{ marginTop: '1rem' }}>
@@ -64,13 +63,16 @@ export default async function ServerConfigPage({
       {servers.length > 0 ? (
         <>
           <h2 className="ds-h2">Configured servers</h2>
-          <div className="ds-table-wrap" style={{ maxWidth: 720 }}>
+          <div className="ds-table-wrap" style={{ maxWidth: 960 }}>
             <table className="ds-table">
               <thead>
                 <tr>
                   <th>Guild ID</th>
                   <th>Alert channel</th>
-                  <th>Min level</th>
+                  <th>Alert min</th>
+                  <th>Join hold</th>
+                  <th>Hold min</th>
+                  <th>Hold min (m)</th>
                   <th>Updated (UTC)</th>
                 </tr>
               </thead>
@@ -80,6 +82,9 @@ export default async function ServerConfigPage({
                     <td className="ds-mono">{s.guildId}</td>
                     <td className="ds-mono">{s.alertChannelId ?? '—'}</td>
                     <td>{s.alertMinLevel ?? '—'}</td>
+                    <td>{s.joinHoldEnabled === true ? 'On' : s.joinHoldEnabled === false ? 'Off' : '—'}</td>
+                    <td>{s.joinHoldMinLevel ?? '—'}</td>
+                    <td>{s.joinHoldDurationMinutes ?? '—'}</td>
                     <td className="ds-mono">{s.updatedAt}</td>
                   </tr>
                 ))}
@@ -134,12 +139,53 @@ export default async function ServerConfigPage({
             defaultValue="SUSPICIOUS"
             className="ds-select"
           >
+            <option value="">— omit —</option>
             <option value="CLEAN">CLEAN</option>
             <option value="SUSPICIOUS">SUSPICIOUS</option>
             <option value="HIGH_RISK">HIGH_RISK</option>
             <option value="CONFIRMED_CHEATER">CONFIRMED_CHEATER</option>
           </select>
         </div>
+        <div className="ds-field">
+          <label htmlFor="joinHoldEnabled" className="ds-label">
+            Join hold (communication timeout + moderation buttons)
+          </label>
+          <select id="joinHoldEnabled" name="joinHoldEnabled" className="ds-select" defaultValue="unchanged">
+            <option value="unchanged">Leave unchanged</option>
+            <option value="true">On</option>
+            <option value="false">Off</option>
+          </select>
+        </div>
+        <div className="ds-field">
+          <label htmlFor="joinHoldDurationMinutes" className="ds-label">
+            Hold duration (minutes, 1–40320; optional)
+          </label>
+          <input
+            id="joinHoldDurationMinutes"
+            name="joinHoldDurationMinutes"
+            type="number"
+            min={1}
+            max={40320}
+            placeholder="60"
+            className="ds-input"
+          />
+        </div>
+        <div className="ds-field">
+          <label htmlFor="joinHoldMinLevel" className="ds-label">
+            Minimum level for join hold (optional)
+          </label>
+          <select id="joinHoldMinLevel" name="joinHoldMinLevel" className="ds-select" defaultValue="">
+            <option value="">— omit —</option>
+            <option value="CLEAN">CLEAN</option>
+            <option value="SUSPICIOUS">SUSPICIOUS</option>
+            <option value="HIGH_RISK">HIGH_RISK</option>
+            <option value="CONFIRMED_CHEATER">CONFIRMED_CHEATER</option>
+          </select>
+        </div>
+        <p className="ds-hint" style={{ marginBottom: '1rem' }}>
+          Only fields you fill in are sent; others stay as stored on the server. Use Discord{' '}
+          <code>/config view</code> to read the merged effective config.
+        </p>
         <button type="submit" className="ds-btn">
           Save
         </button>

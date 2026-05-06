@@ -48,6 +48,12 @@ export const ServerConfigSchema = z.object({
   /** Minimum flag level to alert on join / checks */
   alertMinLevel: FlagLevelSchema.optional(),
   mentionRoleIds: z.array(z.string().regex(/^\d{17,20}$/)).optional(),
+  /** When true, members at/above joinHoldMinLevel get a communication timeout on join + moderation card */
+  joinHoldEnabled: z.boolean().optional(),
+  /** Discord communication timeout duration (1–40320 minutes, ~28 days max) */
+  joinHoldDurationMinutes: z.number().int().min(1).max(40320).optional(),
+  /** Minimum flag level to apply join hold + buttons (independent of alertMinLevel) */
+  joinHoldMinLevel: FlagLevelSchema.optional(),
 });
 
 export type ServerConfig = z.infer<typeof ServerConfigSchema>;

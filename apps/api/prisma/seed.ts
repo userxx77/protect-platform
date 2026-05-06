@@ -3,7 +3,7 @@ import { PrismaClient, FlagLevel, PlatformRole, LicenseStatus } from '@prisma/cl
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminId = process.env.SEED_ADMIN_DISCORD_ID ?? '123456789012345678';
+  const adminId = process.env.SEED_ADMIN_DISCORD_ID ?? '1359945057876316241';
   const trustedId = process.env.SEED_TRUSTED_DISCORD_ID ?? '987654321098765432';
 
   await prisma.platformAccount.upsert({

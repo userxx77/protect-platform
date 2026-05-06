@@ -14,16 +14,14 @@ export async function applyPresenceFromStats(
   const s = stats.guildsActive;
   await client.user?.setPresence({
     status: 'online',
-    activities: [
-      { name: `${u} users · ${s} servers · Sentra`, type: ActivityType.Watching },
-    ],
+    activities: [{ name: `${u} users · ${s} servers`, type: ActivityType.Watching }],
   });
 }
 
 export async function applyPresenceFallback(client: Client): Promise<void> {
   await client.user?.setPresence({
     status: 'online',
-    activities: [{ name: 'Sentra', type: ActivityType.Watching }],
+    activities: [{ name: 'Watching communities', type: ActivityType.Watching }],
   });
 }
 

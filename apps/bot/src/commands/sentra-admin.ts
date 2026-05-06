@@ -14,22 +14,22 @@ import {
 
 export const sentraAdminCommandData = new SlashCommandBuilder()
   .setName('sentra-admin')
-  .setDescription('Platform admin: license & member sync')
+  .setDescription('Platform admins: server licenses and member sync jobs')
   .setDMPermission(false)
   .addSubcommand((sub) =>
     sub
       .setName('license')
-      .setDescription('Create or update guild license (entitlement)')
+      .setDescription('Create or update a server license (entitlement)')
       .addStringOption((o) =>
         o
           .setName('guild_id')
-          .setDescription('Discord guild (server) snowflake ID')
+          .setDescription('Discord server (guild) snowflake ID')
           .setRequired(true),
       )
       .addStringOption((o) =>
         o
           .setName('status')
-          .setDescription('License status')
+          .setDescription('License status to apply')
           .setRequired(true)
           .addChoices(
             { name: 'Inactive', value: 'INACTIVE' },
@@ -61,11 +61,11 @@ export const sentraAdminCommandData = new SlashCommandBuilder()
   .addSubcommand((sub) =>
     sub
       .setName('sync-members')
-      .setDescription('Queue full member cache sync for a guild')
+      .setDescription('Queue a full member cache sync for a server')
       .addStringOption((o) =>
         o
           .setName('guild_id')
-          .setDescription('Discord guild snowflake ID')
+          .setDescription('Discord server snowflake ID')
           .setRequired(true),
       ),
   );

@@ -48,6 +48,14 @@ export class ServersService {
           typeof cfg.alertChannelId === 'string' ? cfg.alertChannelId : null,
         alertMinLevel:
           typeof cfg.alertMinLevel === 'string' ? cfg.alertMinLevel : null,
+        joinHoldEnabled:
+          typeof cfg.joinHoldEnabled === 'boolean' ? cfg.joinHoldEnabled : null,
+        joinHoldDurationMinutes:
+          typeof cfg.joinHoldDurationMinutes === 'number'
+            ? cfg.joinHoldDurationMinutes
+            : null,
+        joinHoldMinLevel:
+          typeof cfg.joinHoldMinLevel === 'string' ? cfg.joinHoldMinLevel : null,
       };
     });
   }

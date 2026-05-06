@@ -16,21 +16,31 @@ import {
   embedNeedManageServer,
   embedRateLimited,
 } from '../embeds/commandEmbeds';
+import { displayFlagLevel } from '../services/joinHold';
+
+const levelChoices = [
+  { name: 'CLEAN', value: 'CLEAN' },
+  { name: 'SUSPICIOUS', value: 'SUSPICIOUS' },
+  { name: 'HIGH_RISK', value: 'HIGH_RISK' },
+  { name: 'CONFIRMED_CHEATER', value: 'CONFIRMED_CHEATER' },
+] as const;
 
 export const configCommandData = new SlashCommandBuilder()
   .setName('config')
-  .setDescription('Alert settings for this server (Manage Server)')
+  .setDescription('Staff alerts and join hold (requires Manage Server)')
   .addSubcommand((sub) =>
-    sub.setName('view').setDescription('Show current alert settings'),
+    sub
+      .setName('view')
+      .setDescription('Show saved alert and join hold settings'),
   )
   .addSubcommand((sub) =>
     sub
       .setName('set')
-      .setDescription('Set alert channel and/or minimum flag level')
+      .setDescription('Update alert channel, levels, or join hold options')
       .addChannelOption((o) =>
         o
           .setName('channel')
-          .setDescription('Channel for join/check alerts')
+          .setDescription('Channel where Sentra posts join and check alerts')
           .addChannelTypes(
             ChannelType.GuildText,
             ChannelType.GuildAnnouncement,
@@ -41,14 +51,34 @@ export const configCommandData = new SlashCommandBuilder()
       .addStringOption((o) =>
         o
           .setName('minlevel')
-          .setDescription('Minimum flag level to trigger alerts')
+          .setDescription('Minimum reputation level that triggers an alert')
           .setRequired(false)
-          .addChoices(
-            { name: 'CLEAN', value: 'CLEAN' },
-            { name: 'SUSPICIOUS', value: 'SUSPICIOUS' },
-            { name: 'HIGH_RISK', value: 'HIGH_RISK' },
-            { name: 'CONFIRMED_CHEATER', value: 'CONFIRMED_CHEATER' },
-          ),
+          .addChoices(...levelChoices),
+      )
+      .addBooleanOption((o) =>
+        o
+          .setName('joinhold_enabled')
+          .setDescription(
+            'Join hold: timeout + Kick/Ban/Release card (independent of alert level)',
+          )
+          .setRequired(false),
+      )
+      .addIntegerOption((o) =>
+        o
+          .setName('joinhold_minutes')
+          .setDescription('Communication timeout length in minutes (1–40320)')
+          .setMinValue(1)
+          .setMaxValue(40320)
+          .setRequired(false),
+      )
+      .addStringOption((o) =>
+        o
+          .setName('joinhold_minlevel')
+          .setDescription(
+            'Minimum Sentra level to apply join hold (below = no timeout/card)',
+          )
+          .setRequired(false)
+          .addChoices(...levelChoices),
       ),
   );
 
@@ -94,11 +124,26 @@ export async function executeConfigView(
     const cfg = s.config as Record<string, unknown>;
     const ch =
       typeof cfg.alertChannelId === 'string' ? cfg.alertChannelId : '—';
-    const min =
-      typeof cfg.alertMinLevel === 'string' ? cfg.alertMinLevel : '—';
+    const minDisplay =
+      typeof cfg.alertMinLevel === 'string'
+        ? `${cfg.alertMinLevel} (${displayFlagLevel(cfg.alertMinLevel)})`
+        : '—';
     const roles = Array.isArray(cfg.mentionRoleIds)
       ? (cfg.mentionRoleIds as string[]).join(', ') || '—'
       : '—';
+
+    const jhOn =
+      typeof cfg.joinHoldEnabled === 'boolean' ? cfg.joinHoldEnabled : false;
+    const jhMinRaw =
+      typeof cfg.joinHoldMinLevel === 'string' ? cfg.joinHoldMinLevel : null;
+    const jhMinDisplay = jhMinRaw
+      ? `${jhMinRaw} (${displayFlagLevel(jhMinRaw)})`
+      : `SUSPICIOUS (${displayFlagLevel('SUSPICIOUS')}) — default`;
+    const jhMinutes =
+      typeof cfg.joinHoldDurationMinutes === 'number'
+        ? String(cfg.joinHoldDurationMinutes)
+        : '60 — default when hold is on';
+
     const updatedNote = s.updatedAt
       ? `_Updated ${s.updatedAt}_`
       : '_No saved config yet_';
@@ -106,11 +151,13 @@ export async function executeConfigView(
       embeds: [
         embedConfigView({
           alertChannel: ch,
-          minLevel: min,
+          minLevel: minDisplay,
           mentionRoles: roles,
+          joinHoldEnabled: jhOn ? 'On' : 'Off',
+          joinHoldMinutes: jhMinutes,
+          joinHoldMinLevel: jhMinDisplay,
           updatedNote,
-        }),
-      ],
+        })],
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
@@ -136,8 +183,17 @@ export async function executeConfigSet(
 
   const channel = interaction.options.getChannel('channel');
   const minlevel = interaction.options.getString('minlevel');
+  const joinholdEnabled = interaction.options.getBoolean('joinhold_enabled');
+  const joinholdMinutes = interaction.options.getInteger('joinhold_minutes');
+  const joinholdMinLevel = interaction.options.getString('joinhold_minlevel');
 
-  if (!channel && !minlevel) {
+  if (
+    !channel &&
+    !minlevel &&
+    joinholdEnabled === null &&
+    joinholdMinutes === null &&
+    !joinholdMinLevel
+  ) {
     await interaction.reply({
       ephemeral: true,
       embeds: [embedConfigNeedOptions()],
@@ -159,12 +215,21 @@ export async function executeConfigSet(
     return;
   }
 
-  const config: { alertChannelId?: string; alertMinLevel?: string } = {};
+  const config: Record<string, unknown> = {};
   if (channel && isAllowedAlertChannelType(channel.type)) {
     config.alertChannelId = channel.id;
   }
   if (minlevel) {
     config.alertMinLevel = minlevel;
+  }
+  if (joinholdEnabled !== null) {
+    config.joinHoldEnabled = joinholdEnabled;
+  }
+  if (joinholdMinutes !== null) {
+    config.joinHoldDurationMinutes = joinholdMinutes;
+  }
+  if (joinholdMinLevel) {
+    config.joinHoldMinLevel = joinholdMinLevel;
   }
 
   try {

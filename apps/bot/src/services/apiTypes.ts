@@ -12,6 +12,9 @@ export type ServerApiResponse = {
     alertChannelId?: string;
     alertMinLevel?: string;
     mentionRoleIds?: string[];
+    joinHoldEnabled?: boolean;
+    joinHoldDurationMinutes?: number;
+    joinHoldMinLevel?: string;
   };
   updatedAt: string | null;
 };

@@ -1,5 +1,6 @@
-import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { discordSignInPath } from '@/lib/discord-signin';
 
 /**
  * When the dashboard is also reachable on the apex (e.g. sentra.gg), redirect to the
@@ -18,30 +19,32 @@ const apexHosts = (process.env.NEXT_PUBLIC_APEX_HOSTS ?? '')
 
 const appOrigin = (process.env.NEXT_PUBLIC_APP_ORIGIN ?? '').replace(/\/$/, '');
 
-export function middleware(request: NextRequest) {
-  if (!apexHosts.length || !appOrigin) {
-    return NextResponse.next();
+export default auth((req) => {
+  const reqUrl = req.nextUrl;
+
+  if (apexHosts.length && appOrigin) {
+    const host = req.headers.get('host')?.split(':')[0]?.toLowerCase();
+    if (host) {
+      let targetHost: string;
+      try {
+        targetHost = new URL(appOrigin).hostname.toLowerCase();
+      } catch {
+        targetHost = '';
+      }
+      if (targetHost && apexHosts.includes(host) && host !== targetHost) {
+        const pathname = `${reqUrl.pathname}${reqUrl.search}`;
+        return NextResponse.redirect(new URL(pathname, appOrigin));
+      }
+    }
   }
 
-  const host = request.headers.get('host')?.split(':')[0]?.toLowerCase();
-  if (!host || !apexHosts.includes(host)) {
-    return NextResponse.next();
+  if (reqUrl.pathname.startsWith('/dashboard') && !req.auth) {
+    const path = discordSignInPath(`${reqUrl.pathname}${reqUrl.search}`);
+    return NextResponse.redirect(new URL(path, reqUrl.origin));
   }
 
-  let targetHost: string;
-  try {
-    targetHost = new URL(appOrigin).hostname.toLowerCase();
-  } catch {
-    return NextResponse.next();
-  }
-
-  if (host === targetHost) {
-    return NextResponse.next();
-  }
-
-  const pathname = `${request.nextUrl.pathname}${request.nextUrl.search}`;
-  return NextResponse.redirect(new URL(pathname, appOrigin));
-}
+  return NextResponse.next();
+});
 
 export const config = {
   matcher: [

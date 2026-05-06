@@ -91,7 +91,9 @@ services:
     volumes:
       - ticket_uploads:/data/ticket-uploads
     ports:
-      - "${API_PUBLISH_PORT:-3001}:3001"
+      # Bind to loopback only: API is for bot, worker, web over the Docker/WSS network — not directly on your public interface.
+      # Nginx on the same host may proxy to 127.0.0.1:${API_PUBLISH_PORT} if you still need a TLS edge for webhooks/tools.
+      - "127.0.0.1:${API_PUBLISH_PORT:-3001}:3001"
     depends_on:
       migrate:
         condition: service_completed_successfully

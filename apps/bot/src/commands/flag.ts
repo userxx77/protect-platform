@@ -1,19 +1,28 @@
 import { SlashCommandBuilder, type ChatInputCommandInteraction } from 'discord.js';
 import type { ApiClient } from '../services/apiClient';
-import { embedFlagFailed, embedFlagSuccess, embedRateLimited } from '../embeds/commandEmbeds';
+import { embedFlagFailed, embedFlagSuccess, embedNeedGuild, embedRateLimited } from '../embeds/commandEmbeds';
 
 export const flagCommandData = new SlashCommandBuilder()
   .setName('flag')
-  .setDescription('Apply a weighted flag (trusted users only — enforced by the API)')
-  .addUserOption((o) => o.setName('user').setDescription('Target user').setRequired(true))
+  .setDescription('Trusted reporters: apply a weighted flag (API-enforced)')
+  .setDMPermission(false)
+  .addUserOption((o) => o.setName('user').setDescription('Member to flag').setRequired(true))
   .addStringOption((o) =>
-    o.setName('reason').setDescription('Reason').setRequired(true).setMaxLength(2000),
+    o
+      .setName('reason')
+      .setDescription('Why this flag is warranted')
+      .setRequired(true)
+      .setMaxLength(2000),
   );
 
 export async function executeFlag(
   interaction: ChatInputCommandInteraction,
   api: ApiClient,
 ): Promise<void> {
+  if (!interaction.inGuild()) {
+    await interaction.reply({ ephemeral: true, embeds: [embedNeedGuild()] });
+    return;
+  }
   const target = interaction.options.getUser('user', true);
   const reason = interaction.options.getString('reason', true);
   await interaction.deferReply({ ephemeral: true });

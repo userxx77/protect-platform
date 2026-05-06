@@ -1,11 +1,17 @@
 import { EmbedBuilder, type ColorResolvable } from 'discord.js';
-import { SENTRA_PRIMARY, productFooter } from '../embeds/sentra';
+import {
+  SENTRA_DANGER,
+  SENTRA_PRIMARY,
+  SENTRA_SUCCESS,
+  SENTRA_WARNING,
+  productFooter,
+} from '../embeds/sentra';
 
 const levelColors: Record<string, ColorResolvable> = {
-  CLEAN: 0x57f287,
-  SUSPICIOUS: 0xfee75c,
-  HIGH_RISK: 0xed4245,
-  CONFIRMED_CHEATER: 0x992d22,
+  CLEAN: SENTRA_SUCCESS,
+  SUSPICIOUS: SENTRA_WARNING,
+  HIGH_RISK: 0xfb923c,
+  CONFIRMED_CHEATER: SENTRA_DANGER,
 };
 
 const levelOrder = ['CLEAN', 'SUSPICIOUS', 'HIGH_RISK', 'CONFIRMED_CHEATER'] as const;
@@ -26,12 +32,18 @@ export function userStatusEmbed(
   title: string,
 ): EmbedBuilder {
   const color = levelColors[user.flagLevel] ?? SENTRA_PRIMARY;
+  const levelLabel = user.flagLevel.replace(/_/g, ' ');
   return new EmbedBuilder()
     .setTitle(title)
     .setColor(color)
+    .setDescription('Sentra reputation snapshot — not a ban recommendation on its own.')
     .addFields(
-      { name: 'User', value: `<@${user.discordId}> (${user.discordId})`, inline: false },
-      { name: 'Level', value: user.flagLevel, inline: true },
+      {
+        name: 'User',
+        value: `<@${user.discordId}> · \`${user.discordId}\``,
+        inline: false,
+      },
+      { name: 'Level', value: levelLabel, inline: true },
       { name: 'Score', value: String(user.flagScore), inline: true },
       {
         name: 'Flags',
@@ -47,7 +59,7 @@ export function alertEmbed(
   user: { discordId: string; flagLevel: string; flagScore: number },
   context: string,
 ): EmbedBuilder {
-  const e = userStatusEmbed(user, 'Sentra — reputation alert');
-  e.setDescription(context);
+  const e = userStatusEmbed(user, 'Reputation alert');
+  e.setDescription(`${context}\n\n_Sentra reputation snapshot — review context before action._`);
   return e;
 }
