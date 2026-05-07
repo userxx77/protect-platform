@@ -11,6 +11,26 @@ COPY packages/shared packages/shared
 COPY apps/web apps/web
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @protect/shared build
+# Next.js Edge middleware inlines env at **image build** time. If these are missing here,
+# production still shows /api/ready OK but OAuth fails with ?error=Configuration (runtime .env is too late).
+ARG AUTH_SECRET
+ARG NEXTAUTH_SECRET=
+ARG AUTH_URL=
+ARG NEXTAUTH_URL=
+ARG DISCORD_CLIENT_ID=
+ARG DISCORD_CLIENT_SECRET=
+ARG NEXT_PUBLIC_API_URL=
+ARG NEXT_PUBLIC_APEX_HOSTS=
+ARG NEXT_PUBLIC_APP_ORIGIN=
+ENV AUTH_SECRET=${AUTH_SECRET} \
+    NEXTAUTH_SECRET=${NEXTAUTH_SECRET} \
+    AUTH_URL=${AUTH_URL} \
+    NEXTAUTH_URL=${NEXTAUTH_URL} \
+    DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID} \
+    DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET} \
+    NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
+    NEXT_PUBLIC_APEX_HOSTS=${NEXT_PUBLIC_APEX_HOSTS} \
+    NEXT_PUBLIC_APP_ORIGIN=${NEXT_PUBLIC_APP_ORIGIN}
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @protect/web run build
 

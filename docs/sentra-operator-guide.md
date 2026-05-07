@@ -67,7 +67,9 @@ docker compose up -d --build
 ./validate-deployment.sh
 ```
 
-Ensure `.env` has correct `WEB_URL` / `NEXTAUTH_URL` (dashboard host), `NEXT_PUBLIC_API_URL` / `API_PUBLIC_URL` (public `https://api…`), and internal `API_BASE_URL=http://api:3001` for web/bot in Compose. After changing `NEXT_PUBLIC_*`, run `docker compose up -d --build web`.
+Ensure `.env` has correct `WEB_URL` / `NEXTAUTH_URL` / `AUTH_URL` (dashboard host), `AUTH_SECRET`, `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`, `NEXT_PUBLIC_API_URL` / `API_PUBLIC_URL` (public `https://api…`), and internal `API_BASE_URL=http://api:3001` for web/bot in Compose.
+
+**OAuth / `?error=Configuration`:** the `web` image runs `next build` with **build args** from your `.env` (`AUTH_SECRET`, Discord keys, `NEXT_PUBLIC_*`). Those values are embedded in Edge middleware; runtime-only `.env` fixes are not enough until you **rebuild** (`docker compose build web --no-cache` then `up`). Changing `NEXT_PUBLIC_*` always requires a web rebuild.
 
 If the browser shows **Caddy’s default page** instead of the app, follow **[VPS domain and TLS (Caddy)](runbooks/vps-domain-ssl-caddy.md)** and run `./scripts/verify-vps-routing.sh` on the server.
 
