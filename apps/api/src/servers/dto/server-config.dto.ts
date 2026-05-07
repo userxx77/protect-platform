@@ -5,6 +5,7 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -49,6 +50,11 @@ export class ServerConfigBodyDto {
   @IsOptional()
   @IsEnum(FlagLevel)
   joinHoldMinLevel?: FlagLevel;
+
+  @ApiPropertyOptional({ enum: ['log', 'notify', 'quarantine', 'kick', 'ban'] })
+  @IsOptional()
+  @IsIn(['log', 'notify', 'quarantine', 'kick', 'ban'] as const)
+  joinActionPolicy?: 'log' | 'notify' | 'quarantine' | 'kick' | 'ban';
 }
 
 export class UpsertServerConfigDto {

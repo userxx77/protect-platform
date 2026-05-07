@@ -347,4 +347,21 @@ export class DashboardService {
     const reportRows = combined.map((r) => ({ bucket: r.bucket, c: r.rc }));
     return mergeSparseSeries(flagRows, reportRows, memberRows);
   }
+
+  /** Poll for live dashboard SSE (audit rows strictly after `since`). */
+  async pollAuditSince(since: Date): Promise<{ items: ActivityItem[]; watermark: Date }> {
+    const rows = await this.prisma.auditLog.findMany({
+      where: { timestamp: { gt: since } },
+      orderBy: [{ timestamp: 'asc' }, { id: 'asc' }],
+      take: 100,
+    });
+    if (!rows.length) {
+      return { items: [], watermark: since };
+    }
+    const watermark = rows[rows.length - 1]!.timestamp;
+    return {
+      items: rows.map((r) => this.toActivity(r)),
+      watermark,
+    };
+  }
 }

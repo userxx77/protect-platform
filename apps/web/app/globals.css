@@ -365,6 +365,11 @@
     border-color: color-mix(in oklab, oklch(0.78 0.14 155) 38%, transparent);
     color: oklch(0.88 0.09 155);
   }
+  .ds-flag-badge[data-level='WATCH'] {
+    background: color-mix(in oklab, oklch(0.72 0.18 310) 18%, transparent);
+    border-color: color-mix(in oklab, oklch(0.72 0.18 310) 35%, transparent);
+    color: oklch(0.86 0.12 310);
+  }
   .ds-flag-badge[data-level='SUSPICIOUS'] {
     background: color-mix(in oklab, var(--color-warning) 20%, transparent);
     border-color: color-mix(in oklab, var(--color-warning) 40%, transparent);

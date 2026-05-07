@@ -12,7 +12,7 @@ import {
   FlagSource,
   ReportStatus,
 } from '@prisma/client';
-import { COMMUNITY_REPORT_REQUIRES_USER_ROLE_MESSAGE, parseAdminDiscordIds } from '@protect/shared';
+import { COMMUNITY_REPORT_REQUIRES_USER_ROLE_MESSAGE, isDiscordPlatformAdmin, parseAdminDiscordIds } from '@protect/shared';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -528,6 +528,51 @@ export class ReportsService {
       status: result.report.status,
       appliedFlagWeight: result.weight,
       targetFlagLevel: result.userAfter.flagLevel,
+    };
+  }
+
+  async getForBotViewer(reportId: string, viewerDiscordId: string) {
+    const adminEnv = this.config.get<string>('ADMIN_DISCORD_IDS');
+    const isAdmin = isDiscordPlatformAdmin(viewerDiscordId, adminEnv);
+    const r = await this.prisma.report.findUnique({
+      where: { id: reportId },
+      include: { reportedUser: { select: { discordId: true } } },
+    });
+    if (!r) throw new NotFoundException('Report not found');
+    if (!isAdmin && r.reporterDiscordId !== viewerDiscordId) {
+      throw new ForbiddenException('Not allowed to view this report');
+    }
+    return {
+      id: r.id,
+      status: r.status,
+      reporterDiscordId: r.reporterDiscordId,
+      targetDiscordId: r.reportedUser.discordId,
+      guildId: r.guildId,
+      reason: r.reason,
+      allegedFlagLevel: r.allegedFlagLevel,
+      createdAt: r.createdAt.toISOString(),
+      reviewedAt: r.reviewedAt?.toISOString() ?? null,
+      resolverNote: r.resolverNote ?? null,
+    };
+  }
+
+  async listMineForReporter(reporterDiscordId: string, limitRaw: number) {
+    const limit = Math.min(Math.max(Number(limitRaw) || 15, 1), 50);
+    const rows = await this.prisma.report.findMany({
+      where: { reporterDiscordId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: { reportedUser: { select: { discordId: true } } },
+    });
+    return {
+      items: rows.map((r) => ({
+        id: r.id,
+        status: r.status,
+        targetDiscordId: r.reportedUser.discordId,
+        reason: r.reason,
+        createdAt: r.createdAt.toISOString(),
+        guildId: r.guildId,
+      })),
     };
   }
 

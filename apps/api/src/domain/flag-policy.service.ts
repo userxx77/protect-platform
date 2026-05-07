@@ -4,12 +4,14 @@ import { FlagLevel } from '@prisma/client';
 
 @Injectable()
 export class FlagPolicyService {
+  private readonly watch: number;
   private readonly suspicious: number;
   private readonly highRisk: number;
   private readonly confirmed: number;
 
   constructor(private readonly config: ConfigService) {
-    this.suspicious = Number(config.get('FLAG_THRESHOLD_SUSPICIOUS') ?? 1);
+    this.watch = Number(config.get('FLAG_THRESHOLD_WATCH') ?? 1);
+    this.suspicious = Number(config.get('FLAG_THRESHOLD_SUSPICIOUS') ?? 3);
     this.highRisk = Number(config.get('FLAG_THRESHOLD_HIGH_RISK') ?? 10);
     this.confirmed = Number(config.get('FLAG_THRESHOLD_CONFIRMED') ?? 25);
   }
@@ -18,6 +20,7 @@ export class FlagPolicyService {
     if (score >= this.confirmed) return FlagLevel.CONFIRMED_CHEATER;
     if (score >= this.highRisk) return FlagLevel.HIGH_RISK;
     if (score >= this.suspicious) return FlagLevel.SUSPICIOUS;
+    if (score >= this.watch) return FlagLevel.WATCH;
     return FlagLevel.CLEAN;
   }
 
@@ -35,6 +38,9 @@ export class FlagPolicyService {
    * Trusted /flag tier → weight. Defaults align with `FLAG_THRESHOLD_*` (same keys as level thresholds).
    */
   trustedCommandWeightForSeverity(level: FlagLevel): number {
+    const watch = Number(
+      this.config.get('FLAG_WEIGHT_TIER_WATCH') ?? this.watch,
+    );
     const suspicious = Number(
       this.config.get('FLAG_WEIGHT_TIER_SUSPICIOUS') ?? this.suspicious,
     );
@@ -45,6 +51,8 @@ export class FlagPolicyService {
       this.config.get('FLAG_WEIGHT_TIER_CONFIRMED') ?? this.confirmed,
     );
     switch (level) {
+      case FlagLevel.WATCH:
+        return watch;
       case FlagLevel.SUSPICIOUS:
         return suspicious;
       case FlagLevel.HIGH_RISK:
@@ -53,7 +61,7 @@ export class FlagPolicyService {
         return confirmed;
       case FlagLevel.CLEAN:
       default:
-        return suspicious;
+        return watch;
     }
   }
 

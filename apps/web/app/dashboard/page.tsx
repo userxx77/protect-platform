@@ -1,18 +1,16 @@
 import Link from 'next/link';
 import {
-  Activity,
   Users,
   Server,
   ShieldCheck,
   Flag,
-  UserPlus,
-  Bot,
 } from 'lucide-react';
 import { auth } from '@/auth';
 import { dashboardApi } from '@/lib/api-server';
 import { isPlatformAdminDiscordId } from '@/lib/platform-admin';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { DetectionsChart } from '@/components/dashboard/DetectionsChart';
+import { LiveActivityFeed } from '@/components/dashboard/LiveActivityFeed';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@/components/ui/table';
@@ -94,30 +92,6 @@ function PageHeader({ title, sub }: { title: string; sub: string }) {
   );
 }
 
-const iconFor = (k: string) => {
-  switch (k) {
-    case 'detection':
-      return <Flag className="h-3.5 w-3.5 text-[oklch(0.88_0.16_75)]" />;
-    case 'join':
-      return <UserPlus className="text-[oklch(0.85_0.18_155)] h-3.5 w-3.5" />;
-    case 'auto':
-      return <Bot className="text-primary h-3.5 w-3.5" />;
-    case 'report':
-      return <ShieldCheck className="h-3.5 w-3.5 text-[oklch(0.82_0.22_25)]" />;
-    default:
-      return <Activity className="h-3.5 w-3.5" />;
-  }
-};
-
-function activityKind(action: string): string {
-  const a = action.toUpperCase();
-  if (a.includes('FLAG')) return 'detection';
-  if (a.includes('REPORT')) return 'report';
-  if (a.includes('GUILD') || a.includes('TRUST') || a.includes('USER_TOUCH')) return 'join';
-  if (a.includes('BOT') || a.includes('OUTBOX')) return 'auto';
-  return 'default';
-}
-
 function seriesToChart(series: SeriesPoint[]) {
   return series.map((p) => ({
     hour: new Date(p.bucket).toLocaleTimeString(undefined, {
@@ -197,30 +171,7 @@ export default async function DashboardOverviewPage() {
                   <CardDescription>Latest audit events</CardDescription>
                 </div>
               </CardHeader>
-              <ul className="space-y-2.5">
-                {data.recentActivity.slice(0, 8).map((r) => {
-                  const kind = activityKind(r.action);
-                  return (
-                    <li
-                      key={r.id}
-                      className="border-border/60 bg-surface/40 flex items-start gap-3 rounded-md border p-2.5"
-                    >
-                      <div className="bg-surface-2 grid h-7 w-7 place-items-center rounded-md">
-                        {iconFor(kind)}
-                      </div>
-                      <div className="min-w-0 flex-1 leading-tight">
-                        <div className="truncate text-[12.5px]">
-                          <span className="font-medium">{r.action}</span>{' '}
-                          <span className="text-muted-foreground">{r.entityType}</span>
-                        </div>
-                        <div className="text-muted-foreground mt-0.5 text-[10.5px]">
-                          {r.targetId ?? r.entityId} · {new Date(r.timestamp).toLocaleString()}
-                        </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+              <LiveActivityFeed initial={data.recentActivity} variant="admin" />
             </Card>
           </div>
 
@@ -331,29 +282,7 @@ export default async function DashboardOverviewPage() {
                 <CardDescription>Latest platform events</CardDescription>
               </div>
             </CardHeader>
-            <ul className="space-y-2.5">
-              {data.recentActivity.slice(0, 8).map((r) => {
-                const kind = activityKind(r.action);
-                return (
-                  <li
-                    key={r.id}
-                    className="border-border/60 bg-surface/40 flex items-start gap-3 rounded-md border p-2.5"
-                  >
-                    <div className="bg-surface-2 grid h-7 w-7 place-items-center rounded-md">
-                      {iconFor(kind)}
-                    </div>
-                    <div className="min-w-0 flex-1 leading-tight">
-                      <div className="truncate text-[12.5px]">
-                        <span className="font-medium">{r.action}</span>
-                      </div>
-                      <div className="text-muted-foreground mt-0.5 text-[10.5px]">
-                        {new Date(r.timestamp).toLocaleString()}
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <LiveActivityFeed initial={data.recentActivity} variant="user" />
           </Card>
         </div>
 

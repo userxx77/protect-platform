@@ -1,4 +1,7 @@
 import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
   type Client,
@@ -19,6 +22,7 @@ export async function executeCheck(
   interaction: ChatInputCommandInteraction,
   api: ApiClient,
   client: Client,
+  casePageBaseUrl?: string,
 ): Promise<void> {
   const target = interaction.options.getUser('user', true);
   await interaction.deferReply({ ephemeral: true });
@@ -29,7 +33,20 @@ export async function executeCheck(
   try {
     const u = await api.getUser(target.id);
     const embed = userStatusEmbed(u, 'Reputation check');
-    await interaction.editReply({ embeds: [embed] });
+    const base = casePageBaseUrl?.replace(/\/$/, '')?.trim();
+    const linkRow =
+      base && /^https?:\/\//i.test(base)
+        ? new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+              .setStyle(ButtonStyle.Link)
+              .setLabel('Case page')
+              .setURL(`${base}/case/${encodeURIComponent(u.discordId)}`),
+          )
+        : null;
+    await interaction.editReply({
+      embeds: [embed],
+      ...(linkRow ? { components: [linkRow] } : {}),
+    });
     void api.postIncrementCheckCounter().catch(() => undefined);
 
     if (!interaction.guildId) return;

@@ -27,6 +27,7 @@ export async function saveServerConfig(formData: FormData) {
   const joinHoldEnabled = parseOptionalBool(String(formData.get('joinHoldEnabled') ?? ''));
   const joinHoldMinutes = parseOptionalInt(String(formData.get('joinHoldDurationMinutes') ?? ''));
   const joinHoldMinLevel = String(formData.get('joinHoldMinLevel') ?? '').trim();
+  const joinActionPolicy = String(formData.get('joinActionPolicy') ?? '').trim();
 
   if (!guildId) {
     redirect('/dashboard/config?error=missing_guild');
@@ -41,6 +42,9 @@ export async function saveServerConfig(formData: FormData) {
     config.joinHoldDurationMinutes = clamped;
   }
   if (joinHoldMinLevel) config.joinHoldMinLevel = joinHoldMinLevel;
+  if (joinActionPolicy === 'log' || joinActionPolicy === 'notify' || joinActionPolicy === 'quarantine' || joinActionPolicy === 'kick' || joinActionPolicy === 'ban') {
+    config.joinActionPolicy = joinActionPolicy;
+  }
 
   if (Object.keys(config).length === 0) {
     redirect('/dashboard/config?error=no_fields');

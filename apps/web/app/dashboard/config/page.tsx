@@ -10,6 +10,7 @@ type ServerRow = {
   joinHoldEnabled: boolean | null;
   joinHoldDurationMinutes: number | null;
   joinHoldMinLevel: string | null;
+  joinActionPolicy: string | null;
 };
 
 export default async function ServerConfigPage({
@@ -73,6 +74,7 @@ export default async function ServerConfigPage({
                   <th>Join hold</th>
                   <th>Hold min</th>
                   <th>Hold min (m)</th>
+                  <th>Join action</th>
                   <th>Updated (UTC)</th>
                 </tr>
               </thead>
@@ -85,6 +87,7 @@ export default async function ServerConfigPage({
                     <td>{s.joinHoldEnabled === true ? 'On' : s.joinHoldEnabled === false ? 'Off' : '—'}</td>
                     <td>{s.joinHoldMinLevel ?? '—'}</td>
                     <td>{s.joinHoldDurationMinutes ?? '—'}</td>
+                    <td>{s.joinActionPolicy ?? '—'}</td>
                     <td className="ds-mono">{s.updatedAt}</td>
                   </tr>
                 ))}
@@ -141,6 +144,7 @@ export default async function ServerConfigPage({
           >
             <option value="">— omit —</option>
             <option value="CLEAN">CLEAN</option>
+            <option value="WATCH">WATCH</option>
             <option value="SUSPICIOUS">SUSPICIOUS</option>
             <option value="HIGH_RISK">HIGH_RISK</option>
             <option value="CONFIRMED_CHEATER">CONFIRMED_CHEATER</option>
@@ -177,9 +181,23 @@ export default async function ServerConfigPage({
           <select id="joinHoldMinLevel" name="joinHoldMinLevel" className="ds-select" defaultValue="">
             <option value="">— omit —</option>
             <option value="CLEAN">CLEAN</option>
+            <option value="WATCH">WATCH</option>
             <option value="SUSPICIOUS">SUSPICIOUS</option>
             <option value="HIGH_RISK">HIGH_RISK</option>
             <option value="CONFIRMED_CHEATER">CONFIRMED_CHEATER</option>
+          </select>
+        </div>
+        <div className="ds-field">
+          <label htmlFor="joinActionPolicy" className="ds-label">
+            Join action when threshold met (optional)
+          </label>
+          <select id="joinActionPolicy" name="joinActionPolicy" className="ds-select" defaultValue="">
+            <option value="">— omit —</option>
+            <option value="notify">notify (channel alert)</option>
+            <option value="log">log only</option>
+            <option value="quarantine">quarantine (timeout + card)</option>
+            <option value="kick">kick</option>
+            <option value="ban">ban</option>
           </select>
         </div>
         <p className="ds-hint" style={{ marginBottom: '1rem' }}>

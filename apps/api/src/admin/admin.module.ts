@@ -35,6 +35,6 @@ import { FlagPolicyService } from '../domain/flag-policy.service';
     AdminUserFlagsController,
   ],
   providers: [AdminGuildsService, AdminFlagsService, FlagPolicyService],
-  exports: [AdminGuildsService],
+  exports: [AdminGuildsService, AdminFlagsService],
 })
 export class AdminModule {}

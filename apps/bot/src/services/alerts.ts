@@ -10,12 +10,19 @@ import {
 
 const levelColors: Record<string, ColorResolvable> = {
   CLEAN: SENTRA_SUCCESS,
+  WATCH: 0x9b59b6,
   SUSPICIOUS: SENTRA_WARNING,
   HIGH_RISK: 0xe67e22,
   CONFIRMED_CHEATER: SENTRA_DANGER,
 };
 
-const levelOrder = ['CLEAN', 'SUSPICIOUS', 'HIGH_RISK', 'CONFIRMED_CHEATER'] as const;
+const levelOrder = [
+  'CLEAN',
+  'WATCH',
+  'SUSPICIOUS',
+  'HIGH_RISK',
+  'CONFIRMED_CHEATER',
+] as const;
 
 export function shouldAlert(
   userLevel: string,

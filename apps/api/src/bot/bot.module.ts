@@ -6,6 +6,7 @@ import { ServersModule } from '../servers/servers.module';
 import { EntitlementsModule } from '../entitlements/entitlements.module';
 import { AdminModule } from '../admin/admin.module';
 import { PublicModule } from '../platform-stats/public.module';
+import { ReportsModule } from '../reports/reports.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { PublicModule } from '../platform-stats/public.module';
     EntitlementsModule,
     AdminModule,
     PublicModule,
+    ReportsModule,
   ],
   controllers: [BotController],
 })

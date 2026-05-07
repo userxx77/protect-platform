@@ -20,9 +20,18 @@ import { displayFlagLevel } from '../services/joinHold';
 
 const levelChoices = [
   { name: 'CLEAN', value: 'CLEAN' },
+  { name: 'WATCH', value: 'WATCH' },
   { name: 'SUSPICIOUS', value: 'SUSPICIOUS' },
   { name: 'HIGH_RISK', value: 'HIGH_RISK' },
   { name: 'CONFIRMED_CHEATER', value: 'CONFIRMED_CHEATER' },
+] as const;
+
+const joinActionChoices = [
+  { name: 'notify (channel ping — default)', value: 'notify' },
+  { name: 'log (audit only — no channel message)', value: 'log' },
+  { name: 'quarantine (timeout + staff card)', value: 'quarantine' },
+  { name: 'kick (requires Kick Members)', value: 'kick' },
+  { name: 'ban (requires Ban Members)', value: 'ban' },
 ] as const;
 
 export const configCommandData = new SlashCommandBuilder()
@@ -79,6 +88,13 @@ export const configCommandData = new SlashCommandBuilder()
           )
           .setRequired(false)
           .addChoices(...levelChoices),
+      )
+      .addStringOption((o) =>
+        o
+          .setName('join_action')
+          .setDescription('When a risky user joins: notify / log / quarantine / kick / ban')
+          .setRequired(false)
+          .addChoices(...joinActionChoices),
       ),
   );
 
@@ -144,6 +160,12 @@ export async function executeConfigView(
         ? String(cfg.joinHoldDurationMinutes)
         : '60 — default when hold is on';
 
+    const policyRaw =
+      typeof cfg.joinActionPolicy === 'string' ? cfg.joinActionPolicy : null;
+    const policyDisplay = policyRaw
+      ? `${policyRaw} (see roadmap: log / notify / quarantine / kick / ban)`
+      : 'notify — default (channel alert when threshold met)';
+
     const updatedNote = s.updatedAt
       ? `_Updated ${s.updatedAt}_`
       : '_No saved config yet_';
@@ -156,6 +178,7 @@ export async function executeConfigView(
           joinHoldEnabled: jhOn ? 'On' : 'Off',
           joinHoldMinutes: jhMinutes,
           joinHoldMinLevel: jhMinDisplay,
+          joinActionPolicy: policyDisplay,
           updatedNote,
         })],
     });
@@ -186,13 +209,15 @@ export async function executeConfigSet(
   const joinholdEnabled = interaction.options.getBoolean('joinhold_enabled');
   const joinholdMinutes = interaction.options.getInteger('joinhold_minutes');
   const joinholdMinLevel = interaction.options.getString('joinhold_minlevel');
+  const joinAction = interaction.options.getString('join_action');
 
   if (
     !channel &&
     !minlevel &&
     joinholdEnabled === null &&
     joinholdMinutes === null &&
-    !joinholdMinLevel
+    !joinholdMinLevel &&
+    !joinAction
   ) {
     await interaction.reply({
       ephemeral: true,
@@ -230,6 +255,9 @@ export async function executeConfigSet(
   }
   if (joinholdMinLevel) {
     config.joinHoldMinLevel = joinholdMinLevel;
+  }
+  if (joinAction) {
+    config.joinActionPolicy = joinAction;
   }
 
   try {

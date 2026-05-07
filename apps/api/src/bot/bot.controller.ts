@@ -1,4 +1,16 @@
-import { Body, Controller, ForbiddenException, Get, Headers, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Get,
+  Headers,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -22,6 +34,9 @@ import { AdminGuildsService } from '../admin/admin-guilds.service';
 import { UpsertEntitlementBodyDto } from '../admin/dto/admin-guilds.dto';
 import { PlatformStatsService } from '../platform-stats/platform-stats.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { AdminFlagsService } from '../admin/admin-flags.service';
+import { ReportsService } from '../reports/reports.service';
+import { RejectReportDto } from '../reports/dto/reject-report.dto';
 
 @ApiTags('bot')
 @Controller('bot')
@@ -36,6 +51,8 @@ export class BotController {
     private readonly config: ConfigService,
     private readonly platformStats: PlatformStatsService,
     private readonly prisma: PrismaService,
+    private readonly reports: ReportsService,
+    private readonly adminFlags: AdminFlagsService,
   ) {}
 
   private assertBotActorAdmin(actorHeader: string | undefined): string {
@@ -52,8 +69,11 @@ export class BotController {
   @Get('guild/:guildId/summary')
   @RequireRoles(AppRole.BOT)
   async guildSummary(@Param('guildId') guildId: string) {
-    const licensed = await this.entitlements.isGuildLicensed(guildId);
-    return { guildId, licensed };
+    const [licensed, blacklisted] = await Promise.all([
+      this.entitlements.isGuildLicensed(guildId),
+      this.servers.isGuildBlacklisted(guildId),
+    ]);
+    return { guildId, licensed, blacklisted };
   }
 
   @Get('discord/:discordId/capabilities')
@@ -139,6 +159,89 @@ export class BotController {
   @ApiBody({ type: BotGuildLifecycleDto })
   async guildLifecycle(@Body() body: BotGuildLifecycleDto) {
     await this.servers.recordBotGuildLifecycle(body);
+    return { ok: true as const };
+  }
+
+  @Get('reports/mine')
+  @RequireRoles(AppRole.BOT)
+  @ApiHeader({ name: 'x-actor-discord-id', required: true })
+  async botReportsMine(
+    @Headers('x-actor-discord-id') actorHeader: string | undefined,
+    @Query('limit') limitRaw?: string,
+  ) {
+    const actor = actorHeader?.trim();
+    if (!actor) throw new BadRequestException('actor_required');
+    return this.reports.listMineForReporter(actor, Number(limitRaw ?? 15));
+  }
+
+  @Get('reports/pending')
+  @RequireRoles(AppRole.BOT)
+  @ApiHeader({ name: 'x-actor-discord-id', required: true })
+  async botReportsPending(
+    @Headers('x-actor-discord-id') actorHeader: string | undefined,
+    @Query('limit') limitRaw?: string,
+  ) {
+    this.assertBotActorAdmin(actorHeader);
+    return this.reports.listPending({ limit: Number(limitRaw ?? 25) });
+  }
+
+  @Get('reports/:id')
+  @RequireRoles(AppRole.BOT)
+  @ApiHeader({ name: 'x-actor-discord-id', required: true })
+  async botReportGetOne(
+    @Param('id') id: string,
+    @Headers('x-actor-discord-id') actorHeader: string | undefined,
+  ) {
+    const actor = actorHeader?.trim();
+    if (!actor) throw new BadRequestException('actor_required');
+    return this.reports.getForBotViewer(id, actor);
+  }
+
+  @Post('reports/:id/approve')
+  @RequireRoles(AppRole.BOT)
+  @ApiHeader({ name: 'x-actor-discord-id', required: true })
+  async botReportApprove(
+    @Param('id') id: string,
+    @Headers('x-actor-discord-id') actorHeader: string | undefined,
+  ) {
+    const actor = this.assertBotActorAdmin(actorHeader);
+    return this.reports.approve(id, actor);
+  }
+
+  @Post('reports/:id/reject')
+  @RequireRoles(AppRole.BOT)
+  @ApiHeader({ name: 'x-actor-discord-id', required: true })
+  async botReportReject(
+    @Param('id') id: string,
+    @Body() body: RejectReportDto,
+    @Headers('x-actor-discord-id') actorHeader: string | undefined,
+  ) {
+    const actor = this.assertBotActorAdmin(actorHeader);
+    return this.reports.reject(id, actor, body.note);
+  }
+
+  @Delete('admin/users/:discordId/flags/:flagId')
+  @RequireRoles(AppRole.BOT)
+  @ApiHeader({ name: 'x-actor-discord-id', required: true })
+  async botAdminUnflag(
+    @Param('discordId') targetDiscordId: string,
+    @Param('flagId') flagId: string,
+    @Headers('x-actor-discord-id') actorHeader: string | undefined,
+  ) {
+    const actor = this.assertBotActorAdmin(actorHeader);
+    return this.adminFlags.deleteFlag(actor, targetDiscordId, flagId);
+  }
+
+  @Post('admin/guilds/:guildId/blacklist')
+  @RequireRoles(AppRole.BOT)
+  @ApiHeader({ name: 'x-actor-discord-id', required: true })
+  async botBlacklistGuild(
+    @Param('guildId') guildId: string,
+    @Body() body: { reason?: string },
+    @Headers('x-actor-discord-id') actorHeader: string | undefined,
+  ) {
+    const actor = this.assertBotActorAdmin(actorHeader);
+    await this.servers.addGuildBlacklist(guildId, actor, body?.reason);
     return { ok: true as const };
   }
 

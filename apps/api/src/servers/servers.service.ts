@@ -56,6 +56,8 @@ export class ServersService {
             : null,
         joinHoldMinLevel:
           typeof cfg.joinHoldMinLevel === 'string' ? cfg.joinHoldMinLevel : null,
+        joinActionPolicy:
+          typeof cfg.joinActionPolicy === 'string' ? cfg.joinActionPolicy : null,
       };
     });
   }
@@ -255,6 +257,33 @@ export class ServersService {
       data: {
         memberSyncState: MemberSyncState.IDLE,
         lastMemberSyncAt: new Date(),
+      },
+    });
+  }
+
+  async isGuildBlacklisted(guildId: string): Promise<boolean> {
+    const row = await this.prisma.guildBlacklist.findUnique({
+      where: { guildId },
+      select: { guildId: true },
+    });
+    return row != null;
+  }
+
+  async addGuildBlacklist(
+    guildId: string,
+    createdByDiscordId: string,
+    reason?: string,
+  ): Promise<void> {
+    await this.prisma.guildBlacklist.upsert({
+      where: { guildId },
+      create: {
+        guildId,
+        reason: reason ?? null,
+        createdByDiscordId,
+      },
+      update: {
+        reason: reason ?? null,
+        createdByDiscordId,
       },
     });
   }

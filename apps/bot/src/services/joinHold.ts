@@ -5,7 +5,7 @@ import {
   EmbedBuilder,
   type ColorResolvable,
 } from 'discord.js';
-import { flagLevelDisplayName } from '@protect/shared';
+import { flagLevelDisplayName, type JoinActionPolicy } from '@protect/shared';
 import { shouldAlert } from './alerts';
 import {
   SENTRA_DANGER,
@@ -18,6 +18,7 @@ export const JOIN_HOLD_BUTTON_RE = /^sjh:([kbr]):(\d{17,20}):(\d{17,20})$/;
 
 const levelColors: Record<string, ColorResolvable> = {
   CLEAN: SENTRA_SUCCESS,
+  WATCH: 0x9b59b6,
   SUSPICIOUS: SENTRA_WARNING,
   HIGH_RISK: 0xe67e22,
   CONFIRMED_CHEATER: SENTRA_DANGER,
@@ -29,6 +30,7 @@ export type ServerConfigLike = {
   joinHoldEnabled?: boolean;
   joinHoldDurationMinutes?: number;
   joinHoldMinLevel?: string;
+  joinActionPolicy?: JoinActionPolicy;
 };
 
 export function shouldApplyJoinHold(

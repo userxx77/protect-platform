@@ -103,6 +103,7 @@ export function embedConfigView(fields: {
   joinHoldEnabled: string;
   joinHoldMinutes: string;
   joinHoldMinLevel: string;
+  joinActionPolicy: string;
   updatedNote: string;
 }): EmbedBuilder {
   const b = baseCommandEmbed(SENTRA_PRIMARY)
@@ -110,7 +111,7 @@ export function embedConfigView(fields: {
     .addFields(
       {
         name: 'Alerts',
-        value: `Channel: ${fields.alertChannel}\nMin level: ${fields.minLevel}`,
+        value: `Channel: ${fields.alertChannel}\nMin level: ${fields.minLevel}\nJoin action: ${fields.joinActionPolicy}`,
         inline: true,
       },
       {
@@ -150,7 +151,9 @@ export function embedHelp(dashboardUrl: string): EmbedBuilder {
     .setDescription(
       [
         '`/check` reputation · `/report` community report · `/flag` trusted flag · `/help`',
-        '`/setup` · `/config` (Manage Server) · `/sentra monitor` (admins)',
+        '`/sentra` also exposes **check · report · flag · config show · support** (same behavior)',
+        '`/setup` · `/config` (Manage Server) · `/sentra monitor` (operators)',
+        '`/sentra reports_mine` / `report_status` · admin: `approve` `reject` `reports_pending` `unflag`',
         `Dashboard: ${dashboardUrl}`,
       ].join('\n'),
     );
@@ -223,6 +226,23 @@ export function embedSentraAdminError(message: string): EmbedBuilder {
   return baseFeedEmbed(SENTRA_DANGER)
     .setTitle('Admin failed')
     .setDescription(message.slice(0, 3500));
+}
+
+export function embedSentraSupport(input: {
+  ticketsUrl: string;
+  dashboardUrl: string;
+}): EmbedBuilder {
+  return baseCommandEmbed(SENTRA_PRIMARY)
+    .setTitle('Support')
+    .setDescription(
+      [
+        'We handle escalations in the dashboard — not via Discord DMs to the bot.',
+        `[**Tickets / help**](${input.ticketsUrl})`,
+        input.dashboardUrl ? `[**Dashboard**](${input.dashboardUrl})` : null,
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    );
 }
 
 export function embedMonitorHelp(input: {

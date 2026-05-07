@@ -102,7 +102,7 @@ export function createDiscordClient(api: ApiClient, env: Env): Client {
     if (!i.isChatInputCommand()) return;
     try {
       if (i.commandName === 'check') {
-        await executeCheck(i, api, client);
+        await executeCheck(i, api, client, env.WEB_URL);
       } else if (i.commandName === 'report') {
         await executeReport(i, api, env);
       } else if (i.commandName === 'flag') {
@@ -121,7 +121,7 @@ export function createDiscordClient(api: ApiClient, env: Env): Client {
       } else if (i.commandName === 'sentra-admin') {
         await executeSentraAdmin(i, api, env);
       } else if (i.commandName === 'sentra') {
-        await executeSentra(i, env);
+        await executeSentra(i, api, client, env);
       }
     } catch (e) {
       botLog('error', 'interaction_handler', { error: String(e) });

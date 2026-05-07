@@ -180,8 +180,13 @@ export class ApiClient {
     }
   }
 
-  async getGuildLicenseSummary(guildId: string): Promise<{ licensed: boolean }> {
-    return this.requestJson<{ licensed: boolean }>(`/bot/guild/${guildId}/summary`);
+  async getGuildLicenseSummary(guildId: string): Promise<{
+    licensed: boolean;
+    blacklisted: boolean;
+  }> {
+    return this.requestJson<{ licensed: boolean; blacklisted: boolean }>(
+      `/bot/guild/${guildId}/summary`,
+    );
   }
 
   async postGuildLifecycle(body: {
@@ -254,6 +259,104 @@ export class ApiClient {
       method: 'POST',
       headers: { 'x-actor-discord-id': actorDiscordId },
       body: JSON.stringify({}),
+    });
+  }
+
+  private actorHeaders(actorDiscordId: string): Record<string, string> {
+    return { 'x-actor-discord-id': actorDiscordId };
+  }
+
+  async botReportsMine(
+    actorDiscordId: string,
+    limit: number,
+  ): Promise<{
+    items: Array<{
+      id: string;
+      status: string;
+      targetDiscordId: string;
+      reason: string;
+      createdAt: string;
+      guildId: string | null;
+    }>;
+  }> {
+    const q = new URLSearchParams({ limit: String(limit) });
+    return this.requestJson(`/bot/reports/mine?${q}`, {
+      headers: this.actorHeaders(actorDiscordId),
+    });
+  }
+
+  async botReportsPending(actorDiscordId: string): Promise<{
+    items: Array<{
+      id: string;
+      status: string;
+      targetDiscordId: string;
+      reason: string;
+      reporterDiscordId: string;
+      guildId: string | null;
+      createdAt: string;
+    }>;
+  }> {
+    return this.requestJson('/bot/reports/pending', {
+      headers: this.actorHeaders(actorDiscordId),
+    });
+  }
+
+  async botReportGet(
+    reportId: string,
+    actorDiscordId: string,
+  ): Promise<{
+    id: string;
+    status: string;
+    reporterDiscordId: string;
+    targetDiscordId: string;
+    guildId: string | null;
+    reason: string;
+    allegedFlagLevel: string | null;
+    createdAt: string;
+    reviewedAt: string | null;
+    resolverNote: string | null;
+  }> {
+    return this.requestJson(`/bot/reports/${reportId}`, {
+      headers: this.actorHeaders(actorDiscordId),
+    });
+  }
+
+  async botReportApprove(
+    reportId: string,
+    actorDiscordId: string,
+  ): Promise<{
+    id: string;
+    status: string;
+    appliedFlagWeight: number;
+    targetFlagLevel: string;
+  }> {
+    return this.requestJson(`/bot/reports/${reportId}/approve`, {
+      method: 'POST',
+      headers: this.actorHeaders(actorDiscordId),
+      body: JSON.stringify({}),
+    });
+  }
+
+  async botReportReject(
+    reportId: string,
+    actorDiscordId: string,
+    note?: string,
+  ): Promise<{ id: string; status: string }> {
+    return this.requestJson(`/bot/reports/${reportId}/reject`, {
+      method: 'POST',
+      headers: this.actorHeaders(actorDiscordId),
+      body: JSON.stringify({ note: note ?? undefined }),
+    });
+  }
+
+  async botAdminUnflag(
+    targetDiscordId: string,
+    flagId: string,
+    actorDiscordId: string,
+  ): Promise<unknown> {
+    return this.requestJson(`/bot/admin/users/${targetDiscordId}/flags/${flagId}`, {
+      method: 'DELETE',
+      headers: this.actorHeaders(actorDiscordId),
     });
   }
 }

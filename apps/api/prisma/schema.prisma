@@ -9,6 +9,7 @@ datasource db {
 
 enum FlagLevel {
   CLEAN
+  WATCH
   SUSPICIOUS
   HIGH_RISK
   CONFIRMED_CHEATER
@@ -149,6 +150,16 @@ model Report {
   @@index([status, createdAt])
   @@index([reporterDiscordId, reportedUserId, guildId, createdAt(sort: Desc)])
   @@map("reports")
+}
+
+/// Guilds blocked from using the bot (ops — bot leaves on join when blacklisted).
+model GuildBlacklist {
+  guildId             String   @id @map("guild_id")
+  reason              String?
+  createdByDiscordId  String?  @map("created_by_discord_id")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@map("guild_blacklist")
 }
 
 model Server {

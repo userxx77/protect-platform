@@ -5,11 +5,13 @@ import type { Redis } from 'ioredis';
 /** Mirrors Prisma `FlagLevel` (avoid separate client generate in worker). */
 type FlagLevelStr =
   | 'CLEAN'
+  | 'WATCH'
   | 'SUSPICIOUS'
   | 'HIGH_RISK'
   | 'CONFIRMED_CHEATER';
 
 type Thresholds = {
+  watch: number;
   suspicious: number;
   highRisk: number;
   confirmed: number;
@@ -28,6 +30,7 @@ function levelFromScore(score: number, t: Thresholds): FlagLevelStr {
   if (score >= t.confirmed) return 'CONFIRMED_CHEATER';
   if (score >= t.highRisk) return 'HIGH_RISK';
   if (score >= t.suspicious) return 'SUSPICIOUS';
+  if (score >= t.watch) return 'WATCH';
   return 'CLEAN';
 }
 
@@ -65,7 +68,8 @@ export async function runDecayJob(
   const halfLifeDays = Number(process.env.FLAG_DECAY_HALF_LIFE_DAYS ?? 30);
   const multMap = parseMultMap(process.env.FLAG_DECAY_SOURCE_MULTIPLIERS);
   const thresholds: Thresholds = {
-    suspicious: Number(process.env.FLAG_THRESHOLD_SUSPICIOUS ?? 1),
+    watch: Number(process.env.FLAG_THRESHOLD_WATCH ?? 1),
+    suspicious: Number(process.env.FLAG_THRESHOLD_SUSPICIOUS ?? 3),
     highRisk: Number(process.env.FLAG_THRESHOLD_HIGH_RISK ?? 10),
     confirmed: Number(process.env.FLAG_THRESHOLD_CONFIRMED ?? 25),
   };

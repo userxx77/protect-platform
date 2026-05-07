@@ -8,10 +8,16 @@ export * from './flag-levels';
 
 export const flagLevels = [
   'CLEAN',
+  'WATCH',
   'SUSPICIOUS',
   'HIGH_RISK',
   'CONFIRMED_CHEATER',
 ] as const;
+
+/** When a joining member is at/above the server's alert threshold */
+export const JoinActionPolicySchema = z.enum(['log', 'notify', 'quarantine', 'kick', 'ban']);
+
+export type JoinActionPolicy = z.infer<typeof JoinActionPolicySchema>;
 
 export type FlagLevel = (typeof flagLevels)[number];
 
@@ -59,11 +65,14 @@ export const ServerConfigSchema = z.object({
   joinHoldEnabled: z.boolean().optional(),
   /** Discord communication timeout duration (1–40320 minutes, ~28 days max) */
   joinHoldDurationMinutes: z.number().int().min(1).max(40320).optional(),
-  /** Minimum flag level to apply join hold + buttons (independent of alertMinLevel) */
+  /** Minimum reputation level to apply join hold + buttons (independent of alertMinLevel) */
   joinHoldMinLevel: FlagLevelSchema.optional(),
+  /**
+   * What to do when a join meets alert threshold (default: notify — match legacy ping behavior).
+   * kick/ban require bot permissions; prefer explicit staff setup.
+   */
+  joinActionPolicy: JoinActionPolicySchema.optional(),
 });
-
-export type ServerConfig = z.infer<typeof ServerConfigSchema>;
 
 export const UpsertServerConfigBodySchema = z.object({
   guildId: z.string().regex(/^\d{17,20}$/),
