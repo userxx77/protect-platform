@@ -5,7 +5,7 @@ export async function pushGuildSnapshotToApi(
   guild: Guild,
   api: ApiClient,
 ): Promise<void> {
-  let ownerId = guild.ownerId;
+  let ownerId: string | null = guild.ownerId || null;
   if (!ownerId) {
     try {
       const owner = await guild.fetchOwner();
