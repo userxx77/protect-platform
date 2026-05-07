@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Run ON THE VPS in the repo clone (Protect root, same dir as docker-compose.yml).
+# Always works: DEPLOY_BRANCH=main bash scripts/vps-update.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

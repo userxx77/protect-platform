@@ -22,10 +22,15 @@ That creates `.env`, starts Postgres, Redis, API, worker, bot, and web (`docker-
 
 ### Deploy updates on an existing VPS
 
-From the server, in your git clone (same directory as `docker-compose.yml`):
+From the server, in your git clone (same directory as `docker-compose.yml`). This works **without** `chmod` (uses `bash`):
 
 ```bash
-chmod +x scripts/vps-update.sh
+DEPLOY_BRANCH=main bash scripts/vps-update.sh
+```
+
+After `git pull`, the script is also stored as executable in git, so this works too:
+
+```bash
 DEPLOY_BRANCH=main ./scripts/vps-update.sh
 ```
 
