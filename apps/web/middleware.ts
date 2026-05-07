@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { NextResponse, type NextRequest } from 'next/server';
 import { discordSignInPath } from '@/lib/discord-signin';
+import { hasLikelySessionCookie } from '@/lib/auth-session-cookie';
 
 /**
  * When the dashboard is also reachable on the apex (e.g. sentra.gg), redirect to the
@@ -11,6 +11,9 @@ import { discordSignInPath } from '@/lib/discord-signin';
  *   NEXT_PUBLIC_APP_ORIGIN=https://dashboard.sentra.gg
  *
  * Leave NEXT_PUBLIC_APEX_HOSTS empty to disable.
+ *
+ * Do NOT wrap with Auth.js `auth()` here — Edge + JWT init caused Configuration errors on OAuth.
+ * Session presence is cookie-only; RSC `auth()` still validates on /dashboard.
  */
 const apexHosts = (process.env.NEXT_PUBLIC_APEX_HOSTS ?? '')
   .split(',')
@@ -19,7 +22,7 @@ const apexHosts = (process.env.NEXT_PUBLIC_APEX_HOSTS ?? '')
 
 const appOrigin = (process.env.NEXT_PUBLIC_APP_ORIGIN ?? '').replace(/\/$/, '');
 
-export default auth((req) => {
+export function middleware(req: NextRequest) {
   const reqUrl = req.nextUrl;
 
   if (apexHosts.length && appOrigin) {
@@ -38,18 +41,28 @@ export default auth((req) => {
     }
   }
 
-  if (reqUrl.pathname.startsWith('/dashboard') && !req.auth) {
-    const path = discordSignInPath(`${reqUrl.pathname}${reqUrl.search}`);
-    return NextResponse.redirect(new URL(path, reqUrl.origin));
+  const path = reqUrl.pathname;
+  const atRoot = path === '/';
+  const atDashboard = path.startsWith('/dashboard');
+
+  if (atRoot || atDashboard) {
+    const signedIn = hasLikelySessionCookie(req);
+
+    if (atRoot && signedIn) {
+      return NextResponse.redirect(new URL('/dashboard', reqUrl.origin));
+    }
+
+    if (!signedIn) {
+      const oauthPath = discordSignInPath('/dashboard');
+      return NextResponse.redirect(new URL(oauthPath, reqUrl.origin));
+    }
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: [
-    // Never run `auth()` Edge middleware on `/api/auth/*` — OAuth sign-in/callback need Node
-    // route handlers with runtime `process.env`. Running `auth()` there → ?error=Configuration.
     '/((?!api/auth|_next/static|_next/image|favicon.ico|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|ico|webp)$).*)',
   ],
 };
