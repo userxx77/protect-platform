@@ -30,4 +30,4 @@ if [[ -x ./validate-deployment.sh ]]; then
   ./validate-deployment.sh || true
 fi
 
-echo "Done. Check https://YOUR_DASHBOARD/api/ready and Discord slash commands after deploy."
+echo "Done. Check https://dashboard.sentra.gg/api/ready and Discord slash commands after deploy."

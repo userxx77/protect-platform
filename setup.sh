@@ -86,9 +86,9 @@ echo "  - Dashboard = waar Next.js + Discord OAuth draaien (NEXTAUTH_URL)."
 echo "  - API       = publieke API (browser / NEXT_PUBLIC_API_URL)."
 echo "  - Main site = optioneel (bv. marketing homepage); staat in .env als MAIN_SITE_URL."
 
-DASHBOARD_URL="$(prompt DASHBOARD_URL "https://dashboard.example.com")"
-API_PUBLIC_URL="$(prompt API_PUBLIC_URL "https://api.example.com")"
-MAIN_SITE_URL="$(prompt MAIN_SITE_URL optional "")"
+DASHBOARD_URL="$(prompt DASHBOARD_URL "https://dashboard.sentra.gg")"
+API_PUBLIC_URL="$(prompt API_PUBLIC_URL "https://api.sentra.gg")"
+MAIN_SITE_URL="$(prompt MAIN_SITE_URL optional 'https://sentra.gg')"
 
 if [[ "$DASHBOARD_URL" == */ ]]; then DASHBOARD_URL="${DASHBOARD_URL%/}"; fi
 if [[ "$API_PUBLIC_URL" == */ ]]; then API_PUBLIC_URL="${API_PUBLIC_URL%/}"; fi
@@ -157,6 +157,13 @@ upsert_kv WEB_URL "$DASHBOARD_URL" "$ENV_FILE"
 upsert_kv NEXTAUTH_URL "$DASHBOARD_URL" "$ENV_FILE"
 upsert_kv API_PUBLIC_URL "$API_PUBLIC_URL" "$ENV_FILE"
 upsert_kv NEXT_PUBLIC_API_URL "$API_PUBLIC_URL" "$ENV_FILE"
+if [[ "$DASHBOARD_URL" == *sentra.gg* ]]; then
+  upsert_kv NEXT_PUBLIC_APEX_HOSTS "sentra.gg,www.sentra.gg" "$ENV_FILE"
+  upsert_kv NEXT_PUBLIC_APP_ORIGIN "$DASHBOARD_URL" "$ENV_FILE"
+else
+  remove_kv NEXT_PUBLIC_APEX_HOSTS "$ENV_FILE"
+  remove_kv NEXT_PUBLIC_APP_ORIGIN "$ENV_FILE"
+fi
 if [[ -n "$MAIN_SITE_URL" ]]; then
   upsert_kv MAIN_SITE_URL "$MAIN_SITE_URL" "$ENV_FILE"
 else
