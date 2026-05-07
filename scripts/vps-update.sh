@@ -13,10 +13,11 @@ cd "$ROOT"
 
 BRANCH="${DEPLOY_BRANCH:-main}"
 
-echo "==> git pull ($BRANCH)"
+# Match origin exactly: local edits on this clone (common on VPS) must not block deploy.
+echo "==> git sync to origin/$BRANCH (discard local changes/commits on this clone)"
 git fetch origin
 git checkout "$BRANCH"
-git pull origin "$BRANCH"
+git reset --hard "origin/$BRANCH"
 
 echo "==> docker compose up --build -d"
 docker compose up -d --build
