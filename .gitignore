@@ -22,3 +22,6 @@ apps/api/test/integration/redis-optional.integration.spec.js
 apps/api/test/integration/redis-optional.integration.spec.js.map
 apps/api/test/integration/scenarios-ab.integration.spec.js
 apps/api/test/integration/scenarios-ab.integration.spec.js.map
+
+# Cursor: local opt-out for auto-push hook (see README)
+.cursor/no-autopush
