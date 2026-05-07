@@ -48,6 +48,8 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|ico|webp)$).*)',
+    // Never run `auth()` Edge middleware on `/api/auth/*` — OAuth sign-in/callback need Node
+    // route handlers with runtime `process.env`. Running `auth()` there → ?error=Configuration.
+    '/((?!api/auth|_next/static|_next/image|favicon.ico|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|ico|webp)$).*)',
   ],
 };
