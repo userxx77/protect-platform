@@ -160,6 +160,9 @@ services:
       NODE_ENV: production
       PORT: "3000"
       API_BASE_URL: http://api:3001
+      # Auth.js: public URL for OAuth callbacks (set in .env, e.g. https://dashboard.sentra.gg)
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-}
+      AUTH_URL: ${AUTH_URL:-${NEXTAUTH_URL:-}}
     ports:
       - "${WEB_PUBLISH_PORT:-3000}:3000"
     depends_on:

@@ -1,27 +1,34 @@
 import { EmbedBuilder, type ColorResolvable } from 'discord.js';
+import { flagLevelDisplayName } from '@protect/shared';
 
-/** Brand accent — aligns with dashboard purple */
-export const BRAND_PRIMARY = 0x8b5cf6;
-export const BRAND_MUTED = 0x6d28d9;
+/** Stripe colors — distinct states, not loud marketing purple everywhere */
+export const BRAND_PRIMARY = 0x5865f2;
 export const SENTRA_PRIMARY = BRAND_PRIMARY;
-export const SENTRA_SUCCESS = 0x34d399;
-export const SENTRA_WARNING = 0xfbbf24;
-export const SENTRA_DANGER = 0xf87171;
-export const SENTRA_INFO = 0x38bdf8;
+export const SENTRA_SUCCESS = 0x3ba55d;
+export const SENTRA_WARNING = 0xf0b232;
+export const SENTRA_DANGER = 0xed4245;
+export const SENTRA_INFO = 0x00b0f4;
 
-const FOOTER_OPS = 'Sentra · admin feed';
-const FOOTER_PRODUCT = 'Sentra · anti-cheat intelligence';
-
-export function sentraFooter(): { text: string } {
-  return { text: FOOTER_OPS };
+/** User-facing slash replies */
+export function commandFooter(): { text: string } {
+  return { text: 'Sentra' };
 }
 
-/** Footer for slash command replies (end users). */
+/** Operator / admin feed */
+export function feedFooter(): { text: string } {
+  return { text: 'Sentra — ops' };
+}
+
+/** @deprecated use commandFooter — kept for imports */
 export function productFooter(): { text: string } {
-  return { text: FOOTER_PRODUCT };
+  return commandFooter();
 }
 
-/** Discord CDN guild icon (png); pass guild id and icon hash from API/bot. */
+/** @deprecated use feedFooter */
+export function sentraFooter(): { text: string } {
+  return feedFooter();
+}
+
 export function guildIconUrl(
   guildId: string,
   iconHash: string | null | undefined,
@@ -31,12 +38,18 @@ export function guildIconUrl(
   return `https://cdn.discordapp.com/icons/${guildId}/${iconHash}.${ext}`;
 }
 
-/** Base for operator / system feed embeds (Redis → admin channel). */
+export function baseCommandEmbed(color: ColorResolvable = SENTRA_PRIMARY): EmbedBuilder {
+  return new EmbedBuilder().setColor(color).setFooter(commandFooter()).setTimestamp(new Date());
+}
+
+/** Redis / staff channel system events */
+export function baseFeedEmbed(color: ColorResolvable = SENTRA_PRIMARY): EmbedBuilder {
+  return new EmbedBuilder().setColor(color).setFooter(feedFooter()).setTimestamp(new Date());
+}
+
+/** @deprecated use baseFeedEmbed */
 export function baseEmbed(color: ColorResolvable = SENTRA_PRIMARY): EmbedBuilder {
-  return new EmbedBuilder()
-    .setColor(color)
-    .setFooter(sentraFooter())
-    .setTimestamp(new Date());
+  return baseFeedEmbed(color);
 }
 
 export function embedGuildDiscovered(input: {
@@ -45,15 +58,14 @@ export function embedGuildDiscovered(input: {
   approximateMemberCount: number | null;
   iconHash?: string | null;
 }): EmbedBuilder {
-  const e = baseEmbed(SENTRA_SUCCESS)
-    .setTitle('Server connected')
-    .setDescription(
-      `**${input.name ?? 'Unknown server'}** added Sentra. Run \`/setup alerts\` to configure staff notifications.`,
-    )
+  const name = input.name ?? 'Unknown server';
+  const e = baseFeedEmbed(SENTRA_SUCCESS)
+    .setTitle('Server added')
+    .setDescription(`${name} — run \`/setup alerts\` for staff notifications.`)
     .addFields(
-      { name: 'Server ID', value: `\`${input.guildId}\``, inline: true },
+      { name: 'ID', value: `\`${input.guildId}\``, inline: true },
       {
-        name: 'Members (approx.)',
+        name: 'Members',
         value:
           input.approximateMemberCount != null
             ? String(input.approximateMemberCount)
@@ -72,55 +84,43 @@ export function embedReportPending(input: {
   reporterDiscordId?: string;
   guildId?: string | null;
   reason?: string;
+  allegedFlagLevel?: string | null;
   guildName?: string | null;
   guildIconUrl?: string | null;
 }): EmbedBuilder {
-  const target = input.targetDiscordId
-    ? `<@${input.targetDiscordId}>`
-    : '—';
-  const reporter = input.reporterDiscordId
-    ? `<@${input.reporterDiscordId}>`
-    : '—';
-
-  const serverLine =
+  const target = input.targetDiscordId ? `<@${input.targetDiscordId}>` : '—';
+  const reporter = input.reporterDiscordId ? `<@${input.reporterDiscordId}>` : '—';
+  const server =
     input.guildName && input.guildId
-      ? `**${input.guildName}** · \`${input.guildId}\``
+      ? `${input.guildName} · \`${input.guildId}\``
       : input.guildId
         ? `\`${input.guildId}\``
         : '—';
+  const rawReason = input.reason?.trim() ?? '';
+  const reason =
+    rawReason.length > 0
+      ? rawReason.length > 950
+        ? `${rawReason.slice(0, 947)}…`
+        : rawReason
+      : '—';
+  const tier =
+    input.allegedFlagLevel != null && input.allegedFlagLevel !== ''
+      ? flagLevelDisplayName(input.allegedFlagLevel)
+      : '—';
 
-  const reasonBlock = input.reason?.trim()
-    ? input.reason.length > 900
-      ? `${input.reason.slice(0, 897)}…`
-      : input.reason
-    : '*No summary provided.*';
-
-  const e = new EmbedBuilder()
-    .setColor(SENTRA_WARNING)
-    .setTitle('Community report · awaiting review')
-    .setDescription(
-      'Moderators need to **approve or reject** this report in the Sentra dashboard before any reputation change applies.',
-    )
+  const e = baseFeedEmbed(SENTRA_WARNING)
+    .setTitle('Report awaiting review')
+    .setDescription('Approve or reject in the dashboard before reputation changes.')
     .addFields(
-      {
-        name: 'Report ID',
-        value: `\`${input.reportId ?? '—'}\``,
-        inline: true,
-      },
-      { name: 'Server', value: serverLine, inline: true },
-      { name: '\u200b', value: '\u200b', inline: true },
-      { name: 'Reported user', value: `${target}`, inline: true },
-      { name: 'Submitted by', value: reporter, inline: true },
-      { name: '\u200b', value: '\u200b', inline: true },
-      { name: 'Details', value: reasonBlock, inline: false },
-    )
-    .setFooter(sentraFooter())
-    .setTimestamp(new Date());
+      { name: 'ID', value: `\`${input.reportId ?? '—'}\``, inline: true },
+      { name: 'Reporter tier', value: tier, inline: true },
+      { name: 'Server', value: server, inline: true },
+      { name: 'Target', value: target, inline: true },
+      { name: 'From', value: reporter, inline: true },
+      { name: 'Details', value: reason, inline: false },
+    );
 
-  if (input.guildIconUrl) {
-    e.setThumbnail(input.guildIconUrl);
-  }
-
+  if (input.guildIconUrl) e.setThumbnail(input.guildIconUrl);
   return e;
 }
 
@@ -136,44 +136,28 @@ export function embedSupportTicketAdmin(input: {
 }): EmbedBuilder {
   const title =
     input.kind === 'support.ticket.created'
-      ? 'Support ticket opened'
+      ? 'Ticket opened'
       : input.kind === 'support.ticket.evidence_submitted'
-        ? 'Evidence submitted'
+        ? 'Evidence in'
         : input.kind === 'support.ticket.resolved' && input.status === 'REJECTED'
           ? 'Ticket rejected'
           : input.kind === 'support.ticket.resolved'
-            ? 'Ticket resolved'
-            : 'Ticket update';
+            ? 'Ticket closed'
+            : 'Ticket';
   const color =
     input.kind === 'support.ticket.resolved' && input.status !== 'REJECTED'
       ? SENTRA_SUCCESS
       : SENTRA_WARNING;
-  const e = baseEmbed(color).setTitle(title);
-  const fields: { name: string; value: string; inline?: boolean }[] = [
-    { name: 'Ticket', value: `\`${input.ticketId ?? '—'}\``, inline: true },
-    { name: 'Linked report', value: `\`${input.reportId ?? '—'}\``, inline: true },
-  ];
-  if (input.reporterDiscordId) {
-    fields.push({
-      name: 'Reporter',
-      value: `<@${input.reporterDiscordId}>`,
-      inline: true,
-    });
-  }
-  if (input.guildId) {
-    fields.push({ name: 'Server ID', value: `\`${input.guildId}\``, inline: true });
-  }
-  if (input.status) {
-    fields.push({ name: 'Status', value: input.status, inline: true });
-  }
+  const e = baseFeedEmbed(color).setTitle(title);
+  const lines: string[] = [];
+  lines.push(`Ticket \`${input.ticketId ?? '—'}\` · Report \`${input.reportId ?? '—'}\``);
+  if (input.reporterDiscordId) lines.push(`Reporter <@${input.reporterDiscordId}>`);
+  if (input.guildId) lines.push(`Guild \`${input.guildId}\``);
+  if (input.status) lines.push(`Status ${input.status}`);
   if (input.kind === 'support.ticket.evidence_submitted') {
-    fields.push({
-      name: 'Evidence',
-      value: `${input.attachmentCount ?? 0} attachment(s), ${input.linkCount ?? 0} link(s)`,
-      inline: false,
-    });
+    lines.push(`Files ${input.attachmentCount ?? 0} · Links ${input.linkCount ?? 0}`);
   }
-  return e.addFields(fields);
+  return e.setDescription(lines.join('\n'));
 }
 
 export function embedMemberSyncStarted(input: {
@@ -181,12 +165,9 @@ export function embedMemberSyncStarted(input: {
   guildName: string;
   iconHash?: string | null;
 }): EmbedBuilder {
-  const e = baseEmbed(SENTRA_PRIMARY)
-    .setTitle('Member cache sync · started')
-    .setDescription(
-      `Pulling members for **${input.guildName}**. This may take a moment for large servers.`,
-    )
-    .addFields({ name: 'Server ID', value: `\`${input.guildId}\``, inline: false });
+  const e = baseFeedEmbed(SENTRA_PRIMARY)
+    .setTitle('Member sync started')
+    .setDescription(`${input.guildName} · \`${input.guildId}\``);
   const icon = guildIconUrl(input.guildId, input.iconHash);
   if (icon) e.setThumbnail(icon);
   return e;
@@ -198,12 +179,11 @@ export function embedMemberSyncCompleted(input: {
   memberCount: number;
   iconHash?: string | null;
 }): EmbedBuilder {
-  const e = baseEmbed(SENTRA_SUCCESS)
-    .setTitle('Member cache sync · complete')
+  const e = baseFeedEmbed(SENTRA_SUCCESS)
+    .setTitle('Member sync done')
     .setDescription(
-      `**${input.guildName}** — cached **${input.memberCount.toLocaleString('en-US')}** member profiles for the dashboard.`,
-    )
-    .addFields({ name: 'Server ID', value: `\`${input.guildId}\``, inline: false });
+      `${input.guildName} · ${input.memberCount.toLocaleString('en-US')} profiles cached · \`${input.guildId}\``,
+    );
   const icon = guildIconUrl(input.guildId, input.iconHash);
   if (icon) e.setThumbnail(icon);
   return e;
@@ -215,11 +195,12 @@ export function embedMemberSyncFailed(input: {
   error: string;
   iconHash?: string | null;
 }): EmbedBuilder {
-  const e = baseEmbed(SENTRA_DANGER)
-    .setTitle('Member cache sync · failed')
-    .setDescription(
-      `${input.guildName ? `**${input.guildName}** · ` : ''}\`${input.guildId}\``,
-    )
+  const head = input.guildName
+    ? `${input.guildName} · \`${input.guildId}\``
+    : `\`${input.guildId}\``;
+  const e = baseFeedEmbed(SENTRA_DANGER)
+    .setTitle('Member sync failed')
+    .setDescription(head)
     .addFields({
       name: 'Error',
       value: `\`\`\`${input.error.slice(0, 900)}\`\`\``,
@@ -231,9 +212,9 @@ export function embedMemberSyncFailed(input: {
 }
 
 export function embedUnknownGuildSync(input: { guildId: string }): EmbedBuilder {
-  return baseEmbed(SENTRA_WARNING)
-    .setTitle('Member sync skipped')
+  return baseFeedEmbed(SENTRA_WARNING)
+    .setTitle('Sync skipped')
     .setDescription(
-      `The bot is not in this server or Discord returned an error for server ID \`${input.guildId}\`. Re-invite the bot, then run **Member sync** again from the dashboard or admin tools.`,
+      `Bot is not in this server or Discord returned an error for \`${input.guildId}\`. Re-invite the bot, then retry sync.`,
     );
 }

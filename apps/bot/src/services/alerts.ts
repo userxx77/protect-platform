@@ -1,16 +1,17 @@
 import { EmbedBuilder, type ColorResolvable } from 'discord.js';
+import { flagLevelDisplayName } from '@protect/shared';
 import {
   SENTRA_DANGER,
   SENTRA_PRIMARY,
   SENTRA_SUCCESS,
   SENTRA_WARNING,
-  productFooter,
+  baseCommandEmbed,
 } from '../embeds/sentra';
 
 const levelColors: Record<string, ColorResolvable> = {
   CLEAN: SENTRA_SUCCESS,
   SUSPICIOUS: SENTRA_WARNING,
-  HIGH_RISK: 0xfb923c,
+  HIGH_RISK: 0xe67e22,
   CONFIRMED_CHEATER: SENTRA_DANGER,
 };
 
@@ -32,17 +33,12 @@ export function userStatusEmbed(
   title: string,
 ): EmbedBuilder {
   const color = levelColors[user.flagLevel] ?? SENTRA_PRIMARY;
-  const levelLabel = user.flagLevel.replace(/_/g, ' ');
-  return new EmbedBuilder()
+  const levelLabel = flagLevelDisplayName(user.flagLevel);
+  return baseCommandEmbed(color)
     .setTitle(title)
-    .setColor(color)
-    .setDescription('Sentra reputation snapshot — not a ban recommendation on its own.')
+    .setDescription('Reputation only — verify context before action.')
     .addFields(
-      {
-        name: 'User',
-        value: `<@${user.discordId}> · \`${user.discordId}\``,
-        inline: false,
-      },
+      { name: 'User', value: `<@${user.discordId}> · \`${user.discordId}\``, inline: false },
       { name: 'Level', value: levelLabel, inline: true },
       { name: 'Score', value: String(user.flagScore), inline: true },
       {
@@ -50,16 +46,14 @@ export function userStatusEmbed(
         value: user.flagCount != null ? String(user.flagCount) : '—',
         inline: true,
       },
-    )
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+    );
 }
 
 export function alertEmbed(
   user: { discordId: string; flagLevel: string; flagScore: number },
   context: string,
 ): EmbedBuilder {
-  const e = userStatusEmbed(user, 'Reputation alert');
-  e.setDescription(`${context}\n\n_Sentra reputation snapshot — review context before action._`);
+  const e = userStatusEmbed(user, 'Alert');
+  e.setDescription(`${context}\nReputation only — verify before action.`);
   return e;
 }

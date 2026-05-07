@@ -2,17 +2,23 @@ import NextAuth from 'next-auth';
 import Discord from 'next-auth/providers/discord';
 import { canManageGuildDiscordPermissions } from '@/lib/discord-guilds';
 
+const authSecret =
+  process.env.AUTH_SECRET?.trim() || process.env.NEXTAUTH_SECRET?.trim();
+
+const discordClientId = process.env.DISCORD_CLIENT_ID?.trim() ?? '';
+const discordClientSecret = process.env.DISCORD_CLIENT_SECRET?.trim() ?? '';
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Discord({
-      clientId: process.env.DISCORD_CLIENT_ID ?? '',
-      clientSecret: process.env.DISCORD_CLIENT_SECRET ?? '',
+      clientId: discordClientId,
+      clientSecret: discordClientSecret,
       authorization: {
         params: { scope: 'identify email guilds' },
       },
     }),
   ],
-  secret: process.env.AUTH_SECRET,
+  secret: authSecret,
   callbacks: {
     async jwt({ token, profile, account }) {
       if (profile && typeof profile === 'object' && 'id' in profile && profile.id) {

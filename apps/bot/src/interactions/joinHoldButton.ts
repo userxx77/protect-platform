@@ -107,9 +107,9 @@ export async function executeJoinHoldButton(
 
   const prev = interaction.message?.embeds?.[0];
   const embed = prev ? EmbedBuilder.from(prev) : new EmbedBuilder();
-  embed.addFields({
+    embed.addFields({
     name: 'Outcome',
-    value: `**${outcomeLabel}** by ${interaction.user} (\`${interaction.user.tag}\`)`,
+    value: `${outcomeLabel} · ${interaction.user}`,
   });
 
   await interaction.update({

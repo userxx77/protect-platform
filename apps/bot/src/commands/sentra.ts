@@ -1,11 +1,10 @@
 import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
-  EmbedBuilder,
 } from 'discord.js';
 import { isDiscordPlatformAdmin } from '@protect/shared';
 import type { Env } from '../config/env';
-import { SENTRA_DANGER } from '../embeds/sentra';
+import { SENTRA_DANGER, baseCommandEmbed } from '../embeds/sentra';
 import { embedMonitorHelp, embedOperatorsOnly } from '../embeds/commandEmbeds';
 
 export const sentraCommandData = new SlashCommandBuilder()
@@ -27,9 +26,8 @@ export async function executeSentra(
     await interaction.reply({
       ephemeral: true,
       embeds: [
-        new EmbedBuilder()
-          .setColor(SENTRA_DANGER)
-          .setTitle('Unknown subcommand')
+        baseCommandEmbed(SENTRA_DANGER)
+          .setTitle('Unknown')
           .setDescription('Use `/sentra monitor`.'),
       ],
     });

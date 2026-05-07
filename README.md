@@ -20,6 +20,19 @@ chmod +x setup.sh
 
 That creates `.env`, starts Postgres, Redis, API, worker, bot, and web (`docker-compose.yml`). The API container runs **`prisma migrate deploy`** before boot. See [docs/runbooks/production-deploy.md](docs/runbooks/production-deploy.md).
 
+### Deploy updates on an existing VPS
+
+From the server, in your git clone (same directory as `docker-compose.yml`):
+
+```bash
+chmod +x scripts/vps-update.sh
+DEPLOY_BRANCH=main ./scripts/vps-update.sh
+```
+
+### Cursor: auto-commit and push after each agent reply
+
+The project includes [`.cursor/hooks.json`](.cursor/hooks.json): when the Cursor agent finishes a response, it runs `node .cursor/hooks/auto-git-push.mjs`, which commits all pending changes and `git push`es the current branch (if any). Requires non-interactive `git push` (SSH agent or credential helper). To disable, create an empty file `.cursor/no-autopush` or set environment variable `CURSOR_AUTO_PUSH=0`. The hook prints short VPS follow-up steps to the Hooks output when a push succeeds.
+
 After a reboot or deploy, verify the stack:
 
 ```bash

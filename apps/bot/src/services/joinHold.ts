@@ -7,15 +7,20 @@ import {
 } from 'discord.js';
 import { flagLevelDisplayName } from '@protect/shared';
 import { shouldAlert } from './alerts';
-import { SENTRA_WARNING } from '../embeds/sentra';
+import {
+  SENTRA_DANGER,
+  SENTRA_SUCCESS,
+  SENTRA_WARNING,
+  commandFooter,
+} from '../embeds/sentra';
 
 export const JOIN_HOLD_BUTTON_RE = /^sjh:([kbr]):(\d{17,20}):(\d{17,20})$/;
 
 const levelColors: Record<string, ColorResolvable> = {
-  CLEAN: 0x34d399,
-  SUSPICIOUS: 0xfbbf24,
-  HIGH_RISK: 0xfb923c,
-  CONFIRMED_CHEATER: 0xf87171,
+  CLEAN: SENTRA_SUCCESS,
+  SUSPICIOUS: SENTRA_WARNING,
+  HIGH_RISK: 0xe67e22,
+  CONFIRMED_CHEATER: SENTRA_DANGER,
 };
 
 export { flagLevelDisplayName as displayFlagLevel } from '@protect/shared';
@@ -55,39 +60,38 @@ export function joinHoldModerationEmbed(input: {
   timeoutApplied: boolean;
   timeoutMinutes: number;
 }): EmbedBuilder {
-  const color =
-    levelColors[input.user.flagLevel] ?? SENTRA_WARNING;
+  const color = levelColors[input.user.flagLevel] ?? SENTRA_WARNING;
+  const timeoutLine = input.timeoutApplied
+    ? `Timeout **${input.timeoutMinutes}m** active — Kick / Ban / Release below.`
+    : '**No timeout** — bot needs **Moderate Members** and a role **above** the member. Buttons still work.';
   return new EmbedBuilder()
     .setColor(color)
-    .setTitle('Join quarantine · staff review')
-    .setDescription(
-      input.timeoutApplied
-        ? `Member is in a **communication timeout** (${input.timeoutMinutes} minute(s)) until staff act. Use **Kick**, **Ban**, or **Release** (clear timeout).`
-        : `**Timeout was not applied** — check that the bot has **Moderate Members** and a role **above** the joiner. Staff can still use the actions below.`,
-    )
+    .setTitle('Join hold')
+    .setDescription(timeoutLine)
     .addFields(
       {
         name: 'Member',
         value: `${input.memberTag} · <@${input.user.discordId}> · \`${input.user.discordId}\``,
         inline: false,
       },
-      { name: 'Server', value: input.guildName, inline: true },
       {
-        name: 'Sentra level',
+        name: 'Server',
+        value: input.guildName,
+        inline: true,
+      },
+      {
+        name: 'Level',
         value: flagLevelDisplayName(input.user.flagLevel),
         inline: true,
       },
       { name: 'Score', value: String(input.user.flagScore), inline: true },
       {
         name: 'Flags',
-        value:
-          input.user.flagCount != null ? String(input.user.flagCount) : '—',
+        value: input.user.flagCount != null ? String(input.user.flagCount) : '—',
         inline: true,
       },
     )
-    .setFooter({
-      text: 'Sentra · join hold — only trusted staff should act',
-    })
+    .setFooter(commandFooter())
     .setTimestamp(new Date());
 }
 

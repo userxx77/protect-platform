@@ -40,6 +40,7 @@ type EventEnvelope = {
     targetDiscordId?: string;
     reporterDiscordId?: string;
     reason?: string;
+    allegedFlagLevel?: string | null;
     name?: string | null;
     approximateMemberCount?: number | null;
   };
@@ -109,8 +110,14 @@ export function startEventSubscriber(
         }
 
         if (env.type === 'report.pending') {
-          const { reportId, targetDiscordId, reporterDiscordId, guildId, reason } =
-            env.payload;
+          const {
+            reportId,
+            targetDiscordId,
+            reporterDiscordId,
+            guildId,
+            reason,
+            allegedFlagLevel,
+          } = env.payload;
           let guildName: string | null = null;
           let guildIconUrl: string | null = null;
           if (guildId) {
@@ -136,6 +143,7 @@ export function startEventSubscriber(
               reporterDiscordId,
               guildId: guildId ?? undefined,
               reason,
+              allegedFlagLevel: allegedFlagLevel ?? null,
               guildName,
               guildIconUrl,
             }),

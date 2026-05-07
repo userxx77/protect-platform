@@ -4,9 +4,8 @@ import {
   SENTRA_PRIMARY,
   SENTRA_SUCCESS,
   SENTRA_WARNING,
-  baseEmbed,
-  productFooter,
-  sentraFooter,
+  baseCommandEmbed,
+  baseFeedEmbed,
 } from './sentra';
 
 /** Detect API 403 for unlicensed community report. */
@@ -19,22 +18,14 @@ export function isReportCommunityRoleForbiddenError(e: unknown): boolean {
 }
 
 export function embedReportCommunityRoleDenied(dashboardUrl: string | undefined): EmbedBuilder {
-  const link = dashboardUrl?.trim()
-    ? `\n\n[**Open dashboard**](${dashboardUrl})`
-    : '';
-  return new EmbedBuilder()
-    .setColor(SENTRA_WARNING)
-    .setTitle('Account role required')
-    .setDescription(
-      `**Community reports** (pending staff review) are limited to accounts with **User** access in Sentra. Checker accounts can still use \`/check\` and trusted reporters can use \`/flag\` where applicable.${link}`,
-    )
+  const link = dashboardUrl?.trim() ? ` [Dashboard](${dashboardUrl})` : '';
+  return baseCommandEmbed(SENTRA_WARNING)
+    .setTitle('Role required')
+    .setDescription(`Community reports need the **User** role in Sentra.${link}`)
     .addFields({
-      name: 'Next step',
-      value:
-        'Ask a **platform admin** to grant **User** role for your Discord account in Sentra.',
-    })
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+      name: 'What to do',
+      value: 'Ask a platform admin to grant **User** on your Discord account.',
+    });
 }
 
 /** Detect API 403 for unlicensed community report. */
@@ -47,98 +38,62 @@ export function isReportLicenseForbiddenError(e: unknown): boolean {
 }
 
 export function embedReportLicenseDenied(dashboardUrl: string | undefined): EmbedBuilder {
-  const link = dashboardUrl?.trim()
-    ? `\n\n[**Open dashboard**](${dashboardUrl})`
-    : '';
-  return new EmbedBuilder()
-    .setColor(SENTRA_WARNING)
-    .setTitle('Server license required')
-    .setDescription(
-      `This server does not have an active **Sentra license**, so community reports cannot be submitted yet.${link}`,
-    )
+  const link = dashboardUrl?.trim() ? ` [Dashboard](${dashboardUrl})` : '';
+  return baseCommandEmbed(SENTRA_WARNING)
+    .setTitle('No license')
+    .setDescription(`This server has no active Sentra license.${link}`)
     .addFields({
-      name: 'Next step',
-      value:
-        'Ask a **platform admin** to activate a trial or subscription for this server (`/sentra-admin` or dashboard).',
-    })
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+      name: 'What to do',
+      value: 'Platform admin: trial or subscription (`/sentra-admin` or billing).',
+    });
 }
 
 export function embedReportSuccessPending(reportedSeverityLabel?: string): EmbedBuilder {
-  const b = baseEmbed(SENTRA_SUCCESS)
-    .setTitle('Report queued for review')
-    .setDescription(
-      'Thanks — your report is in the **moderation queue**. Reputation only updates after staff **approve** it in the Sentra dashboard. You will not see a score change until then.',
-    )
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+  const b = baseCommandEmbed(SENTRA_SUCCESS)
+    .setTitle('Queued')
+    .setDescription('Staff must approve in the dashboard before reputation changes.');
   if (reportedSeverityLabel?.trim()) {
-    b.addFields({
-      name: 'Your severity',
-      value: reportedSeverityLabel,
-      inline: true,
-    });
+    b.addFields({ name: 'Tier', value: reportedSeverityLabel, inline: true });
   }
   return b;
 }
 
 export function embedReportSuccessInstant(targetId: string, reportedSeverityLabel?: string): EmbedBuilder {
-  const b = baseEmbed(SENTRA_SUCCESS)
-    .setTitle('Report recorded')
-    .setDescription(
-      `Your report for <@${targetId}> was recorded. No further action is needed from you.`,
-    )
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+  const b = baseCommandEmbed(SENTRA_SUCCESS)
+    .setTitle('Recorded')
+    .setDescription(`Report for <@${targetId}> saved.`);
   if (reportedSeverityLabel?.trim()) {
-    b.addFields({
-      name: 'Your severity',
-      value: reportedSeverityLabel,
-      inline: true,
-    });
+    b.addFields({ name: 'Tier', value: reportedSeverityLabel, inline: true });
   }
   return b;
 }
 
 export function embedReportFailed(message: string): EmbedBuilder {
-  return baseEmbed(SENTRA_DANGER)
+  return baseCommandEmbed(SENTRA_DANGER)
     .setTitle('Report failed')
-    .setDescription(message.slice(0, 3500))
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+    .setDescription(message.slice(0, 3500));
 }
 
 export function embedFlagSuccess(input: {
   flagLevel: string;
   flagScore: number;
   weightApplied: number | string;
-  /** Display label for the tier chosen on /flag */
   severityLabel?: string;
 }): EmbedBuilder {
-  const fields = [
-    { name: 'Aggregate level', value: input.flagLevel, inline: true },
-    { name: 'Score', value: String(input.flagScore), inline: true },
-    { name: 'Weight', value: `+${input.weightApplied}`, inline: true },
-  ] as const;
-  const b = baseEmbed(SENTRA_SUCCESS).setTitle('Flag applied').setFooter(productFooter()).setTimestamp(new Date());
-  if (input.severityLabel?.trim()) {
-    b.addFields(
-      { name: 'Flag tier', value: input.severityLabel, inline: true },
-      ...fields,
-    );
-  } else {
-    b.addFields(...fields);
-  }
-  return b;
+  const sev = input.severityLabel?.trim();
+  const lines = [
+    sev ? `Tier: **${sev}**` : null,
+    `Level: **${input.flagLevel}** · Score: **${String(input.flagScore)}** · Weight: **+${input.weightApplied}**`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+  return baseCommandEmbed(SENTRA_SUCCESS).setTitle('Flag applied').setDescription(lines);
 }
 
 export function embedFlagFailed(message: string): EmbedBuilder {
-  return baseEmbed(SENTRA_DANGER)
+  return baseCommandEmbed(SENTRA_DANGER)
     .setTitle('Flag failed')
-    .setDescription(message.slice(0, 3500))
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+    .setDescription(message.slice(0, 3500));
 }
 
 export function embedConfigView(fields: {
@@ -150,340 +105,186 @@ export function embedConfigView(fields: {
   joinHoldMinLevel: string;
   updatedNote: string;
 }): EmbedBuilder {
-  return baseEmbed(SENTRA_PRIMARY)
-    .setTitle('Alert & join hold settings')
+  const b = baseCommandEmbed(SENTRA_PRIMARY)
+    .setTitle('Settings')
     .addFields(
-      { name: 'Alert channel', value: fields.alertChannel, inline: true },
-      { name: 'Alert min level', value: fields.minLevel, inline: true },
-      { name: '\u200b', value: '\u200b', inline: true },
+      {
+        name: 'Alerts',
+        value: `Channel: ${fields.alertChannel}\nMin level: ${fields.minLevel}`,
+        inline: true,
+      },
       {
         name: 'Join hold',
-        value: fields.joinHoldEnabled,
-        inline: true,
-      },
-      {
-        name: 'Hold duration (min)',
-        value: fields.joinHoldMinutes,
-        inline: true,
-      },
-      {
-        name: 'Hold min level',
-        value: fields.joinHoldMinLevel,
+        value: `Enabled: ${fields.joinHoldEnabled}\nMinutes: ${fields.joinHoldMinutes}\nMin level: ${fields.joinHoldMinLevel}`,
         inline: true,
       },
       { name: 'Mention roles', value: fields.mentionRoles, inline: false },
-      { name: '\u200b', value: fields.updatedNote, inline: false },
-    )
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+    );
+  if (fields.updatedNote?.trim()) {
+    b.addFields({ name: 'Note', value: fields.updatedNote, inline: false });
+  }
+  return b;
 }
 
 export function embedConfigSaved(): EmbedBuilder {
-  return baseEmbed(SENTRA_SUCCESS)
-    .setTitle('Settings saved')
-    .setDescription(
-      'Alert channel, levels, and join hold options are updated where you changed them.',
-    )
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+  return baseCommandEmbed(SENTRA_SUCCESS)
+    .setTitle('Saved')
+    .setDescription('Your changes are live.');
 }
 
 export function embedConfigFailed(message: string): EmbedBuilder {
-  return baseEmbed(SENTRA_DANGER)
-    .setTitle('Could not save settings')
-    .setDescription(message.slice(0, 3500))
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+  return baseCommandEmbed(SENTRA_DANGER)
+    .setTitle('Save failed')
+    .setDescription(message.slice(0, 3500));
 }
 
 export function embedConfigLoadFailed(message: string): EmbedBuilder {
-  return baseEmbed(SENTRA_DANGER)
-    .setTitle('Could not load settings')
-    .setDescription(message.slice(0, 3500))
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+  return baseCommandEmbed(SENTRA_DANGER)
+    .setTitle('Load failed')
+    .setDescription(message.slice(0, 3500));
 }
 
 export function embedHelp(dashboardUrl: string): EmbedBuilder {
-  return baseEmbed(SENTRA_PRIMARY)
-    .setTitle('Sentra · Command reference')
-    .setDescription('Reputation checks, community reports, trust flags, and staff alerts.')
-    .addFields(
-      {
-        name: 'Member commands',
-        value: [
-          '`/check` — Look up Sentra reputation for a user',
-          '`/report` — Submit a community report (pending staff review)',
-          '`/flag` — Trusted reporters: weighted flag (API-enforced role)',
-          '`/help` — This overview',
-        ].join('\n'),
-        inline: false,
-      },
-      {
-        name: 'Server setup',
-        value: [
-          '`/setup` — Guided setup (alerts, reports, permissions)',
-          '`/config` — Alerts, optional **join hold** (timeout + moderation buttons) — **Manage Server**',
-        ].join('\n'),
-        inline: false,
-      },
-      {
-        name: 'Operators',
-        value:
-          '`/sentra monitor` — Live event tail instructions (platform admins only)',
-        inline: false,
-      },
-      {
-        name: 'Dashboard',
-        value: dashboardUrl,
-        inline: false,
-      },
-    )
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+  return baseCommandEmbed(SENTRA_PRIMARY)
+    .setTitle('Commands')
+    .setDescription(
+      [
+        '`/check` reputation · `/report` community report · `/flag` trusted flag · `/help`',
+        '`/setup` · `/config` (Manage Server) · `/sentra monitor` (admins)',
+        `Dashboard: ${dashboardUrl}`,
+      ].join('\n'),
+    );
 }
 
 export function embedSetupStart(guildName: string): EmbedBuilder {
-  return baseEmbed(SENTRA_PRIMARY)
-    .setTitle('Getting started with Sentra')
-    .setDescription(
-      `Here is the fastest path to a clean rollout on **${guildName}**.`,
-    )
+  return baseCommandEmbed(SENTRA_PRIMARY)
+    .setTitle('Start here')
+    .setDescription(`**${guildName}**`)
     .addFields(
       {
-        name: '1 · License',
-        value:
-          'Your server needs an **active Sentra license**. Platform admins can use `/sentra-admin` or the billing dashboard.',
+        name: '1',
+        value: 'Active Sentra license (admin: `/sentra-admin` or billing).',
+        inline: false,
       },
-      {
-        name: '2 · Alerts',
-        value:
-          'Pick a staff channel and minimum risk level with `/config set`, or open `/setup alerts` for a step-by-step.',
-      },
-      {
-        name: '3 · Permissions',
-        value: 'Run `/setup permissions` so moderation roles match what Sentra expects.',
-      },
-    )
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+      { name: '2', value: 'Staff channel + min level: `/config set` or `/setup alerts`.', inline: false },
+      { name: '3', value: 'Bot permissions: `/setup permissions`.', inline: false },
+    );
 }
 
 export function embedSetupAlerts(): EmbedBuilder {
-  return baseEmbed(SENTRA_PRIMARY)
-    .setTitle('Alert channel setup')
+  return baseCommandEmbed(SENTRA_PRIMARY)
+    .setTitle('Alerts')
     .setDescription(
-      'High-signal join and manual **check** alerts post to one channel. **Join hold** can time risky members out and post Kick/Ban/Release buttons in the same channel.',
-    )
-    .addFields(
-      {
-        name: 'Step 1',
-        value:
-          'Run `/config view` — confirm whether an alert channel is already saved.',
-      },
-      {
-        name: 'Step 2',
-        value:
-          'Run `/config set` and pick a **text**, **announcement**, or **forum** channel staff can monitor.',
-      },
-      {
-        name: 'Step 3',
-        value:
-          'Set **minlevel** to `SUSPICIOUS`, `HIGH_RISK`, or stricter so CLEAN members do not ping the room.',
-      },
-      {
-        name: 'Step 4 · Join hold (optional)',
-        value:
-          'In `/config set`, set **joinhold_enabled** and tune **joinhold_minlevel** / **joinhold_minutes**. Give the bot **Moderate Members**, **Kick Members**, and **Ban Members** so timeouts and buttons work.',
-        inline: false,
-      },
-      {
-        name: 'Mentions',
-        value:
-          'Role mentions (if configured in the dashboard) follow the same rules — tune minlevel to avoid alert fatigue.',
-        inline: false,
-      },
-    )
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+      [
+        '`/config view` — see current channel',
+        '`/config set` — pick text / announcement / forum channel',
+        'Set **minlevel** so CLEAN users do not spam pings',
+        'Optional join hold: **joinhold_*** in `/config set`; bot needs **Moderate / Kick / Ban Members**',
+      ].join('\n'),
+    );
 }
 
 export function embedSetupReports(): EmbedBuilder {
-  return baseEmbed(SENTRA_PRIMARY)
-    .setTitle('Community reports')
+  return baseCommandEmbed(SENTRA_PRIMARY)
+    .setTitle('Reports')
     .setDescription(
-      '`/report` sends structured reports to your Sentra operators. Abuse is logged; quality reports help everyone.',
-    )
-    .addFields(
-      {
-        name: 'Who can report',
-        value:
-          'Discord accounts with **User** access in Sentra can submit community reports. Checker-only accounts should use `/check` or trusted `/flag` where applicable.',
-      },
-      {
-        name: 'What happens next',
-        value:
-          'Most reports are **queued**. Staff **approve or reject** in the dashboard before reputation changes apply.',
-      },
-      {
-        name: 'Tips',
-        value:
-          'Use a clear, factual **reason** and avoid ping storms — one solid report beats volume.',
-      },
-    )
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+      [
+        'Needs **User** role in Sentra. Queued reports need staff approval in the dashboard.',
+        'Use a clear reason; quality beats volume.',
+      ].join('\n'),
+    );
 }
 
 export function embedSetupPermissions(): EmbedBuilder {
-  return baseEmbed(SENTRA_PRIMARY)
-    .setTitle('Bot permissions checklist')
+  return baseCommandEmbed(SENTRA_PRIMARY)
+    .setTitle('Permissions')
     .setDescription(
-      'Sentra needs a small, predictable permission set. Grant only what your security model allows.',
-    )
-    .addFields(
-      {
-        name: 'Recommended',
-        value: [
-          '**View channels** — Read channel metadata for alerts',
-          '**Send messages** & **embed links** — Post alert embeds',
-          '**Read message history** — Consistent delivery in busy channels',
-        ].join('\n'),
-      },
-      {
-        name: 'Members',
-        value:
-          '**Guild members intent** is enabled so joins sync to Sentra. Invite the bot with **applications.commands** scope.',
-      },
-      {
-        name: 'Join hold actions',
-        value:
-          '**Moderate Members** (timeouts), **Kick Members**, and **Ban Members** — the bot role must sit **above** members it moderates.',
-        inline: false,
-      },
-      {
-        name: 'Staff commands',
-        value:
-          '`/config` requires **Manage Server** or **Administrator** on the invoker, not the bot.',
-      },
-    )
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+      [
+        'Send messages & embed links · read history · view channels',
+        'Join hold: Moderate + Kick + Ban — bot role **above** targets',
+        '`/config` needs **Manage Server** on you, not on the bot',
+      ].join('\n'),
+    );
 }
 
 export function embedSentraAdminLicenseOk(guildId: string, status: string): EmbedBuilder {
-  return baseEmbed(SENTRA_SUCCESS)
+  return baseFeedEmbed(SENTRA_SUCCESS)
     .setTitle('License updated')
-    .setDescription(`Guild \`${guildId}\` is now **${status}**.`)
-    .setFooter(sentraFooter())
-    .setTimestamp(new Date());
+    .setDescription(`\`${guildId}\` → **${status}**`);
 }
 
 export function embedSentraAdminSyncQueued(guildId: string): EmbedBuilder {
-  return baseEmbed(SENTRA_PRIMARY)
-    .setTitle('Member sync queued')
-    .setDescription(`Guild \`${guildId}\` — check the dashboard for progress.`)
-    .setFooter(sentraFooter())
-    .setTimestamp(new Date());
+  return baseFeedEmbed(SENTRA_PRIMARY)
+    .setTitle('Sync queued')
+    .setDescription(`\`${guildId}\` — progress in dashboard.`);
 }
 
 export function embedSentraAdminError(message: string): EmbedBuilder {
-  return baseEmbed(SENTRA_DANGER)
-    .setTitle('Admin action failed')
-    .setDescription(message.slice(0, 3500))
-    .setFooter(sentraFooter())
-    .setTimestamp(new Date());
+  return baseFeedEmbed(SENTRA_DANGER)
+    .setTitle('Admin failed')
+    .setDescription(message.slice(0, 3500));
 }
 
 export function embedMonitorHelp(input: {
   dashboardHint: string;
   opsKeyHint: string;
 }): EmbedBuilder {
-  return baseEmbed(SENTRA_PRIMARY)
-    .setTitle('Live monitor (operators)')
+  return baseFeedEmbed(SENTRA_PRIMARY)
+    .setTitle('Live tail')
     .setDescription(
-      'Stream domain events from Redis on your application server — same events as the admin feed.',
-    )
-    .addFields(
-      {
-        name: 'On the VPS',
-        value:
-          '`./scripts/run-sentra-tail.sh --stats-interval=30` (loads `.env`; set `SENTRA_OPS_STATS_KEY` for stats footer)',
-      },
-      {
-        name: 'Or manually',
-        value:
-          '`node apps/ops-cli/dist/index.js monitor` — alias for the tail binary; use `--enrich` with `DISCORD_BOT_TOKEN` for names.',
-      },
-      { name: 'Dashboard', value: input.dashboardHint, inline: false },
-      { name: 'Stats API key', value: input.opsKeyHint, inline: false },
-    )
-    .setFooter(sentraFooter())
-    .setTimestamp(new Date());
+      [
+        'VPS: `./scripts/run-sentra-tail.sh` (optional `SENTRA_OPS_STATS_KEY`)',
+        'Manual: `node apps/ops-cli/dist/index.js monitor`',
+        `Dashboard: ${input.dashboardHint}`,
+        input.opsKeyHint,
+      ].join('\n'),
+    );
 }
 
 export function embedNeedGuild(): EmbedBuilder {
-  return baseEmbed(SENTRA_WARNING)
-    .setTitle('Wrong place')
-    .setDescription('Use this command in a server.')
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+  return baseCommandEmbed(SENTRA_WARNING)
+    .setTitle('Server only')
+    .setDescription('Run this in a server.');
 }
 
 export function embedNeedManageServer(): EmbedBuilder {
-  return baseEmbed(SENTRA_WARNING)
-    .setTitle('Permission required')
-    .setDescription('You need **Manage Server** or **Administrator**.')
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+  return baseCommandEmbed(SENTRA_WARNING)
+    .setTitle('Permission')
+    .setDescription('You need **Manage Server** or **Administrator**.');
 }
 
 export function embedConfigNeedOptions(): EmbedBuilder {
-  return baseEmbed(SENTRA_WARNING)
-    .setTitle('Nothing to update')
-    .setDescription(
-      'Set at least one option: **channel**, **minlevel**, or a **join hold** field.',
-    )
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+  return baseCommandEmbed(SENTRA_WARNING)
+    .setTitle('Nothing to change')
+    .setDescription('Set **channel**, **minlevel**, and/or join hold fields.');
 }
 
 export function embedConfigBadChannel(): EmbedBuilder {
-  return baseEmbed(SENTRA_WARNING)
-    .setTitle('Invalid channel')
-    .setDescription('Pick a text, announcement, or forum channel.')
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+  return baseCommandEmbed(SENTRA_WARNING)
+    .setTitle('Bad channel')
+    .setDescription('Use text, announcement, or forum.');
 }
 
 export function embedCheckFailed(message: string): EmbedBuilder {
-  return baseEmbed(SENTRA_DANGER)
+  return baseCommandEmbed(SENTRA_DANGER)
     .setTitle('Lookup failed')
-    .setDescription(message.slice(0, 3500))
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+    .setDescription(message.slice(0, 3500));
 }
 
 export function embedPlatformAdminOnly(): EmbedBuilder {
-  return baseEmbed(SENTRA_WARNING)
-    .setTitle('Access denied')
-    .setDescription('You are not a **Sentra platform admin** for this environment.')
-    .setFooter(sentraFooter())
-    .setTimestamp(new Date());
+  return baseFeedEmbed(SENTRA_WARNING)
+    .setTitle('Denied')
+    .setDescription('Platform admin only.');
 }
 
 export function embedOperatorsOnly(): EmbedBuilder {
-  return baseEmbed(SENTRA_WARNING)
+  return baseFeedEmbed(SENTRA_WARNING)
     .setTitle('Operators only')
-    .setDescription('This command is for Sentra platform operators only.')
-    .setFooter(sentraFooter())
-    .setTimestamp(new Date());
+    .setDescription('Platform operators only.');
 }
 
 export function embedRateLimited(): EmbedBuilder {
-  return baseEmbed(SENTRA_WARNING)
-    .setTitle('Slow down')
-    .setDescription('This server is sending commands too quickly. Try again in a moment.')
-    .setFooter(productFooter())
-    .setTimestamp(new Date());
+  return baseCommandEmbed(SENTRA_WARNING)
+    .setTitle('Rate limit')
+    .setDescription('Slow down; try again shortly.');
 }
