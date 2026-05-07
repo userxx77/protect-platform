@@ -155,6 +155,7 @@ upsert_kv BOT_API_KEY "$BOT_API_KEY" "$ENV_FILE"
 upsert_kv API_BASE_URL "http://api:3001" "$ENV_FILE"
 upsert_kv WEB_URL "$DASHBOARD_URL" "$ENV_FILE"
 upsert_kv NEXTAUTH_URL "$DASHBOARD_URL" "$ENV_FILE"
+upsert_kv AUTH_URL "$DASHBOARD_URL" "$ENV_FILE"
 upsert_kv API_PUBLIC_URL "$API_PUBLIC_URL" "$ENV_FILE"
 upsert_kv NEXT_PUBLIC_API_URL "$API_PUBLIC_URL" "$ENV_FILE"
 if [[ "$DASHBOARD_URL" == *sentra.gg* ]]; then

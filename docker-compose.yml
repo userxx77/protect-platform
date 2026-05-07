@@ -160,9 +160,7 @@ services:
       NODE_ENV: production
       PORT: "3000"
       API_BASE_URL: http://api:3001
-      # OAuth callback URL; must match the host in the browser. (Secrets: AUTH_SECRET, DISCORD_*, etc. come from env_file — do not override them here with ${VAR:-} or empty values can wipe keys loaded from .env.)
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-}
-      AUTH_URL: ${AUTH_URL:-${NEXTAUTH_URL:-}}
+      # NEXTAUTH_URL, AUTH_URL, secrets: only env_file (.env). Do not set ${VAR:-} here — empty compose interpolation overrides .env and breaks OAuth (Configuration).
     ports:
       - "${WEB_PUBLISH_PORT:-3000}:3000"
     depends_on:
