@@ -26,6 +26,7 @@ function authSecret(): string | undefined {
  */
 function createAuthConfig(): NextAuthConfig {
   return {
+    basePath: '/api/auth',
     providers: [
       Discord({
         clientId: envTrim('DISCORD_CLIENT_ID') ?? '',

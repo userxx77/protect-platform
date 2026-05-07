@@ -1,7 +1,8 @@
 /**
- * Skip the generic NextAuth sign-in page and send users straight to Discord OAuth.
+ * Entry URL for Discord OAuth. Auth.js v5 rejects GET /api/auth/signin/:provider;
+ * we use a Server Component that calls signIn() (POST internally).
  */
 export function discordSignInPath(callbackPath: string): string {
   const pathname = callbackPath.startsWith('/') ? callbackPath : `/${callbackPath}`;
-  return `/api/auth/signin/discord?${new URLSearchParams({ callbackUrl: pathname })}`;
+  return `/auth/discord?${new URLSearchParams({ callbackUrl: pathname })}`;
 }
