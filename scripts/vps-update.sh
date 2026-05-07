@@ -2,6 +2,10 @@
 # Run ON THE VPS in the repo clone (Protect root, same dir as docker-compose.yml).
 # Always works: DEPLOY_BRANCH=main bash scripts/vps-update.sh
 # (From ~ you must: cd protect-platform  # or wherever the clone lives)
+#
+# If migrate fails with Prisma P3009 (failed migration in DB), clear it then redeploy:
+#   bash scripts/migrate-resolve-failed.sh
+#   DEPLOY_BRANCH=main bash scripts/vps-update.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
