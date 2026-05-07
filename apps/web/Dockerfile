@@ -6,9 +6,11 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable pnpm
 
 FROM base AS build
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
+COPY packages/shared packages/shared
 COPY apps/web apps/web
 RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @protect/shared build
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @protect/web run build
 
@@ -16,6 +18,7 @@ FROM base AS runner
 RUN useradd -r -u 1001 -m protect
 COPY --from=build /repo/package.json /repo/pnpm-lock.yaml /repo/pnpm-workspace.yaml ./
 COPY --from=build /repo/node_modules ./node_modules
+COPY --from=build /repo/packages ./packages
 COPY --from=build /repo/apps/web ./apps/web
 USER protect
 WORKDIR /repo
