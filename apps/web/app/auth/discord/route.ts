@@ -15,5 +15,10 @@ export async function GET(request: NextRequest) {
   if (session) {
     return NextResponse.redirect(new URL(target, request.nextUrl.origin));
   }
-  await signIn('discord', { redirectTo: target });
+  /** Avoid `redirect()` throw here — use explicit `Response.redirect` after cookies are set. */
+  const location = await signIn('discord', { redirectTo: target, redirect: false });
+  if (typeof location !== 'string' || !location) {
+    return NextResponse.json({ error: 'Sign-in could not start' }, { status: 500 });
+  }
+  return NextResponse.redirect(location);
 }
