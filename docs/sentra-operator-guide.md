@@ -4,7 +4,19 @@ Single-page reference: where to configure things, who is admin, Discord bot beha
 
 ## URLs and dashboard
 
-- **Dashboard (Next.js):** sign in with Discord; manage flagged users, **server configuration**, audit log. Paths: `/dashboard`, `/dashboard/config`, `/dashboard/audit`.
+- **Dashboard (Next.js):** sign in with Discord; manage flagged users, **server configuration**, audit log, and reports. Paths: `/dashboard`, `/dashboard/welcome` (start guide), `/dashboard/server-setup` (servers + config), `/dashboard/config`, `/dashboard/reports`, `/dashboard/audit`.
+
+## First 10 minutes (new server)
+
+Use this as the same order as the in-app **Start guide** (`/dashboard/welcome`):
+
+1. **Invite the bot** with the channel and role permissions described later in this guide (add moderation perms if you use join hold).
+2. **License** — a platform admin makes the guild **ACTIVE** or **TRIAL** (`/sentra platform license` or your billing/admin workflow).
+3. **Staff feed (recommended)** — set `DISCORD_ADMIN_FEED_CHANNEL_ID` on the bot so **pending** community reports are copied to a private staff channel.
+4. **Alert channel & minimum level** — in the dashboard under **Server setup**, or in Discord with `/sentra config` (requires **Manage Server**).
+5. **Smoke test** — ensure reporters have the Sentra **User** role where required, then submit `/sentra report` and confirm it appears in **Admin → Reports queue** (and the ops feed if configured).
+
+For licensing and who may report, see **[Sentra licensing & roles](runbooks/sentra-licensing-policy.md)**.
 - **API:** application routes live under `https://your-api-host/v1/...` (see Swagger at `/docs` on the API host). Health: `/health`, `/ready` (no `/v1` prefix).
 
 ### Production checklist (Sentra.gg)
@@ -81,14 +93,14 @@ Licensing, pending reports, and member sync: **[Sentra licensing & roles](runboo
 - **`/sentra help`** / **`/sentra support`** — short command list + ticket/dashboard links (`WEB_URL` on the bot).
 - **`/sentra setup`** — one short checklist (license, `/sentra config`, permissions). Details live in this guide + help.
 - **`/sentra config`** — **`show`** / **`set`** alert channel and minimum level; requires **Manage Server** or **Administrator** on the guild.
-- **Platform admin** (your Discord ID in `ADMIN_DISCORD_IDS`): **`/sentra platform`** (license, sync-members), **`/sentra approve`** (requires **`report_id`** + **`level`**), **`/sentra reject`**, **`/sentra reports_pending`**, **`/sentra unflag`**, **`/sentra report_status`**.
+- **Platform admin** (your Discord ID in `ADMIN_DISCORD_IDS`): **`/sentra platform`** (license, sync-members), **`/sentra staff`** subcommands (**`approve`** — requires **`report_id`** + **`level`**, **`reject`**, **`reports_pending`**, **`unflag`**), **`/sentra report_status`**.
 - **Guild member join** — optional alerts using saved server config.
 - **Presence** — bot activity from `GET /v1/bot/public-stats` (aggregate counts only).
 - **Redis** (if configured) — subscriber refreshes server config cache and delivers events to Discord.
 
 ### Pending reports inbox (Discord)
 
-When **`DISCORD_ADMIN_FEED_CHANNEL_ID`** is set, new **pending** community reports are posted to that channel. Staff still apply the final tier in the **dashboard → Admin → Reports queue** (or **`/sentra approve`** with **`level`**).
+When **`DISCORD_ADMIN_FEED_CHANNEL_ID`** is set, new **pending** community reports are posted to that channel. Staff still apply the final tier in the **dashboard → Admin → Reports queue** (or **`/sentra staff approve`** with **`level`**).
 
 ## API routes (reference)
 

@@ -87,6 +87,8 @@ export function embedReportPending(input: {
   allegedFlagLevel?: string | null;
   guildName?: string | null;
   guildIconUrl?: string | null;
+  targetMemberTag?: string | null;
+  targetAvatarUrl?: string | null;
 }): EmbedBuilder {
   const target = input.targetDiscordId ? `<@${input.targetDiscordId}>` : '—';
   const reporter = input.reporterDiscordId ? `<@${input.reporterDiscordId}>` : '—';
@@ -108,21 +110,31 @@ export function embedReportPending(input: {
       ? flagLevelDisplayName(input.allegedFlagLevel)
       : '—';
 
+  const subjectLabel = input.targetMemberTag?.trim() || 'Reported member';
+  const subjectIcon = input.targetAvatarUrl?.trim() || undefined;
+
   const e = baseFeedEmbed(SENTRA_WARNING)
-    .setTitle('Report awaiting review')
+    .setTitle(`Report · ${tier}`)
     .setDescription(
-      '**Dashboard → Admin → Reports queue:** Deny, or Accept and pick the final tier (Watch / Suspicious / Flagged / Cheater). Or: `/sentra approve` with `level`.',
+      '**Dashboard → Admin → Reports queue:** reject or accept with final tier. Discord: `/sentra staff approve` (needs `level`).',
     )
     .addFields(
       { name: 'ID', value: `\`${input.reportId ?? '—'}\``, inline: true },
-      { name: 'Reporter tier', value: tier, inline: true },
       { name: 'Server', value: server, inline: true },
       { name: 'Target', value: target, inline: true },
       { name: 'From', value: reporter, inline: true },
-      { name: 'Details', value: reason, inline: false },
+      { name: 'Reason', value: reason, inline: false },
     );
 
-  if (input.guildIconUrl) e.setThumbnail(input.guildIconUrl);
+  if (subjectIcon) {
+    e.setAuthor({ name: subjectLabel, iconURL: subjectIcon });
+  } else if (input.targetMemberTag?.trim()) {
+    e.setAuthor({ name: subjectLabel });
+  }
+
+  if (!subjectIcon && input.guildIconUrl) {
+    e.setThumbnail(input.guildIconUrl);
+  }
   return e;
 }
 

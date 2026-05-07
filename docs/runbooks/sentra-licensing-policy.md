@@ -5,7 +5,7 @@
 | Tier | Discord | API / dashboard |
 |------|---------|-----------------|
 | **Public** | Bot can be invited; `/sentra config` still updates alert settings via existing bot→API path (subject to your future stricter gating). | No dashboard scope by default. |
-| **Licensed guild** | `GuildEntitlement` is **ACTIVE** or **TRIAL** with `validFrom` / `validUntil` in range. | Community `/report` via bot creates a **pending** report (no flag) until a platform **ADMIN** accepts it in the dashboard (**Admin → Reports queue**) or via **`/sentra approve`** with a **final tier** (Watch / Suspicious / Flagged / Cheater). |
+| **Licensed guild** | `GuildEntitlement` is **ACTIVE** or **TRIAL** with `validFrom` / `validUntil` in range. | Community `/report` via bot creates a **pending** report (no flag) until a platform **ADMIN** accepts it in the dashboard (**Admin → Reports queue**) or via **`/sentra staff approve`** with a **final tier** (Watch / Suspicious / Flagged / Cheater). |
 | **Trusted / platform ADMIN** (reporter) | `/report` applies the flag immediately (same as previous product behavior for trusted paths). | Full admin APIs and pages. |
 
 ## Environment (bot)

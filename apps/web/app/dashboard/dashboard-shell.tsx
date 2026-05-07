@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { Topbar } from '@/components/shell/Topbar';
+import { DashboardSetupBanner } from '@/components/dashboard-setup-banner';
 
 export function DashboardShell({
   children,
@@ -69,7 +70,10 @@ export function DashboardShell({
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenu={() => setOpen(true)} />
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          <div className="fade-in mx-auto max-w-7xl">{children}</div>
+          <div className="fade-in mx-auto max-w-7xl">
+            <DashboardSetupBanner />
+            {children}
+          </div>
         </main>
       </div>
     </div>

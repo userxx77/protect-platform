@@ -5,8 +5,8 @@ import {
   EmbedBuilder,
   type ColorResolvable,
 } from 'discord.js';
-import { flagLevelDisplayName, type JoinActionPolicy } from '@protect/shared';
-import { shouldAlert } from './alerts';
+import type { JoinActionPolicy } from '@protect/shared';
+import { shouldAlert, buildStatusDescription } from './alerts';
 import {
   SENTRA_DANGER,
   SENTRA_SUCCESS,
@@ -64,35 +64,14 @@ export function joinHoldModerationEmbed(input: {
 }): EmbedBuilder {
   const color = levelColors[input.user.flagLevel] ?? SENTRA_WARNING;
   const timeoutLine = input.timeoutApplied
-    ? `Timeout **${input.timeoutMinutes}m** active — Kick / Ban / Release below.`
-    : '**No timeout** — bot needs **Moderate Members** and a role **above** the member. Buttons still work.';
+    ? `⏱️ **Timeout:** ${input.timeoutMinutes} min actief — gebruik de knoppen hieronder (kick / ban / vrijgeven).`
+    : '⚠️ **Geen timeout** — de bot heeft **Leden matigen** nodig en een rol **boven** het lid.';
+  const header = `🚪 **Join hold** · **${input.guildName}**\n👤 **Lid** · ${input.memberTag} · <@${input.user.discordId}>`;
+  const status = buildStatusDescription(input.user);
   return new EmbedBuilder()
     .setColor(color)
     .setTitle('Join hold')
-    .setDescription(timeoutLine)
-    .addFields(
-      {
-        name: 'Member',
-        value: `${input.memberTag} · <@${input.user.discordId}> · \`${input.user.discordId}\``,
-        inline: false,
-      },
-      {
-        name: 'Server',
-        value: input.guildName,
-        inline: true,
-      },
-      {
-        name: 'Level',
-        value: flagLevelDisplayName(input.user.flagLevel),
-        inline: true,
-      },
-      { name: 'Score', value: String(input.user.flagScore), inline: true },
-      {
-        name: 'Flags',
-        value: input.user.flagCount != null ? String(input.user.flagCount) : '—',
-        inline: true,
-      },
-    )
+    .setDescription(`${header}\n\n${timeoutLine}\n\n${status}`)
     .setFooter(commandFooter())
     .setTimestamp(new Date());
 }

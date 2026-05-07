@@ -5,6 +5,7 @@ import { AuditService } from '../audit/audit.service';
 import { PlatformStatsService } from '../platform-stats/platform-stats.service';
 import { TicketsService } from '../tickets/tickets.service';
 import { UsersService } from '../users/users.service';
+import { ReportsService } from '../reports/reports.service';
 import type { RequestPrincipal } from '../auth/auth.types';
 
 export type TicketBucketSummary = {
@@ -33,6 +34,12 @@ export type MeDashboardReportPreview = {
   status: string;
   createdAt: string;
   targetDiscordId: string;
+  targetDisplay: {
+    discordUserId: string;
+    username: string | null;
+    globalName: string | null;
+    avatarHash: string | null;
+  } | null;
 };
 
 export type ActivityItem = {
@@ -107,6 +114,7 @@ export class DashboardService {
     private readonly stats: PlatformStatsService,
     private readonly tickets: TicketsService,
     private readonly users: UsersService,
+    private readonly reports: ReportsService,
   ) {}
 
   async getMeDashboard(principal: RequestPrincipal) {
@@ -261,21 +269,15 @@ export class DashboardService {
   }
 
   private async myReportsPreview(discordId: string): Promise<MeDashboardReportPreview[]> {
-    const rows = await this.prisma.report.findMany({
-      where: { reporterDiscordId: discordId },
-      orderBy: { createdAt: 'desc' },
-      take: 8,
-      include: {
-        reportedUser: { select: { discordId: true } },
-      },
-    });
-    return rows.map((r) => ({
+    const { items } = await this.reports.listMineForReporter(discordId, 8);
+    return items.map((r) => ({
       id: r.id,
       guildId: r.guildId,
       reason: r.reason,
       status: r.status,
-      createdAt: r.createdAt.toISOString(),
-      targetDiscordId: r.reportedUser.discordId,
+      createdAt: r.createdAt,
+      targetDiscordId: r.targetDiscordId,
+      targetDisplay: r.targetDisplay ?? null,
     }));
   }
 

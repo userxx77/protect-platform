@@ -175,34 +175,51 @@ export const sentraCommandData = new SlashCommandBuilder()
           ),
       ),
   )
-  .addSubcommand((sub) =>
-    sub
-      .setName('approve')
-      .setDescription('[Platform admin] Approve a pending report (applies chosen tier weight)')
-      .addStringOption((o) =>
-        o.setName('report_id').setDescription('Report UUID').setRequired(true),
+  .addSubcommandGroup((group) =>
+    group
+      .setName('staff')
+      .setDescription('[Platform admin] Report review & moderation (less clutter in the picker)')
+      .addSubcommand((sub) =>
+        sub
+          .setName('approve')
+          .setDescription('Approve a pending report (applies chosen tier weight)')
+          .addStringOption((o) =>
+            o.setName('report_id').setDescription('Report UUID').setRequired(true),
+          )
+          .addStringOption((o) =>
+            o
+              .setName('level')
+              .setDescription('Final reputation tier to apply')
+              .setRequired(true)
+              .addChoices(...discordSlashLevelChoices.map((c) => ({ name: c.name, value: c.value }))),
+          ),
       )
-      .addStringOption((o) =>
-        o
-          .setName('level')
-          .setDescription('Final reputation tier to apply')
-          .setRequired(true)
-          .addChoices(...discordSlashLevelChoices.map((c) => ({ name: c.name, value: c.value }))),
-      ),
-  )
-  .addSubcommand((sub) =>
-    sub
-      .setName('reject')
-      .setDescription('[Platform admin] Reject a pending report by id')
-      .addStringOption((o) =>
-        o.setName('report_id').setDescription('Report UUID').setRequired(true),
+      .addSubcommand((sub) =>
+        sub
+          .setName('reject')
+          .setDescription('Reject a pending report by id')
+          .addStringOption((o) =>
+            o.setName('report_id').setDescription('Report UUID').setRequired(true),
+          )
+          .addStringOption((o) =>
+            o
+              .setName('note')
+              .setDescription('Optional moderator note')
+              .setRequired(false)
+              .setMaxLength(500),
+          ),
       )
-      .addStringOption((o) =>
-        o
-          .setName('note')
-          .setDescription('Optional moderator note')
-          .setRequired(false)
-          .setMaxLength(500),
+      .addSubcommand((sub) =>
+        sub.setName('reports_pending').setDescription('List pending community reports'),
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName('unflag')
+          .setDescription('Delete a flag on a user by flag id')
+          .addUserOption((o) => o.setName('user').setDescription('Target user').setRequired(true))
+          .addStringOption((o) =>
+            o.setName('flag_id').setDescription('Flag UUID').setRequired(true),
+          ),
       ),
   )
   .addSubcommand((sub) =>
@@ -217,20 +234,6 @@ export const sentraCommandData = new SlashCommandBuilder()
     sub
       .setName('reports_mine')
       .setDescription('List your recent reports in this product'),
-  )
-  .addSubcommand((sub) =>
-    sub
-      .setName('reports_pending')
-      .setDescription('[Platform admin] List pending community reports'),
-  )
-  .addSubcommand((sub) =>
-    sub
-      .setName('unflag')
-      .setDescription('[Platform admin] Delete a flag on a user by flag id')
-      .addUserOption((o) => o.setName('user').setDescription('Target user').setRequired(true))
-      .addStringOption((o) =>
-        o.setName('flag_id').setDescription('Flag UUID').setRequired(true),
-      ),
   );
 
 export async function executeSentra(
@@ -256,6 +259,10 @@ export async function executeSentra(
   }
   if (group === 'platform') {
     await executeSentraAdmin(interaction, api, env);
+    return;
+  }
+  if (group === 'staff') {
+    await executeSentraPlatform(api, interaction, env, sub);
     return;
   }
 
@@ -294,12 +301,8 @@ export async function executeSentra(
     case 'flag':
       await executeFlag(interaction, api);
       return;
-    case 'approve':
-    case 'reject':
     case 'report_status':
     case 'reports_mine':
-    case 'reports_pending':
-    case 'unflag':
       await executeSentraPlatform(api, interaction, env, sub);
       return;
     default:

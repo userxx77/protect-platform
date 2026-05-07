@@ -120,6 +120,8 @@ export function startEventSubscriber(
           } = env.payload;
           let guildName: string | null = null;
           let guildIconUrl: string | null = null;
+          let targetMemberTag: string | null = null;
+          let targetAvatarUrl: string | null = null;
           if (guildId) {
             let g = client.guilds.cache.get(guildId);
             if (!g) {
@@ -132,6 +134,15 @@ export function startEventSubscriber(
             if (g) {
               guildName = g.name;
               guildIconUrl = g.iconURL({ size: 128 });
+              if (targetDiscordId) {
+                try {
+                  const m = await g.members.fetch(targetDiscordId);
+                  targetMemberTag = m.user.tag;
+                  targetAvatarUrl = m.user.displayAvatarURL({ size: 128 });
+                } catch {
+                  /* cache miss / left server */
+                }
+              }
             }
           }
           await sendAdminFeedEmbed(
@@ -146,6 +157,8 @@ export function startEventSubscriber(
               allegedFlagLevel: allegedFlagLevel ?? null,
               guildName,
               guildIconUrl,
+              targetMemberTag,
+              targetAvatarUrl,
             }),
           );
           return;

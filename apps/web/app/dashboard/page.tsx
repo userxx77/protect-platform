@@ -15,6 +15,7 @@ import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/ca
 import { Badge } from '@/components/ui/badge';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { reportAvatarSrc, reportMemberLabel } from '@/lib/report-display';
 
 type PlatformSnapshot = {
   guildsActive: number;
@@ -59,6 +60,12 @@ type MeDashboard = {
     status: string;
     createdAt: string;
     targetDiscordId: string;
+    targetDisplay?: {
+      discordUserId: string;
+      username: string | null;
+      globalName: string | null;
+      avatarHash: string | null;
+    } | null;
   }>;
   recentActivity: ActivityItem[];
   detectionsToday: number;
@@ -115,46 +122,67 @@ export default async function DashboardOverviewPage() {
       return (
         <>
           <PageHeader
-            title="Overview"
-            sub="Detections, platform snapshot tickets, and non-clean profiles."
+            title="Home"
+            sub="Platformoverzicht: wachtende meldingen, tickets en gemarkeerde profielen."
           />
+          {data.reportsPending > 0 ? (
+            <div className="border-primary/40 bg-primary-soft/15 mb-6 rounded-xl border px-4 py-4 sm:px-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-semibold">
+                    {data.reportsPending} melding{data.reportsPending !== 1 ? 'en' : ''} wachten op
+                    beoordeling
+                  </p>
+                  <p className="text-muted-foreground text-sm">
+                    Open de wachtrij, lees de reden en kies Weigeren of de juiste tier.
+                  </p>
+                </div>
+                <Button asChild>
+                  <Link href="/dashboard/admin/reports">Meldingen openen</Link>
+                </Button>
+              </div>
+            </div>
+          ) : null}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
-              label="Detections today"
+              label="Vlag-events vandaag"
               value={data.detectionsToday.toLocaleString()}
               icon={<Flag className="h-5 w-5" />}
             />
             <StatCard
-              label="Users monitored"
+              label="Gebruikers gemonitord"
               value={snap.trackedMemberDistinct.toLocaleString()}
               icon={<Users className="h-5 w-5" />}
             />
             <StatCard
-              label="Discords protected"
+              label="Servers actief"
               value={snap.guildsActive.toLocaleString()}
               icon={<Server className="h-5 w-5" />}
             />
             <StatCard
-              label="Reports pending"
+              label="Open meldingen"
               value={data.reportsPending.toLocaleString()}
               icon={<ShieldCheck className="h-5 w-5" />}
             />
           </div>
           <div className="text-muted-foreground mt-3 text-[11px]">
-            Tickets — open / pending / closed:{' '}
+            Supporttickets — open / in behandeling / gesloten:{' '}
             <span className="text-foreground font-medium">
               {data.ticketBuckets.open} · {data.ticketBuckets.pending} · {data.ticketBuckets.closed}
             </span>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <details className="mt-6 group">
+            <summary className="text-muted-foreground cursor-pointer list-none text-sm font-medium [&::-webkit-details-marker]:hidden">
+              <span className="group-open:hidden">Toon geavanceerde grafieken en auditfeed</span>
+              <span className="hidden group-open:inline">Verberg geavanceerde grafieken en auditfeed</span>
+            </summary>
+            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
                 <div>
-                  <CardTitle>Detections — last 24h</CardTitle>
-                  <CardDescription>
-                    Flag creates from audit log (hourly buckets)
-                  </CardDescription>
+                  <CardTitle>Activiteit — laatste 24 uur</CardTitle>
+                  <CardDescription>Nieuwe vlag-mutaties (uit auditlog, per uur)</CardDescription>
                 </div>
                 <div className="border-border bg-surface/40 flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10.5px] text-muted-foreground">
                   <span className="live-dot h-1.5 w-1.5 rounded-full bg-primary" />
@@ -167,30 +195,31 @@ export default async function DashboardOverviewPage() {
             <Card>
               <CardHeader>
                 <div>
-                  <CardTitle>Recent activity</CardTitle>
-                  <CardDescription>Latest audit events</CardDescription>
+                  <CardTitle>Recente gebeurtenissen</CardTitle>
+                  <CardDescription>Laatste audit-events</CardDescription>
                 </div>
               </CardHeader>
               <LiveActivityFeed initial={data.recentActivity} variant="admin" />
             </Card>
           </div>
+          </details>
 
           <div className="mt-8">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold tracking-tight">Flagged users</h2>
+              <h2 className="text-sm font-semibold tracking-tight">Profielen met vlag</h2>
               <Button variant="soft" size="sm" asChild>
-                <Link href="/dashboard/admin/tickets">Admin tickets</Link>
+                <Link href="/dashboard/admin/tickets">Supporttickets</Link>
               </Button>
             </div>
             <Card className="!p-0 overflow-hidden">
               <Table>
                 <Thead>
                   <Tr>
-                    <Th>User</Th>
-                    <Th>Level</Th>
+                    <Th>Gebruiker</Th>
+                    <Th>Niveau</Th>
                     <Th>Score</Th>
-                    <Th>Flags</Th>
-                    <Th>Updated</Th>
+                    <Th>Vlaggen</Th>
+                    <Th>Bijgewerkt</Th>
                     <Th />
                   </Tr>
                 </Thead>
@@ -206,7 +235,7 @@ export default async function DashboardOverviewPage() {
                       <Td className="text-muted-foreground text-[11px]">{u.updatedAt}</Td>
                       <Td>
                         <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/dashboard/admin/users/${u.discordId}`}>Flags</Link>
+                          <Link href={`/dashboard/admin/users/${u.discordId}`}>Bekijk</Link>
                         </Button>
                       </Td>
                     </Tr>
@@ -215,12 +244,14 @@ export default async function DashboardOverviewPage() {
               </Table>
             </Card>
             {data.flaggedPreview.items.length === 0 ? (
-              <p className="text-muted-foreground mt-2 text-sm">No non-clean users in preview.</p>
+              <p className="text-muted-foreground mt-2 text-sm">
+                Geen gemarkeerde gebruikers in dit overzicht.
+              </p>
             ) : null}
           </div>
 
           <p className="text-muted-foreground mt-6 text-[11px]">
-            Snapshot updated {new Date(snap.updatedAt).toLocaleString()}
+            Laatst bijgewerkt {new Date(snap.updatedAt).toLocaleString('nl-NL')}
           </p>
         </>
       );
@@ -233,39 +264,52 @@ export default async function DashboardOverviewPage() {
     return (
       <>
         <PageHeader
-          title="Overview"
-          sub="Your Sentra snapshot — detections, tickets, and recent activity."
+          title="Home"
+          sub="Jouw tickets en meldingen, plus een kort platformbeeld. Nieuw? Open de startgids onderaan het menu."
         />
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/dashboard/welcome">Startgids</Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/dashboard/server-setup">Server instellen</Link>
+          </Button>
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <StatCard
-            label="Detections today"
+            label="Vlag-events vandaag"
             value={data.detectionsToday.toLocaleString()}
             icon={<Flag className="h-5 w-5" />}
           />
           <StatCard
-            label="Users monitored"
+            label="Gebruikers gemonitord"
             value={snap.trackedMemberDistinct.toLocaleString()}
             icon={<Users className="h-5 w-5" />}
           />
           <StatCard
-            label="Discords protected"
+            label="Servers actief"
             value={snap.guildsActive.toLocaleString()}
             icon={<Server className="h-5 w-5" />}
           />
         </div>
         <div className="text-muted-foreground mt-3 text-[11px]">
-          My tickets — open / pending / closed:{' '}
+          Jouw tickets — open / in behandeling / gesloten:{' '}
           <span className="text-foreground font-medium">
             {data.ticketBuckets.open} · {data.ticketBuckets.pending} · {data.ticketBuckets.closed}
           </span>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <details className="mt-6 group">
+          <summary className="text-muted-foreground cursor-pointer list-none text-sm font-medium [&::-webkit-details-marker]:hidden">
+            <span className="group-open:hidden">Toon platformgrafiek en recente activiteit</span>
+            <span className="hidden group-open:inline">Verberg platformgrafiek</span>
+          </summary>
+          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader>
               <div>
-                <CardTitle>Detections — last 24h</CardTitle>
-                <CardDescription>Platform flag volume from audit log</CardDescription>
+                <CardTitle>Activiteit — laatste 24 uur</CardTitle>
+                <CardDescription>Vlag-volume op platformniveau</CardDescription>
               </div>
               <div className="border-border bg-surface/40 flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10.5px] text-muted-foreground">
                 <span className="live-dot h-1.5 w-1.5 rounded-full bg-primary" />
@@ -278,21 +322,22 @@ export default async function DashboardOverviewPage() {
           <Card>
             <CardHeader>
               <div>
-                <CardTitle>Recent activity</CardTitle>
-                <CardDescription>Latest platform events</CardDescription>
+                <CardTitle>Recente activiteit</CardTitle>
+                <CardDescription>Laatste gebeurtenissen</CardDescription>
               </div>
             </CardHeader>
             <LiveActivityFeed initial={data.recentActivity} variant="user" />
           </Card>
         </div>
+        </details>
 
         <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>My tickets</CardTitle>
+              <CardTitle>Mijn tickets</CardTitle>
               <CardDescription>
                 <Link href="/dashboard/tickets" className="text-primary text-xs hover:underline">
-                  View all
+                  Alles bekijken
                 </Link>
               </CardDescription>
             </CardHeader>
@@ -307,52 +352,61 @@ export default async function DashboardOverviewPage() {
                     {t.reportReason}
                   </div>
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/dashboard/tickets/${t.id}`}>Open</Link>
+                    <Link href={`/dashboard/tickets/${t.id}`}>Openen</Link>
                   </Button>
                 </li>
               ))}
             </ul>
             {data.ticketsPreview.length === 0 ? (
-              <p className="text-muted-foreground px-1 pb-3 text-sm">No tickets yet.</p>
+              <p className="text-muted-foreground px-1 pb-3 text-sm">Nog geen tickets.</p>
             ) : null}
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>My reports</CardTitle>
-              <CardDescription>Recent submissions</CardDescription>
+              <CardTitle>Mijn meldingen</CardTitle>
+              <CardDescription>Laatste ingediende meldingen</CardDescription>
             </CardHeader>
             <ul className="space-y-2">
-              {data.reportsPreview.map((r) => (
-                <li
-                  key={r.id}
-                  className="border-border/60 flex flex-col gap-0.5 rounded-md border px-3 py-2 text-sm"
-                >
-                  <div className="font-mono text-[11px] text-muted-foreground">{r.targetDiscordId}</div>
-                  <div className="truncate">{r.reason}</div>
-                  <div className="text-muted-foreground text-[11px]">
-                    {r.status} · {new Date(r.createdAt).toLocaleString()}
-                  </div>
+              {data.reportsPreview.map((r) => {
+                const src = reportAvatarSrc(r.targetDisplay ?? null, r.targetDiscordId);
+                const name = reportMemberLabel(r.targetDisplay ?? null, r.targetDiscordId);
+                return (
+                <li key={r.id}>
+                  <Link
+                    href={`/dashboard/reports/${r.id}`}
+                    className="border-border/60 hover:bg-surface/30 flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={src} alt="" width={32} height={32} className="h-8 w-8 shrink-0 rounded-full" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-medium">{name}</div>
+                      <div className="truncate text-xs opacity-90">{r.reason}</div>
+                      <div className="text-muted-foreground text-[11px]">
+                        {r.status} · {new Date(r.createdAt).toLocaleString('nl-NL')}
+                      </div>
+                    </div>
+                  </Link>
                 </li>
-              ))}
+              );
+              })}
             </ul>
             {data.reportsPreview.length === 0 ? (
-              <p className="text-muted-foreground px-1 pb-3 text-sm">No reports yet.</p>
+              <p className="text-muted-foreground px-1 pb-3 text-sm">Nog geen meldingen.</p>
             ) : null}
           </Card>
         </div>
 
         <p className="text-muted-foreground mt-6 text-[11px]">
-          Snapshot updated {new Date(snap.updatedAt).toLocaleString()}
+          Platformcijfers bijgewerkt {new Date(snap.updatedAt).toLocaleString('nl-NL')}
         </p>
       </>
     );
   } catch (e) {
     return (
       <Card className="border-destructive/40">
-        <PageHeader title="Overview" sub="Could not load dashboard data." />
+        <PageHeader title="Home" sub="Kon dashboard niet laden." />
         <p className="text-destructive text-sm">
-          {e instanceof Error ? e.message : 'Unknown error'}. Check{' '}
-          <code className="font-mono text-xs">ADMIN_DISCORD_IDS</code> and JWT configuration.
+          {e instanceof Error ? e.message : 'Onbekende fout'}. Controleer je rechten en VPN/API.
         </p>
       </Card>
     );

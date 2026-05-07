@@ -75,10 +75,10 @@ export async function executeReport(
     })) as { pendingReview?: boolean; allegedFlagLevel?: string | null };
     const levelLabel = flagLevelDisplayName(data?.allegedFlagLevel ?? level);
     if (data && typeof data === 'object' && data.pendingReview === true) {
-      await interaction.editReply({ embeds: [embedReportSuccessPending(levelLabel)] });
+      await interaction.editReply({ embeds: [embedReportSuccessPending(levelLabel, target)] });
       return;
     }
-    await interaction.editReply({ embeds: [embedReportSuccessInstant(target.id, levelLabel)] });
+    await interaction.editReply({ embeds: [embedReportSuccessInstant(target, levelLabel)] });
   } catch (e) {
     if (isReportLicenseForbiddenError(e)) {
       await interaction.editReply({

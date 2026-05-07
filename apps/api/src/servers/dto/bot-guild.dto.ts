@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsInt,
   IsOptional,
@@ -78,4 +79,18 @@ export class BotMembersBatchDto {
   @ValidateNested({ each: true })
   @Type(() => GuildMemberBatchItemDto)
   members!: GuildMemberBatchItemDto[];
+}
+
+export class BotGuildElevationScanDto {
+  @ApiProperty({ type: [String], description: 'Discord user snowflakes present in the guild' })
+  @IsArray()
+  @ArrayMaxSize(500)
+  @IsString({ each: true })
+  @Matches(/^\d{17,20}$/, { each: true })
+  discordIds!: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  alertMinLevel?: string;
 }

@@ -1,5 +1,5 @@
 import { EmbedBuilder, type ColorResolvable } from 'discord.js';
-import { flagLevelDisplayName } from '@protect/shared';
+import { flagLevelDisplayName, shouldAlertUserLevel } from '@protect/shared';
 import {
   SENTRA_DANGER,
   SENTRA_PRIMARY,
@@ -16,51 +16,65 @@ const levelColors: Record<string, ColorResolvable> = {
   CONFIRMED_CHEATER: SENTRA_DANGER,
 };
 
-const levelOrder = [
-  'CLEAN',
-  'WATCH',
-  'SUSPICIOUS',
-  'HIGH_RISK',
-  'CONFIRMED_CHEATER',
-] as const;
-
 export function shouldAlert(
   userLevel: string,
   minLevel: string | undefined,
 ): boolean {
-  const min = minLevel ?? 'SUSPICIOUS';
-  const ui = levelOrder.indexOf(userLevel as (typeof levelOrder)[number]);
-  const mi = levelOrder.indexOf(min as (typeof levelOrder)[number]);
-  if (mi < 0 || ui < 0) return userLevel !== 'CLEAN';
-  return ui >= mi;
+  return shouldAlertUserLevel(userLevel, minLevel);
+}
+
+const LEVEL_PRESENTATION: Record<
+  string,
+  { emoji: string; headline: string }
+> = {
+  CLEAN: { emoji: '🟢', headline: '**Veilig**' },
+  WATCH: { emoji: '👀', headline: '**Let op**' },
+  SUSPICIOUS: { emoji: '⚠️', headline: '**Verdacht**' },
+  HIGH_RISK: { emoji: '🔶', headline: '**Hoog risico**' },
+  CONFIRMED_CHEATER: { emoji: '🚫', headline: '**Cheater**' },
+};
+
+/** Rich status lines (emoji + bold) for checks, alerts, and join hold. */
+export function buildStatusDescription(
+  user: { discordId: string; flagLevel: string },
+  contextLine?: string,
+): string {
+  const preset = LEVEL_PRESENTATION[user.flagLevel];
+  const label = flagLevelDisplayName(user.flagLevel);
+  const headline = preset ? `${preset.emoji} ${preset.headline}` : `❔ **${label}**`;
+  const sub = preset ? `_(${label})_` : '';
+  const lines = [
+    contextLine?.trim() ?? null,
+    headline,
+    sub,
+    '',
+    `👤 **Account** · <@${user.discordId}>`,
+  ].filter((l) => l != null && l !== '');
+  return lines.join('\n');
 }
 
 export function userStatusEmbed(
   user: { discordId: string; flagLevel: string; flagScore: number; flagCount?: number },
   title: string,
+  opts?: { authorTag?: string; authorIconUrl?: string },
 ): EmbedBuilder {
   const color = levelColors[user.flagLevel] ?? SENTRA_PRIMARY;
-  const levelLabel = flagLevelDisplayName(user.flagLevel);
-  return baseCommandEmbed(color)
+  const b = baseCommandEmbed(color)
     .setTitle(title)
-    .setDescription('Reputation only — verify context before action.')
-    .addFields(
-      { name: 'User', value: `<@${user.discordId}> · \`${user.discordId}\``, inline: false },
-      { name: 'Level', value: levelLabel, inline: true },
-      { name: 'Score', value: String(user.flagScore), inline: true },
-      {
-        name: 'Flags',
-        value: user.flagCount != null ? String(user.flagCount) : '—',
-        inline: true,
-      },
-    );
+    .setDescription(buildStatusDescription(user));
+  const tag = opts?.authorTag?.trim();
+  const icon = opts?.authorIconUrl?.trim();
+  if (tag && icon) b.setAuthor({ name: tag, iconURL: icon });
+  else if (tag) b.setAuthor({ name: tag });
+  return b;
 }
 
 export function alertEmbed(
   user: { discordId: string; flagLevel: string; flagScore: number },
   context: string,
 ): EmbedBuilder {
-  const e = userStatusEmbed(user, 'Alert');
-  e.setDescription(`${context}\nReputation only — verify before action.`);
-  return e;
+  const color = levelColors[user.flagLevel] ?? SENTRA_PRIMARY;
+  return baseCommandEmbed(color)
+    .setTitle('🛡️ Alert')
+    .setDescription(buildStatusDescription(user, `📌 ${context}`));
 }

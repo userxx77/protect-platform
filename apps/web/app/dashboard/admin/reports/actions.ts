@@ -4,6 +4,12 @@ import type { FlagActionLevel } from '@protect/shared';
 import { revalidatePath } from 'next/cache';
 import { dashboardApi } from '@/lib/api-server';
 
+function revalidateReportPaths(reportId: string) {
+  revalidatePath('/dashboard/admin/reports');
+  revalidatePath(`/dashboard/reports/${reportId}`);
+  revalidatePath('/dashboard');
+}
+
 export async function approveReportAction(
   reportId: string,
   severity: FlagActionLevel,
@@ -12,7 +18,7 @@ export async function approveReportAction(
     method: 'POST',
     body: JSON.stringify({ severity }),
   });
-  revalidatePath('/dashboard/admin/reports');
+  revalidateReportPaths(reportId);
 }
 
 export async function rejectReportAction(reportId: string): Promise<void> {
@@ -20,5 +26,5 @@ export async function rejectReportAction(reportId: string): Promise<void> {
     method: 'POST',
     body: JSON.stringify({}),
   });
-  revalidatePath('/dashboard/admin/reports');
+  revalidateReportPaths(reportId);
 }

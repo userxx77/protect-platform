@@ -5,6 +5,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { PublicModule } from '../platform-stats/public.module';
 import { TicketsModule } from '../tickets/tickets.module';
 import { UsersModule } from '../users/users.module';
+import { ReportsModule } from '../reports/reports.module';
 import { DashboardService } from './dashboard.service';
 import { MeDashboardController } from './me-dashboard.controller';
 import { AdminDashboardController } from './admin-dashboard.controller';
@@ -17,6 +18,7 @@ import { AdminDashboardController } from './admin-dashboard.controller';
     PublicModule,
     TicketsModule,
     UsersModule,
+    ReportsModule,
   ],
   controllers: [MeDashboardController, AdminDashboardController],
   providers: [DashboardService],

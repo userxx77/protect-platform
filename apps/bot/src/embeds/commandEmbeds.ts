@@ -1,4 +1,4 @@
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, type User } from 'discord.js';
 import {
   SENTRA_DANGER,
   SENTRA_PRIMARY,
@@ -48,20 +48,33 @@ export function embedReportLicenseDenied(dashboardUrl: string | undefined): Embe
     });
 }
 
-export function embedReportSuccessPending(reportedSeverityLabel?: string): EmbedBuilder {
+export function embedReportSuccessPending(
+  reportedSeverityLabel?: string,
+  subject?: User | null,
+): EmbedBuilder {
   const b = baseCommandEmbed(SENTRA_SUCCESS)
     .setTitle('Queued')
     .setDescription('Staff must approve in the dashboard before reputation changes.');
+  if (subject) {
+    b.setAuthor({
+      name: subject.tag,
+      iconURL: subject.displayAvatarURL({ size: 128 }),
+    });
+  }
   if (reportedSeverityLabel?.trim()) {
     b.addFields({ name: 'Tier', value: reportedSeverityLabel, inline: true });
   }
   return b;
 }
 
-export function embedReportSuccessInstant(targetId: string, reportedSeverityLabel?: string): EmbedBuilder {
+export function embedReportSuccessInstant(target: User, reportedSeverityLabel?: string): EmbedBuilder {
   const b = baseCommandEmbed(SENTRA_SUCCESS)
     .setTitle('Recorded')
-    .setDescription(`Report for <@${targetId}> saved.`);
+    .setDescription(`Report for <@${target.id}> saved.`)
+    .setAuthor({
+      name: target.tag,
+      iconURL: target.displayAvatarURL({ size: 128 }),
+    });
   if (reportedSeverityLabel?.trim()) {
     b.addFields({ name: 'Tier', value: reportedSeverityLabel, inline: true });
   }
@@ -75,19 +88,38 @@ export function embedReportFailed(message: string): EmbedBuilder {
 }
 
 export function embedFlagSuccess(input: {
+  target?: User;
   flagLevel: string;
   flagScore: number;
   weightApplied: number | string;
   severityLabel?: string;
+  reason?: string;
 }): EmbedBuilder {
   const sev = input.severityLabel?.trim();
+  const reasonRaw = input.reason?.trim();
+  const reasonField =
+    reasonRaw && reasonRaw.length > 0
+      ? reasonRaw.length > 900
+        ? `${reasonRaw.slice(0, 897)}…`
+        : reasonRaw
+      : null;
   const lines = [
     sev ? `Tier: **${sev}**` : null,
     `Level: **${input.flagLevel}** · Score: **${String(input.flagScore)}** · Weight: **+${input.weightApplied}**`,
   ]
     .filter(Boolean)
     .join('\n');
-  return baseCommandEmbed(SENTRA_SUCCESS).setTitle('Flag applied').setDescription(lines);
+  const b = baseCommandEmbed(SENTRA_SUCCESS).setTitle('Flag applied').setDescription(lines);
+  if (input.target) {
+    b.setAuthor({
+      name: input.target.tag,
+      iconURL: input.target.displayAvatarURL({ size: 128 }),
+    });
+  }
+  if (reasonField) {
+    b.addFields({ name: 'Reason', value: reasonField, inline: false });
+  }
+  return b;
 }
 
 export function embedFlagFailed(message: string): EmbedBuilder {
@@ -146,14 +178,17 @@ export function embedConfigLoadFailed(message: string): EmbedBuilder {
 }
 
 export function embedHelp(dashboardUrl: string): EmbedBuilder {
+  const dash = dashboardUrl?.trim() ? `**Dashboard:** ${dashboardUrl}` : '**Dashboard:** set `WEB_URL` on the bot for a link.';
   return baseCommandEmbed(SENTRA_PRIMARY)
-    .setTitle('Commands')
+    .setTitle('Sentra')
     .setDescription(
       [
-        '**Everyone:** `check`, `report`, `flag` (trusted), `config` (Manage Server), `help`, `support`, `setup` (short checklist).',
-        '**Platform admin:** `platform` (license, sync), `approve` / `reject` (needs **`level`** on approve), `reports_pending`, `unflag`, `report_status`.',
-        `**New reports** also post to the ops channel when \`DISCORD_ADMIN_FEED_CHANNEL_ID\` is set on the bot.`,
-        `Dashboard: ${dashboardUrl}`,
+        '• **Check** — `/sentra check` · member reputation',
+        '• **Report** — `/sentra report` · community intake',
+        '• **Server** — `/sentra config` or `/sentra setup` (Manage Server)',
+        '',
+        '**Platform admins:** `/sentra platform` (license, sync) · `/sentra staff` (pending, approve, reject, unflag)',
+        dash,
       ].join('\n'),
     );
 }

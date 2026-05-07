@@ -21,11 +21,11 @@ export default async function AdminReportsPage() {
   return (
     <section className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Reports queue</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Meldingen beoordelen</h1>
         <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
-          Pending community reports. <strong>Accepted</strong> applies the tier you pick;{' '}
-          <strong>Deny</strong> closes the report. New items are also posted to Discord when{' '}
-          <code className="text-foreground">DISCORD_ADMIN_FEED_CHANNEL_ID</code> is set on the bot.
+          Openstaande community-meldingen. <strong>Accepteren</strong> past de gekozen tier toe;{' '}
+          <strong>Weigeren</strong> sluit de melding. Nieuwe items verschijnen ook in Discord als{' '}
+          <code className="text-foreground">DISCORD_ADMIN_FEED_CHANNEL_ID</code> op de bot staat.
         </p>
       </div>
       <PendingReportsQueue items={data.items} />

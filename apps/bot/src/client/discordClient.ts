@@ -55,7 +55,7 @@ export function createDiscordClient(api: ApiClient, env: Env): Client {
 
   client.on(Events.GuildCreate, (guild) => {
     setImmediate(() => {
-      void onGuildJoined(guild, api).catch((err) =>
+      void onGuildJoined(guild, api, client, env).catch((err) =>
         botLog('error', 'guild_create_handler', { error: String(err) }),
       );
     });

@@ -25,6 +25,23 @@ export async function onGuildMemberAdd(
 ): Promise<void> {
   if (!member.guild) return;
   try {
+    void api
+      .postMembersBatch(member.guild.id, [
+        {
+          discordUserId: member.id,
+          username: member.user.username,
+          globalName: member.user.globalName ?? null,
+          avatarHash: member.user.avatar,
+        },
+      ])
+      .catch((e) =>
+        botLog('warn', 'guild_member_profile_upsert_failed', {
+          guildId: member.guild.id,
+          userId: member.id,
+          error: e instanceof Error ? e.message : String(e),
+        }),
+      );
+
     const [user, server] = await Promise.all([
       api.getUser(member.id),
       api.getServer(member.guild.id),

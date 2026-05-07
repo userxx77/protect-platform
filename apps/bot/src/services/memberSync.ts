@@ -9,10 +9,14 @@ import {
   embedMemberSyncStarted,
 } from '../embeds/sentra';
 import { sendAdminFeedEmbed } from './adminFeed';
+import { userStatusEmbed } from './alerts';
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
+
+const POST_SYNC_ALERT_CAP = 35;
+const ELEVATION_SCAN_CHUNK = 500;
 
 export type MemberProfileRow = {
   discordUserId: string;
@@ -20,6 +24,71 @@ export type MemberProfileRow = {
   globalName?: string | null;
   avatarHash?: string | null;
 };
+
+/** After a full member sync, post alerts for accounts at/above the server alert threshold. */
+async function postSyncElevationAlerts(
+  guild: Guild,
+  api: ApiClient,
+  client: Client,
+  memberDiscordIds: string[],
+): Promise<void> {
+  if (memberDiscordIds.length === 0) return;
+  try {
+    const server = await api.getServer(guild.id);
+    const cfg = server.config as {
+      alertChannelId?: string;
+      alertMinLevel?: string;
+      mentionRoleIds?: string[];
+    };
+    const chId = cfg.alertChannelId;
+    if (!chId) return;
+
+    const ch = await client.channels.fetch(chId);
+    if (!ch || !('send' in ch)) return;
+
+    const minLevel = cfg.alertMinLevel;
+    const mentions = cfg.mentionRoleIds?.map((id) => `<@&${id}>`).join(' ') ?? '';
+
+    let sent = 0;
+    let first = true;
+    for (let i = 0; i < memberDiscordIds.length; i += ELEVATION_SCAN_CHUNK) {
+      const chunk = memberDiscordIds.slice(i, i + ELEVATION_SCAN_CHUNK);
+      const { hits } = await api.postGuildElevationScan(guild.id, {
+        discordIds: chunk,
+        alertMinLevel: minLevel,
+      });
+      for (const u of hits) {
+        if (sent >= POST_SYNC_ALERT_CAP) break;
+        const pub = {
+          discordId: u.discordId,
+          flagLevel: u.flagLevel,
+          flagScore: u.flagScore,
+          flagCount: u.flagCount,
+        };
+        await ch.send({
+          content: first && mentions ? mentions : undefined,
+          embeds: [userStatusEmbed(pub, '📋 Server scan · verhoogd risico')],
+        });
+        first = false;
+        sent += 1;
+        await sleep(650);
+      }
+      if (sent >= POST_SYNC_ALERT_CAP) break;
+    }
+
+    if (sent >= POST_SYNC_ALERT_CAP) {
+      await ch.send({
+        content:
+          '📋 **Sentra:** Maximaal aantal scan-meldingen bereikt — bekijk het dashboard voor alle hits.',
+      });
+    }
+  } catch (e) {
+    botLog('warn', 'post_sync_elevation_alerts_failed', {
+      guildId: guild.id,
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
+}
 
 /**
  * Loads members into cache then uploads profiles in chunks.
@@ -67,6 +136,9 @@ export async function syncGuildMembersToApi(
       await api.postMembersBatch(guild.id, slice);
       await sleep(300);
     }
+
+    const memberIds = rows.map((r) => r.discordUserId);
+    await postSyncElevationAlerts(guild, api, client, memberIds);
 
     await api.postMembersSyncDone(guild.id);
     botLog('info', 'guild_member_sync_complete', {

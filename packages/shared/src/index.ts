@@ -23,6 +23,19 @@ export type FlagLevel = (typeof flagLevels)[number];
 
 export const FlagLevelSchema = z.enum(flagLevels);
 
+/** True when `userLevel` is at or above the server's alert threshold (for joins / scans). */
+export function shouldAlertUserLevel(
+  userLevel: string,
+  minLevel: string | undefined,
+): boolean {
+  const min = minLevel ?? 'SUSPICIOUS';
+  const order = flagLevels as readonly string[];
+  const ui = order.indexOf(userLevel);
+  const mi = order.indexOf(min);
+  if (mi < 0 || ui < 0) return userLevel !== 'CLEAN';
+  return ui >= mi;
+}
+
 export const UserPublicSchema = z.object({
   discordId: z.string(),
   flagScore: z.number(),

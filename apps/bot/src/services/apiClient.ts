@@ -220,6 +220,23 @@ export class ApiClient {
     });
   }
 
+  async postGuildElevationScan(
+    guildId: string,
+    body: { discordIds: string[]; alertMinLevel?: string },
+  ): Promise<{
+    hits: Array<{
+      discordId: string;
+      flagLevel: string;
+      flagScore: number;
+      flagCount: number;
+    }>;
+  }> {
+    return this.requestJson(`/bot/guild/${guildId}/members/elevation-scan`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
   async postMembersSyncDone(guildId: string): Promise<unknown> {
     return this.requestJson(`/bot/guild/${guildId}/members/sync-done`, {
       method: 'POST',

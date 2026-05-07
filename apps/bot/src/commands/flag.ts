@@ -54,10 +54,12 @@ export async function executeFlag(
     await interaction.editReply({
       embeds: [
         embedFlagSuccess({
+          target,
           flagLevel: flagLevelDisplayName(result.flagLevel ?? '?'),
           flagScore: result.flagScore ?? 0,
           weightApplied: result.weightApplied ?? '?',
           severityLabel: flagLevelDisplayName(level),
+          reason,
         }),
       ],
     });

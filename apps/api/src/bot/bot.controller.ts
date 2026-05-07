@@ -27,7 +27,7 @@ import { RequireRoles } from '../auth/roles.decorator';
 import { AppRole } from '../auth/auth.types';
 import { ServersService } from '../servers/servers.service';
 import { BotProxyServerConfigDto } from '../servers/dto/bot-proxy-server-config.dto';
-import { BotGuildLifecycleDto, BotMembersBatchDto } from '../servers/dto/bot-guild.dto';
+import { BotGuildLifecycleDto, BotGuildElevationScanDto, BotMembersBatchDto } from '../servers/dto/bot-guild.dto';
 import { ActorKind, PlatformRole } from '@prisma/client';
 import { EntitlementsService } from '../entitlements/entitlements.service';
 import { AdminGuildsService } from '../admin/admin-guilds.service';
@@ -255,6 +255,22 @@ export class BotController {
     @Body() body: BotMembersBatchDto,
   ) {
     return this.servers.batchUpsertGuildMembers(guildId, body.members);
+  }
+
+  @Post('guild/:guildId/members/elevation-scan')
+  @RequireRoles(AppRole.BOT)
+  @ApiBody({ type: BotGuildElevationScanDto })
+  async membersElevationScan(
+    @Param('guildId') guildId: string,
+    @Body() body: BotGuildElevationScanDto,
+  ) {
+    void guildId;
+    return {
+      hits: await this.servers.scanDiscordIdsAgainstAlertThreshold(
+        body.discordIds,
+        body.alertMinLevel,
+      ),
+    };
   }
 
   @Post('guild/:guildId/members/sync-done')

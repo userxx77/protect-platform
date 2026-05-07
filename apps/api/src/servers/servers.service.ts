@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'node:crypto';
-import { AuditAction, ActorKind, LicenseStatus, MemberSyncState, Prisma } from '@prisma/client';
+import { AuditAction, ActorKind, FlagLevel, LicenseStatus, MemberSyncState, Prisma } from '@prisma/client';
+import { shouldAlertUserLevel } from '@protect/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { UpsertServerConfigDto } from './dto/server-config.dto';
@@ -249,6 +250,33 @@ export class ServersService {
       }
     });
     return { upserted: n };
+  }
+
+  async scanDiscordIdsAgainstAlertThreshold(
+    discordIds: string[],
+    alertMinLevel: string | undefined,
+  ): Promise<
+    Array<{
+      discordId: string;
+      flagLevel: FlagLevel;
+      flagScore: number;
+      flagCount: number;
+    }>
+  > {
+    if (discordIds.length === 0) return [];
+    const unique = [...new Set(discordIds)];
+    const users = await this.prisma.user.findMany({
+      where: { discordId: { in: unique } },
+      include: { _count: { select: { flags: true } } },
+    });
+    return users
+      .filter((u) => shouldAlertUserLevel(u.flagLevel, alertMinLevel))
+      .map((u) => ({
+        discordId: u.discordId,
+        flagLevel: u.flagLevel,
+        flagScore: u.flagScore,
+        flagCount: u._count.flags,
+      }));
   }
 
   async markMemberSyncIdle(guildId: string): Promise<void> {

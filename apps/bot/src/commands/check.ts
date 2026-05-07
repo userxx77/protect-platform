@@ -32,7 +32,10 @@ export async function executeCheck(
   }
   try {
     const u = await api.getUser(target.id);
-    const embed = userStatusEmbed(u, 'Reputation check');
+    const embed = userStatusEmbed(u, '🔍 Sentra · status', {
+      authorTag: target.tag,
+      authorIconUrl: target.displayAvatarURL({ size: 128 }),
+    });
     const base = casePageBaseUrl?.replace(/\/$/, '')?.trim();
     const linkRow =
       base && /^https?:\/\//i.test(base)

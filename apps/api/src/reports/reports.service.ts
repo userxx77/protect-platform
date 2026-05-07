@@ -34,6 +34,19 @@ function truncateEventReason(reason: string, max = 200): string {
   return `${t.slice(0, max - 1)}…`;
 }
 
+/** Discord profile fields from guild member sync (when available). */
+export type ReportMemberDisplay = {
+  discordUserId: string;
+  username: string | null;
+  globalName: string | null;
+  avatarHash: string | null;
+} | null;
+
+function cacheDisplayKey(guildId: string | null, discordUserId: string): string | null {
+  if (!guildId) return null;
+  return `${guildId}\0${discordUserId}`;
+}
+
 @Injectable()
 export class ReportsService {
   private readonly log = new Logger(ReportsService.name);
@@ -50,6 +63,53 @@ export class ReportsService {
     private readonly tickets: TicketsService,
     private readonly config: ConfigService,
   ) {}
+
+  /**
+   * Batch-load guild member cache rows for report UIs (avatar, display names).
+   */
+  private async loadMemberDisplaysForGuildUsers(
+    pairs: Array<{ guildId: string | null; discordUserId: string }>,
+  ): Promise<Map<string, { discordUserId: string; username: string | null; globalName: string | null; avatarHash: string | null }>> {
+    const byGuild = new Map<string, Set<string>>();
+    for (const p of pairs) {
+      if (!p.guildId) continue;
+      if (!byGuild.has(p.guildId)) byGuild.set(p.guildId, new Set());
+      byGuild.get(p.guildId)!.add(p.discordUserId);
+    }
+    const out = new Map<
+      string,
+      { discordUserId: string; username: string | null; globalName: string | null; avatarHash: string | null }
+    >();
+    for (const [guildId, idSet] of byGuild) {
+      const ids = [...idSet];
+      if (ids.length === 0) continue;
+      const rows = await this.prisma.guildMemberCache.findMany({
+        where: { guildId, discordUserId: { in: ids } },
+        select: {
+          discordUserId: true,
+          username: true,
+          globalName: true,
+          avatarHash: true,
+        },
+      });
+      for (const row of rows) {
+        const k = cacheDisplayKey(guildId, row.discordUserId);
+        if (k) out.set(k, row);
+      }
+    }
+    return out;
+  }
+
+  private pickDisplay(
+    map: Map<string, { discordUserId: string; username: string | null; globalName: string | null; avatarHash: string | null }>,
+    guildId: string | null,
+    discordUserId: string,
+  ): ReportMemberDisplay {
+    const key = cacheDisplayKey(guildId, discordUserId);
+    if (!key) return null;
+    const row = map.get(key);
+    return row ?? null;
+  }
 
   private async assertCommunityReporterEligible(reporterDiscordId: string): Promise<void> {
     const legacy = parseAdminDiscordIds(
@@ -393,6 +453,15 @@ export class ReportsService {
       },
     });
 
+    const displayPairs: Array<{ guildId: string | null; discordUserId: string }> = [];
+    for (const r of rows) {
+      displayPairs.push(
+        { guildId: r.guildId, discordUserId: r.reporterDiscordId },
+        { guildId: r.guildId, discordUserId: r.reportedUser.discordId },
+      );
+    }
+    const displayMap = await this.loadMemberDisplaysForGuildUsers(displayPairs);
+
     return {
       items: rows.map((r) => ({
         id: r.id,
@@ -405,6 +474,8 @@ export class ReportsService {
         createdAt: r.createdAt.toISOString(),
         ticketId: r.supportTicket?.id ?? null,
         ticketStatus: r.supportTicket?.status ?? null,
+        targetDisplay: this.pickDisplay(displayMap, r.guildId, r.reportedUser.discordId),
+        reporterDisplay: this.pickDisplay(displayMap, r.guildId, r.reporterDiscordId),
       })),
     };
   }
@@ -558,6 +629,10 @@ export class ReportsService {
     if (!isAdmin && r.reporterDiscordId !== viewerDiscordId) {
       throw new ForbiddenException('Not allowed to view this report');
     }
+    const displayMap = await this.loadMemberDisplaysForGuildUsers([
+      { guildId: r.guildId, discordUserId: r.reporterDiscordId },
+      { guildId: r.guildId, discordUserId: r.reportedUser.discordId },
+    ]);
     return {
       id: r.id,
       status: r.status,
@@ -569,6 +644,50 @@ export class ReportsService {
       createdAt: r.createdAt.toISOString(),
       reviewedAt: r.reviewedAt?.toISOString() ?? null,
       resolverNote: r.resolverNote ?? null,
+      targetDisplay: this.pickDisplay(displayMap, r.guildId, r.reportedUser.discordId),
+      reporterDisplay: this.pickDisplay(displayMap, r.guildId, r.reporterDiscordId),
+    };
+  }
+
+  /**
+   * Dashboard JWT: reporter (USER+) or platform ADMIN may view full report detail with display enrichment.
+   */
+  async getJwtReportDetail(
+    reportId: string,
+    viewerDiscordId: string,
+    isPlatformAdmin: boolean,
+  ) {
+    const r = await this.prisma.report.findUnique({
+      where: { id: reportId },
+      include: {
+        reportedUser: { select: { discordId: true } },
+        supportTicket: { select: { id: true, status: true } },
+      },
+    });
+    if (!r) throw new NotFoundException('Report not found');
+    if (!isPlatformAdmin && r.reporterDiscordId !== viewerDiscordId) {
+      throw new ForbiddenException('Not allowed to view this report');
+    }
+    const displayMap = await this.loadMemberDisplaysForGuildUsers([
+      { guildId: r.guildId, discordUserId: r.reporterDiscordId },
+      { guildId: r.guildId, discordUserId: r.reportedUser.discordId },
+    ]);
+    return {
+      id: r.id,
+      status: r.status,
+      reporterDiscordId: r.reporterDiscordId,
+      targetDiscordId: r.reportedUser.discordId,
+      guildId: r.guildId,
+      reason: r.reason,
+      allegedFlagLevel: r.allegedFlagLevel,
+      createdAt: r.createdAt.toISOString(),
+      reviewedAt: r.reviewedAt?.toISOString() ?? null,
+      resolverNote: r.resolverNote ?? null,
+      ticketId: r.supportTicket?.id ?? null,
+      ticketStatus: r.supportTicket?.status ?? null,
+      canModerate: isPlatformAdmin && r.status === ReportStatus.PENDING,
+      targetDisplay: this.pickDisplay(displayMap, r.guildId, r.reportedUser.discordId),
+      reporterDisplay: this.pickDisplay(displayMap, r.guildId, r.reporterDiscordId),
     };
   }
 
@@ -580,6 +699,14 @@ export class ReportsService {
       take: limit,
       include: { reportedUser: { select: { discordId: true } } },
     });
+    const displayPairs: Array<{ guildId: string | null; discordUserId: string }> = [];
+    for (const r of rows) {
+      displayPairs.push(
+        { guildId: r.guildId, discordUserId: r.reportedUser.discordId },
+      );
+    }
+    const displayMap = await this.loadMemberDisplaysForGuildUsers(displayPairs);
+
     return {
       items: rows.map((r) => ({
         id: r.id,
@@ -588,6 +715,7 @@ export class ReportsService {
         reason: r.reason,
         createdAt: r.createdAt.toISOString(),
         guildId: r.guildId,
+        targetDisplay: this.pickDisplay(displayMap, r.guildId, r.reportedUser.discordId),
       })),
     };
   }
