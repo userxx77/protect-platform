@@ -124,4 +124,15 @@ export class AdminGuildsService {
 
     return { ok: true as const };
   }
+
+  async requestMetadataRefresh(guildId: string): Promise<{ ok: true }> {
+    await this.prisma.$transaction(async (tx) => {
+      await this.outbox.enqueue(tx, {
+        type: 'guild.metadata.refresh',
+        idempotencyKey: `guild.metadata.refresh:${guildId}:${Date.now()}`,
+        payload: { guildId },
+      });
+    });
+    return { ok: true as const };
+  }
 }

@@ -4,6 +4,8 @@ import type { Env } from '../config/env';
 import { botLog } from '../log';
 import { syncGuildMembersToApi } from '../services/memberSync';
 
+import { pushGuildSnapshotToApi } from '../util/guildSnapshot';
+
 export async function onGuildJoined(
   guild: Guild,
   api: ApiClient,
@@ -35,6 +37,13 @@ export async function onGuildJoined(
     vanityUrlCode: guild.vanityURLCode,
     premiumTier: guild.premiumTier,
   });
+
+  void pushGuildSnapshotToApi(guild, api).catch((e) =>
+    botLog('warn', 'guild_join_snapshot_failed', {
+      guildId: guild.id,
+      error: e instanceof Error ? e.message : String(e),
+    }),
+  );
 
   void syncGuildMembersToApi(guild, api, client, botEnv).catch((err) =>
     botLog('error', 'guild_join_member_sync_failed', {

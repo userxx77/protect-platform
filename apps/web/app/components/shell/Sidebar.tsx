@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard,
@@ -14,8 +13,6 @@ import {
   KeyRound,
   Settings,
   ScrollText,
-  ChevronDown,
-  ChevronRight,
 } from 'lucide-react';
 import { Logo } from '@/components/shell/Logo';
 import { cn } from '@/lib/utils';
@@ -23,32 +20,25 @@ import { DashboardSignOut } from '@/app/components/DashboardSignOut';
 
 const NAV: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
-  { href: '/dashboard/reports', label: 'Meldingen', icon: Flag },
+  { href: '/dashboard/reports', label: 'Reports', icon: Flag },
   { href: '/dashboard/tickets', label: 'Tickets', icon: Ticket },
-  { href: '/dashboard/server-setup', label: 'Server instellen', icon: Settings },
-];
-
-const MORE_NAV: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: '/dashboard/members', label: 'Leden', icon: Users },
-  { href: '/dashboard/analytics', label: 'Statistieken', icon: BarChart3 },
-  { href: '/dashboard/audit', label: 'Logboek', icon: ScrollText },
+  { href: '/dashboard/server-setup', label: 'Server setup', icon: Settings },
+  { href: '/dashboard/members', label: 'Members', icon: Users },
+  { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/dashboard/audit', label: 'Audit log', icon: ScrollText },
 ];
 
 const ADMIN_NAV: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: '/dashboard/admin/reports', label: 'Meldingen beoordelen', icon: Flag },
+  { href: '/dashboard/admin/reports', label: 'Review reports', icon: Flag },
   { href: '/dashboard/admin/guilds', label: 'Servers', icon: Server },
-  { href: '/dashboard/admin/licenses', label: 'Licenties', icon: KeyRound },
+  { href: '/dashboard/admin/licenses', label: 'Licenses', icon: KeyRound },
   { href: '/dashboard/admin/stats', label: 'Platform', icon: BarChart3 },
-  { href: '/dashboard/admin/tickets', label: 'Supporttickets', icon: Ticket },
+  { href: '/dashboard/admin/tickets', label: 'Support tickets', icon: Ticket },
 ];
 
 function isNavActive(pathname: string, href: string) {
   if (href === '/dashboard') return pathname === '/dashboard';
   return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function isMoreActive(pathname: string) {
-  return MORE_NAV.some((n) => isNavActive(pathname, n.href));
 }
 
 function NavLink({
@@ -93,9 +83,6 @@ export function Sidebar({
   userName: string;
   userHint?: string;
 }) {
-  const pathname = usePathname();
-  const [moreOpen, setMoreOpen] = useState(() => isMoreActive(pathname));
-
   const initial = userName.replace(/^@/, '').charAt(0).toUpperCase() || '?';
   return (
     <aside className="sentra-sidebar flex h-full w-60 flex-col px-3 py-4">
@@ -109,28 +96,10 @@ export function Sidebar({
         ))}
       </nav>
 
-      <div className="mt-1">
-        <button
-          type="button"
-          onClick={() => setMoreOpen((o) => !o)}
-          className="text-muted-foreground hover:text-foreground flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm"
-        >
-          {moreOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          Meer
-        </button>
-        {moreOpen ? (
-          <nav className="mt-0.5 flex flex-col gap-0.5 border-l border-border/60 ml-2 pl-2">
-            {MORE_NAV.map((n) => (
-              <NavLink key={n.href} href={n.href} label={n.label} icon={n.icon} onNavigate={onNavigate} />
-            ))}
-          </nav>
-        ) : null}
-      </div>
-
       {showAdmin ? (
         <>
           <div className="text-muted-foreground/70 mt-6 px-2.5 text-[10px] font-semibold uppercase tracking-wider">
-            Beheer
+            Admin
           </div>
           <nav className="mt-1 flex flex-col gap-0.5">
             {ADMIN_NAV.map((n) => (
@@ -146,7 +115,7 @@ export function Sidebar({
           className="text-primary mb-2 block text-[11px] hover:underline"
           onClick={onNavigate}
         >
-          Startgids
+          Welcome guide
         </Link>
         <div className="flex items-center gap-2">
           <div className="text-primary-foreground grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br from-primary to-[oklch(0.4_0.2_295)] text-[11px] font-semibold">

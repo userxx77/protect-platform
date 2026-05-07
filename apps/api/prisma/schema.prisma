@@ -46,6 +46,9 @@ enum AuditAction {
   API_CLIENT_CREATED
   GUILD_DISCOVERED
   ENTITLEMENT_UPDATED
+  LICENSE_KEY_GENERATED
+  LICENSE_KEY_REDEEMED
+  LICENSE_KEY_REVOKED
 }
 
 enum ActorKind {
@@ -80,6 +83,18 @@ enum MemberSyncState {
   QUEUED
   RUNNING
   PAUSED
+}
+
+enum LicenseKeyStatus {
+  UNUSED
+  REDEEMED
+  REVOKED
+}
+
+enum SupportTicketMessageAuthor {
+  USER
+  ADMIN
+  SYSTEM
 }
 
 enum SupportTicketStatus {
@@ -202,6 +217,24 @@ model GuildEntitlement {
   @@map("guild_entitlements")
 }
 
+model LicenseKey {
+  id                  String           @id @default(uuid()) @db.Uuid
+  code                String           @unique
+  status              LicenseKeyStatus @default(UNUSED)
+  planCode            String?          @map("plan_code")
+  presetValidDays     Int?            @map("preset_valid_days")
+  notes               String?
+  createdAt           DateTime        @default(now()) @map("created_at")
+  createdByDiscordId  String?         @map("created_by_discord_id")
+  redeemedAt          DateTime?       @map("redeemed_at")
+  redeemedGuildId     String?         @map("redeemed_guild_id")
+  redeemedByDiscordId String?         @map("redeemed_by_discord_id")
+  revokedAt           DateTime?       @map("revoked_at")
+
+  @@index([status])
+  @@map("license_keys")
+}
+
 model GuildMemberCache {
   id              String   @id @default(uuid()) @db.Uuid
   guildId         String   @map("guild_id")
@@ -255,6 +288,7 @@ model SupportTicket {
 
   report      Report                      @relation(fields: [reportId], references: [id], onDelete: Cascade)
   attachments SupportTicketAttachment[]
+  messages    SupportTicketMessage[]
 
   @@index([reporterDiscordId, status])
   @@index([guildId, status])
@@ -273,6 +307,20 @@ model SupportTicketAttachment {
 
   @@index([ticketId])
   @@map("support_ticket_attachments")
+}
+
+model SupportTicketMessage {
+  id                String                     @id @default(uuid()) @db.Uuid
+  ticketId          String                     @map("ticket_id") @db.Uuid
+  authorKind        SupportTicketMessageAuthor @map("author_kind")
+  authorDiscordId   String?                    @map("author_discord_id")
+  body              String
+  createdAt         DateTime                   @default(now()) @map("created_at")
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+  @@map("support_ticket_messages")
 }
 
 model AuditLog {

@@ -123,50 +123,49 @@ export default async function DashboardOverviewPage() {
         <>
           <PageHeader
             title="Home"
-            sub="Platformoverzicht: wachtende meldingen, tickets en gemarkeerde profielen."
+            sub="Platform overview: pending reports, tickets, and flagged profiles."
           />
           {data.reportsPending > 0 ? (
             <div className="border-primary/40 bg-primary-soft/15 mb-6 rounded-xl border px-4 py-4 sm:px-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="font-semibold">
-                    {data.reportsPending} melding{data.reportsPending !== 1 ? 'en' : ''} wachten op
-                    beoordeling
+                    {data.reportsPending} report{data.reportsPending !== 1 ? 's' : ''} awaiting review
                   </p>
                   <p className="text-muted-foreground text-sm">
-                    Open de wachtrij, lees de reden en kies Weigeren of de juiste tier.
+                    Open the queue, read the reason, then reject or approve with the right tier.
                   </p>
                 </div>
                 <Button asChild>
-                  <Link href="/dashboard/admin/reports">Meldingen openen</Link>
+                  <Link href="/dashboard/admin/reports">Open reports</Link>
                 </Button>
               </div>
             </div>
           ) : null}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
-              label="Vlag-events vandaag"
+              label="Flag events today"
               value={data.detectionsToday.toLocaleString()}
               icon={<Flag className="h-5 w-5" />}
             />
             <StatCard
-              label="Gebruikers gemonitord"
+              label="Users monitored"
               value={snap.trackedMemberDistinct.toLocaleString()}
               icon={<Users className="h-5 w-5" />}
             />
             <StatCard
-              label="Servers actief"
+              label="Active servers"
               value={snap.guildsActive.toLocaleString()}
               icon={<Server className="h-5 w-5" />}
             />
             <StatCard
-              label="Open meldingen"
+              label="Open reports"
               value={data.reportsPending.toLocaleString()}
               icon={<ShieldCheck className="h-5 w-5" />}
             />
           </div>
           <div className="text-muted-foreground mt-3 text-[11px]">
-            Supporttickets — open / in behandeling / gesloten:{' '}
+            Support tickets — open / in progress / closed:{' '}
             <span className="text-foreground font-medium">
               {data.ticketBuckets.open} · {data.ticketBuckets.pending} · {data.ticketBuckets.closed}
             </span>
@@ -174,15 +173,15 @@ export default async function DashboardOverviewPage() {
 
           <details className="mt-6 group">
             <summary className="text-muted-foreground cursor-pointer list-none text-sm font-medium [&::-webkit-details-marker]:hidden">
-              <span className="group-open:hidden">Toon geavanceerde grafieken en auditfeed</span>
-              <span className="hidden group-open:inline">Verberg geavanceerde grafieken en auditfeed</span>
+              <span className="group-open:hidden">Show charts and audit feed</span>
+              <span className="hidden group-open:inline">Hide charts and audit feed</span>
             </summary>
             <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
                 <div>
-                  <CardTitle>Activiteit — laatste 24 uur</CardTitle>
-                  <CardDescription>Nieuwe vlag-mutaties (uit auditlog, per uur)</CardDescription>
+                  <CardTitle>Activity — last 24 hours</CardTitle>
+                  <CardDescription>New flag changes (from audit log, hourly)</CardDescription>
                 </div>
                 <div className="border-border bg-surface/40 flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10.5px] text-muted-foreground">
                   <span className="live-dot h-1.5 w-1.5 rounded-full bg-primary" />
@@ -195,8 +194,8 @@ export default async function DashboardOverviewPage() {
             <Card>
               <CardHeader>
                 <div>
-                  <CardTitle>Recente gebeurtenissen</CardTitle>
-                  <CardDescription>Laatste audit-events</CardDescription>
+                  <CardTitle>Recent events</CardTitle>
+                  <CardDescription>Latest audit events</CardDescription>
                 </div>
               </CardHeader>
               <LiveActivityFeed initial={data.recentActivity} variant="admin" />
@@ -206,20 +205,20 @@ export default async function DashboardOverviewPage() {
 
           <div className="mt-8">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold tracking-tight">Profielen met vlag</h2>
+              <h2 className="text-sm font-semibold tracking-tight">Flagged profiles</h2>
               <Button variant="soft" size="sm" asChild>
-                <Link href="/dashboard/admin/tickets">Supporttickets</Link>
+                <Link href="/dashboard/admin/tickets">Support tickets</Link>
               </Button>
             </div>
             <Card className="!p-0 overflow-hidden">
               <Table>
                 <Thead>
                   <Tr>
-                    <Th>Gebruiker</Th>
-                    <Th>Niveau</Th>
+                    <Th>User</Th>
+                    <Th>Level</Th>
                     <Th>Score</Th>
-                    <Th>Vlaggen</Th>
-                    <Th>Bijgewerkt</Th>
+                    <Th>Flags</Th>
+                    <Th>Updated</Th>
                     <Th />
                   </Tr>
                 </Thead>
@@ -235,7 +234,7 @@ export default async function DashboardOverviewPage() {
                       <Td className="text-muted-foreground text-[11px]">{u.updatedAt}</Td>
                       <Td>
                         <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/dashboard/admin/users/${u.discordId}`}>Bekijk</Link>
+                          <Link href={`/dashboard/admin/users/${u.discordId}`}>View</Link>
                         </Button>
                       </Td>
                     </Tr>
@@ -245,13 +244,13 @@ export default async function DashboardOverviewPage() {
             </Card>
             {data.flaggedPreview.items.length === 0 ? (
               <p className="text-muted-foreground mt-2 text-sm">
-                Geen gemarkeerde gebruikers in dit overzicht.
+                No flagged users in this list.
               </p>
             ) : null}
           </div>
 
           <p className="text-muted-foreground mt-6 text-[11px]">
-            Laatst bijgewerkt {new Date(snap.updatedAt).toLocaleString('nl-NL')}
+            Last updated {new Date(snap.updatedAt).toLocaleString()}
           </p>
         </>
       );
@@ -265,35 +264,35 @@ export default async function DashboardOverviewPage() {
       <>
         <PageHeader
           title="Home"
-          sub="Jouw tickets en meldingen, plus een kort platformbeeld. Nieuw? Open de startgids onderaan het menu."
+          sub="Your tickets and reports, plus a short platform snapshot. New? Open the welcome guide in the sidebar."
         />
         <div className="mb-4 flex flex-wrap gap-2">
           <Button variant="outline" size="sm" asChild>
-            <Link href="/dashboard/welcome">Startgids</Link>
+            <Link href="/dashboard/welcome">Welcome guide</Link>
           </Button>
           <Button variant="outline" size="sm" asChild>
-            <Link href="/dashboard/server-setup">Server instellen</Link>
+            <Link href="/dashboard/server-setup">Server setup</Link>
           </Button>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <StatCard
-            label="Vlag-events vandaag"
+            label="Flag events today"
             value={data.detectionsToday.toLocaleString()}
             icon={<Flag className="h-5 w-5" />}
           />
           <StatCard
-            label="Gebruikers gemonitord"
+            label="Users monitored"
             value={snap.trackedMemberDistinct.toLocaleString()}
             icon={<Users className="h-5 w-5" />}
           />
           <StatCard
-            label="Servers actief"
+            label="Active servers"
             value={snap.guildsActive.toLocaleString()}
             icon={<Server className="h-5 w-5" />}
           />
         </div>
         <div className="text-muted-foreground mt-3 text-[11px]">
-          Jouw tickets — open / in behandeling / gesloten:{' '}
+          Your tickets — open / in progress / closed:{' '}
           <span className="text-foreground font-medium">
             {data.ticketBuckets.open} · {data.ticketBuckets.pending} · {data.ticketBuckets.closed}
           </span>
@@ -301,15 +300,15 @@ export default async function DashboardOverviewPage() {
 
         <details className="mt-6 group">
           <summary className="text-muted-foreground cursor-pointer list-none text-sm font-medium [&::-webkit-details-marker]:hidden">
-            <span className="group-open:hidden">Toon platformgrafiek en recente activiteit</span>
-            <span className="hidden group-open:inline">Verberg platformgrafiek</span>
+            <span className="group-open:hidden">Show platform chart and recent activity</span>
+            <span className="hidden group-open:inline">Hide platform chart</span>
           </summary>
           <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader>
               <div>
-                <CardTitle>Activiteit — laatste 24 uur</CardTitle>
-                <CardDescription>Vlag-volume op platformniveau</CardDescription>
+                <CardTitle>Activity — last 24 hours</CardTitle>
+                <CardDescription>Flag volume at platform level</CardDescription>
               </div>
               <div className="border-border bg-surface/40 flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10.5px] text-muted-foreground">
                 <span className="live-dot h-1.5 w-1.5 rounded-full bg-primary" />
@@ -322,8 +321,8 @@ export default async function DashboardOverviewPage() {
           <Card>
             <CardHeader>
               <div>
-                <CardTitle>Recente activiteit</CardTitle>
-                <CardDescription>Laatste gebeurtenissen</CardDescription>
+                <CardTitle>Recent activity</CardTitle>
+                <CardDescription>Latest events</CardDescription>
               </div>
             </CardHeader>
             <LiveActivityFeed initial={data.recentActivity} variant="user" />
@@ -334,10 +333,10 @@ export default async function DashboardOverviewPage() {
         <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Mijn tickets</CardTitle>
+              <CardTitle>My tickets</CardTitle>
               <CardDescription>
                 <Link href="/dashboard/tickets" className="text-primary text-xs hover:underline">
-                  Alles bekijken
+                  View all
                 </Link>
               </CardDescription>
             </CardHeader>
@@ -352,19 +351,19 @@ export default async function DashboardOverviewPage() {
                     {t.reportReason}
                   </div>
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/dashboard/tickets/${t.id}`}>Openen</Link>
+                    <Link href={`/dashboard/tickets/${t.id}`}>Open</Link>
                   </Button>
                 </li>
               ))}
             </ul>
             {data.ticketsPreview.length === 0 ? (
-              <p className="text-muted-foreground px-1 pb-3 text-sm">Nog geen tickets.</p>
+              <p className="text-muted-foreground px-1 pb-3 text-sm">No tickets yet.</p>
             ) : null}
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Mijn meldingen</CardTitle>
-              <CardDescription>Laatste ingediende meldingen</CardDescription>
+              <CardTitle>My reports</CardTitle>
+              <CardDescription>Latest submitted reports</CardDescription>
             </CardHeader>
             <ul className="space-y-2">
               {data.reportsPreview.map((r) => {
@@ -382,7 +381,7 @@ export default async function DashboardOverviewPage() {
                       <div className="truncate font-medium">{name}</div>
                       <div className="truncate text-xs opacity-90">{r.reason}</div>
                       <div className="text-muted-foreground text-[11px]">
-                        {r.status} · {new Date(r.createdAt).toLocaleString('nl-NL')}
+                        {r.status} · {new Date(r.createdAt).toLocaleString()}
                       </div>
                     </div>
                   </Link>
@@ -391,22 +390,23 @@ export default async function DashboardOverviewPage() {
               })}
             </ul>
             {data.reportsPreview.length === 0 ? (
-              <p className="text-muted-foreground px-1 pb-3 text-sm">Nog geen meldingen.</p>
+              <p className="text-muted-foreground px-1 pb-3 text-sm">No reports yet.</p>
             ) : null}
           </Card>
         </div>
 
         <p className="text-muted-foreground mt-6 text-[11px]">
-          Platformcijfers bijgewerkt {new Date(snap.updatedAt).toLocaleString('nl-NL')}
+          Platform figures updated {new Date(snap.updatedAt).toLocaleString()}
         </p>
       </>
     );
   } catch (e) {
     return (
       <Card className="border-destructive/40">
-        <PageHeader title="Home" sub="Kon dashboard niet laden." />
+        <PageHeader title="Home" sub="Could not load dashboard." />
         <p className="text-destructive text-sm">
-          {e instanceof Error ? e.message : 'Onbekende fout'}. Controleer je rechten en VPN/API.
+          {e instanceof Error ? e.message : 'Unknown error'}. Check your permissions and API
+          connectivity.
         </p>
       </Card>
     );

@@ -46,6 +46,31 @@ export class AdminTicketsController {
     return this.tickets.adminPatch(id, body);
   }
 
+  @Get(':id/messages')
+  listMessages(
+    @Param('id') id: string,
+    @Req() req: Request & { principal?: RequestPrincipal },
+  ) {
+    return this.tickets.listTicketMessages(req.principal!, id, true);
+  }
+
+  @Post(':id/messages')
+  postMessage(
+    @Param('id') id: string,
+    @Body() body: { body: string },
+    @Req() req: Request & { principal?: RequestPrincipal },
+  ) {
+    return this.tickets.postTicketMessageFromAdmin(req.principal!, id, body.body);
+  }
+
+  @Get(':id')
+  getOne(
+    @Param('id') id: string,
+    @Req() req: Request & { principal?: RequestPrincipal },
+  ) {
+    return this.tickets.getForAdmin(req.principal!, id);
+  }
+
   @Post(':id/resolve')
   async resolve(
     @Param('id') ticketId: string,

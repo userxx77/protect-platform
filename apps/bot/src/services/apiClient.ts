@@ -205,6 +205,21 @@ export class ApiClient {
     });
   }
 
+  async postGuildSnapshot(body: {
+    guildId: string;
+    discordName?: string | null;
+    iconHash?: string | null;
+    approximateMemberCount?: number | null;
+    ownerDiscordId?: string | null;
+    vanityUrlCode?: string | null;
+    premiumTier?: number | null;
+  }): Promise<{ ok: true }> {
+    return this.requestJson(`/bot/guild/${body.guildId}/snapshot`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
   async postMembersBatch(
     guildId: string,
     members: Array<{

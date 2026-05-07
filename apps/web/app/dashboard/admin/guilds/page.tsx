@@ -2,8 +2,10 @@ import { dashboardApi } from '@/lib/api-server';
 import Link from 'next/link';
 import { guildIconUrl } from '@/lib/discord-cdn';
 import { GuildSyncButton } from './guild-sync-button';
+import { GuildMetadataRefreshButton } from './guild-metadata-refresh-button';
 import { Card } from '@/components/ui/card';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 type EntRow = {
@@ -27,6 +29,11 @@ type EntRow = {
   } | null;
 };
 
+function syncBadgeVariant(state: string | undefined): 'primary' | 'default' {
+  if (state === 'QUEUED' || state === 'RUNNING') return 'primary';
+  return 'default';
+}
+
 export default async function AdminGuildsPage() {
   let rows: EntRow[];
   try {
@@ -47,7 +54,9 @@ export default async function AdminGuildsPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Guilds</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Entitlements and member sync. Use <strong>Sync now</strong> to queue a cache refresh.
+          Entitlements and member cache sync. <strong>Sync now</strong> queues a full member refresh;
+          <strong> Refresh Discord info</strong> asks the bot to update name, icon, and owner (needs bot +
+          Redis).
         </p>
       </div>
 
@@ -61,13 +70,17 @@ export default async function AdminGuildsPage() {
               <Th>Owner</Th>
               <Th>License</Th>
               <Th>Valid until</Th>
-              <Th>Sync state</Th>
+              <Th>Member sync</Th>
               <Th>Actions</Th>
             </Tr>
           </Thead>
           <Tbody>
             {rows.map((r) => {
               const ic = guildIconUrl(r.guildId, r.iconHash);
+              const validUntil =
+                r.entitlement?.validUntil != null
+                  ? new Date(r.entitlement.validUntil).toLocaleDateString()
+                  : '—';
               return (
                 <Tr key={r.guildId}>
                   <Td className="w-12">
@@ -88,18 +101,34 @@ export default async function AdminGuildsPage() {
                   </Td>
                   <Td className="font-mono text-[11px] text-muted-foreground">{r.guildId}</Td>
                   <Td className="font-mono text-[11px] text-muted-foreground">
-                    {r.ownerDiscordId ?? '—'}
+                    {r.ownerDiscordId ? (
+                      <Link
+                        className="text-primary hover:underline"
+                        href={`https://discord.com/users/${r.ownerDiscordId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {r.ownerDiscordId}
+                      </Link>
+                    ) : (
+                      '—'
+                    )}
                   </Td>
                   <Td>{r.entitlement?.status ?? '—'}</Td>
-                  <Td className="font-mono text-[11px] text-muted-foreground">
-                    {r.entitlement?.validUntil ?? '—'}
-                  </Td>
-                  <Td className="text-[11px]">{r.entitlement?.memberSyncState ?? '—'}</Td>
+                  <Td className="text-[11px] text-muted-foreground">{validUntil}</Td>
                   <Td>
-                    <GuildSyncButton guildId={r.guildId} />
-                    <Button variant="ghost" size="sm" className="mt-1 h-auto px-0" asChild>
-                      <Link href={`/dashboard/my-servers/${r.guildId}`}>View cache</Link>
-                    </Button>
+                    <Badge variant={syncBadgeVariant(r.entitlement?.memberSyncState)}>
+                      {r.entitlement?.memberSyncState ?? '—'}
+                    </Badge>
+                  </Td>
+                  <Td className="align-top">
+                    <div className="flex flex-col gap-2">
+                      <GuildSyncButton guildId={r.guildId} />
+                      <GuildMetadataRefreshButton guildId={r.guildId} />
+                      <Button variant="ghost" size="sm" className="h-auto justify-start px-0" asChild>
+                        <Link href={`/dashboard/my-servers/${r.guildId}`}>View member cache</Link>
+                      </Button>
+                    </div>
                   </Td>
                 </Tr>
               );

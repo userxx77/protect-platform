@@ -43,7 +43,7 @@ export default async function ReportDetailPage({
           href="/dashboard/reports"
           className="text-muted-foreground hover:text-primary text-sm"
         >
-          ← Terug naar mijn meldingen
+          ← Back to my reports
         </Link>
         {data.canModerate ? (
           <>
@@ -52,16 +52,16 @@ export default async function ReportDetailPage({
               href="/dashboard/admin/reports"
               className="text-muted-foreground hover:text-primary text-sm"
             >
-              Meldingen-wachtrij
+              Reports queue
             </Link>
           </>
         ) : null}
       </div>
 
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Melding</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Report</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Ingediend {new Date(data.createdAt).toLocaleString('nl-NL')}
+          Submitted {new Date(data.createdAt).toLocaleString()}
           {data.guildId ? ` · server ${data.guildId}` : ''}
         </p>
       </div>
@@ -72,29 +72,29 @@ export default async function ReportDetailPage({
         {data.allegedFlagLevel ? (
           <>
             <span className="text-muted-foreground">·</span>
-            <span className="text-muted-foreground text-sm">Suggestie melder:</span>
+            <span className="text-muted-foreground text-sm">Reporter suggestion:</span>
             <FlagLevelBadge level={data.allegedFlagLevel} />
           </>
         ) : null}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <ReportPersonCard title="Betrokkene" discordId={data.targetDiscordId} display={data.targetDisplay} />
-        <ReportPersonCard title="Melder" discordId={data.reporterDiscordId} display={data.reporterDisplay} />
+        <ReportPersonCard title="Subject" discordId={data.targetDiscordId} display={data.targetDisplay} />
+        <ReportPersonCard title="Reporter" discordId={data.reporterDiscordId} display={data.reporterDisplay} />
       </div>
 
       <section className="border-border rounded-xl border bg-card/40 p-5">
-        <h2 className="text-sm font-semibold">Reden</h2>
+        <h2 className="text-sm font-semibold">Reason</h2>
         <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">{data.reason}</p>
       </section>
 
       {data.reviewedAt ? (
         <p className="text-muted-foreground text-sm">
-          Beoordeeld: {new Date(data.reviewedAt).toLocaleString('nl-NL')}
+          Reviewed: {new Date(data.reviewedAt).toLocaleString()}
         </p>
       ) : null}
       {data.resolverNote ? (
-        <p className="text-muted-foreground text-sm">Notitie: {data.resolverNote}</p>
+        <p className="text-muted-foreground text-sm">Note: {data.resolverNote}</p>
       ) : null}
       {data.ticketId ? (
         <p className="text-muted-foreground text-xs">

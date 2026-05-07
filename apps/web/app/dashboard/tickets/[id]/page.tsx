@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { dashboardApi } from '@/lib/api-server';
 import { submitEvidenceAction } from '../actions';
 import { FlagLevelBadge } from '@/components/flag-level-badge';
+import { TicketThreadClient, type TicketMessageItem } from '../ticket-thread-client';
 
 type TicketDetail = {
   id: string;
@@ -27,8 +28,11 @@ type TicketDetail = {
 export default async function TicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   let t: TicketDetail;
+  let initialMessages: TicketMessageItem[];
   try {
     t = await dashboardApi<TicketDetail>(`/me/tickets/${id}`);
+    const msgRes = await dashboardApi<{ items: TicketMessageItem[] }>(`/me/tickets/${id}/messages`);
+    initialMessages = Array.isArray(msgRes.items) ? msgRes.items : [];
   } catch (e) {
     return (
       <section className="ds-card">
@@ -49,130 +53,146 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
     ? (t.evidenceLinks as string[]).filter((x) => typeof x === 'string')
     : [];
   const showEvidence = t.status === 'NEEDS_EVIDENCE';
+  const chatOpen = t.status !== 'RESOLVED' && t.status !== 'REJECTED';
 
   return (
-    <section className="ds-card">
+    <div className="mx-auto max-w-5xl space-y-6">
       <p>
-        <Link href="/dashboard/tickets" className="ds-btn ds-btn-ghost">
+        <Link href="/dashboard/tickets" className="text-muted-foreground hover:text-foreground text-sm">
           ← Tickets
         </Link>
       </p>
-      <h1 className="ds-h1" style={{ marginTop: '0.75rem' }}>
-        Ticket
-        <span className="text-muted-foreground ds-muted ml-2 text-[0.55em] font-semibold tracking-wide uppercase">
-          {t.status.replace(/_/g, ' ')}
-        </span>
-      </h1>
-      <p className="ds-muted" style={{ marginTop: '0.35rem' }}>
-        Report <strong>{t.reportStatus}</strong> · Target{' '}
-        <span className="ds-mono">{t.targetDiscordId}</span>
-      </p>
 
-      <div style={{ marginTop: '1.25rem' }}>
-        <h2 className="ds-h2" style={{ marginTop: 0 }}>
-          Report
-        </h2>
-        <div className="flex flex-wrap items-center gap-2">
-          <FlagLevelBadge level={t.allegedFlagLevel} />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
+        <section className="ds-card lg:sticky lg:top-4">
+          <h1 className="ds-h1">
+            Ticket
+            <span className="text-muted-foreground ds-muted ml-2 text-[0.55em] font-semibold tracking-wide uppercase">
+              {t.status.replace(/_/g, ' ')}
+            </span>
+          </h1>
+          <p className="ds-muted" style={{ marginTop: '0.35rem' }}>
+            Report <strong>{t.reportStatus}</strong> · Target{' '}
+            <span className="ds-mono">{t.targetDiscordId}</span>
+          </p>
+
+          <div style={{ marginTop: '1.25rem' }}>
+            <h2 className="ds-h2" style={{ marginTop: 0 }}>
+              Report
+            </h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <FlagLevelBadge level={t.allegedFlagLevel} />
+            </div>
+            <p style={{ marginTop: '0.65rem', maxWidth: '42rem' }}>{t.reportReason}</p>
+          </div>
+
+          {t.userMessage ? (
+            <div style={{ marginTop: '1.25rem' }}>
+              <h2 className="ds-h2" style={{ marginTop: 0 }}>
+                Message from staff
+              </h2>
+              <p>{t.userMessage}</p>
+            </div>
+          ) : null}
+
+          {t.adminNote ? (
+            <div className="ds-alert ds-alert-warn" style={{ marginTop: '1.25rem' }}>
+              <span className="ds-label" style={{ marginBottom: '0.25rem' }}>
+                Staff note
+              </span>
+              {t.adminNote}
+            </div>
+          ) : null}
+
+          {links.length > 0 ? (
+            <div style={{ marginTop: '1.25rem' }}>
+              <h2 className="ds-h2" style={{ marginTop: 0 }}>
+                Evidence links
+              </h2>
+              <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
+                {links.map((u) => (
+                  <li key={u} style={{ marginBottom: '0.35rem' }}>
+                    <a href={u} target="_blank" rel="noreferrer">
+                      {u}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {t.attachments.length > 0 ? (
+            <div style={{ marginTop: '1.25rem' }}>
+              <h2 className="ds-h2" style={{ marginTop: 0 }}>
+                Images
+              </h2>
+              <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
+                {t.attachments.map((a) => (
+                  <li key={a.id} style={{ marginBottom: '0.35rem' }}>
+                    <a
+                      href={`/dashboard/tickets/${t.id}/attachments/${a.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {a.mimeType} ({a.sizeBytes} bytes)
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {showEvidence ? (
+            <form
+              action={submitEvidenceAction.bind(null, t.id)}
+              encType="multipart/form-data"
+              style={{ marginTop: '1.75rem', maxWidth: 520 }}
+            >
+              <h2 className="ds-h2">Submit evidence</h2>
+              <p className="ds-muted">Images (JPEG, PNG, WebP, GIF) and optional links.</p>
+              <div className="ds-field" style={{ marginTop: '0.75rem' }}>
+                <label className="ds-label" htmlFor="linksText">
+                  Links (one per line)
+                </label>
+                <textarea
+                  id="linksText"
+                  className="ds-input"
+                  name="linksText"
+                  rows={4}
+                  style={{ display: 'block', maxWidth: '100%' }}
+                />
+              </div>
+              <div className="ds-field">
+                <label className="ds-label" htmlFor="evidence-images">
+                  Images
+                </label>
+                <input
+                  id="evidence-images"
+                  type="file"
+                  name="images"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  multiple
+                  className="ds-input"
+                  style={{ padding: '0.45rem' }}
+                />
+              </div>
+              <button type="submit" className="ds-btn">
+                Submit evidence
+              </button>
+            </form>
+          ) : null}
+        </section>
+
+        <div className="space-y-2">
+          <h2 className="text-sm font-semibold tracking-tight">Conversation</h2>
+          <TicketThreadClient
+            ticketId={t.id}
+            mode="user"
+            initialItems={initialMessages}
+            canPost={chatOpen}
+          />
         </div>
-        <p style={{ marginTop: '0.65rem', maxWidth: '42rem' }}>{t.reportReason}</p>
       </div>
-
-      {t.userMessage ? (
-        <div style={{ marginTop: '1.25rem' }}>
-          <h2 className="ds-h2" style={{ marginTop: 0 }}>
-            Message from staff
-          </h2>
-          <p>{t.userMessage}</p>
-        </div>
-      ) : null}
-
-      {t.adminNote ? (
-        <div className="ds-alert ds-alert-warn" style={{ marginTop: '1.25rem' }}>
-          <span className="ds-label" style={{ marginBottom: '0.25rem' }}>
-            Staff note
-          </span>
-          {t.adminNote}
-        </div>
-      ) : null}
-
-      {links.length > 0 ? (
-        <div style={{ marginTop: '1.25rem' }}>
-          <h2 className="ds-h2" style={{ marginTop: 0 }}>
-            Evidence links
-          </h2>
-          <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
-            {links.map((u) => (
-              <li key={u} style={{ marginBottom: '0.35rem' }}>
-                <a href={u} target="_blank" rel="noreferrer">
-                  {u}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {t.attachments.length > 0 ? (
-        <div style={{ marginTop: '1.25rem' }}>
-          <h2 className="ds-h2" style={{ marginTop: 0 }}>
-            Images
-          </h2>
-          <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
-            {t.attachments.map((a) => (
-              <li key={a.id} style={{ marginBottom: '0.35rem' }}>
-                <a
-                  href={`/dashboard/tickets/${t.id}/attachments/${a.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {a.mimeType} ({a.sizeBytes} bytes)
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {showEvidence ? (
-        <form
-          action={submitEvidenceAction.bind(null, t.id)}
-          encType="multipart/form-data"
-          style={{ marginTop: '1.75rem', maxWidth: 520 }}
-        >
-          <h2 className="ds-h2">Submit evidence</h2>
-          <p className="ds-muted">Images (JPEG, PNG, WebP, GIF) and optional links.</p>
-          <div className="ds-field" style={{ marginTop: '0.75rem' }}>
-            <label className="ds-label" htmlFor="linksText">
-              Links (one per line)
-            </label>
-            <textarea
-              id="linksText"
-              className="ds-input"
-              name="linksText"
-              rows={4}
-              style={{ display: 'block', maxWidth: '100%' }}
-            />
-          </div>
-          <div className="ds-field">
-            <label className="ds-label" htmlFor="evidence-images">
-              Images
-            </label>
-            <input
-              id="evidence-images"
-              type="file"
-              name="images"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              multiple
-              className="ds-input"
-              style={{ padding: '0.45rem' }}
-            />
-          </div>
-          <button type="submit" className="ds-btn">
-            Submit evidence
-          </button>
-        </form>
-      ) : null}
-    </section>
+    </div>
   );
 }

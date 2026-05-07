@@ -5,23 +5,23 @@ import { Button } from '@/components/ui/button';
 const steps = [
   {
     n: 1,
-    title: 'Bot op je Discord-server',
-    body: 'Nodig de bot uit en geef de rollen die in de documentatie staan (o.a. berichten lezen, embeds, moderation indien je join hold gebruikt).',
+    title: 'Add the bot to your Discord server',
+    body: 'Invite the bot and grant the roles documented for your setup (e.g. read messages, embeds, moderation if you use join hold).',
   },
   {
     n: 2,
-    title: 'Licentie actief',
-    body: 'Je server moet een actieve of trial-licentie hebben voordat community-meldingen werken. Platformbeheer doet dit via het beheerdersgedeelte of `/sentra platform`.',
+    title: 'License active',
+    body: 'Your server needs an active or trial license before community reports work. Platform admins assign this in the admin area or via `/sentra platform`.',
   },
   {
     n: 3,
-    title: 'Staff-kanaal & alerts',
-    body: 'In het dashboard: Server instellen → Alerts & gedrag. Of in Discord: `/sentra config` met recht Beheer server.',
+    title: 'Staff channel & alerts',
+    body: 'In the dashboard: Server setup → Alerts & behavior. Or in Discord: `/sentra config` with Manage Server.',
   },
   {
     n: 4,
-    title: 'Probeer een melding',
-    body: 'Met een User-rol in Sentra: `/sentra report` in je server. De melding verschijnt in de wachtrij voor admins en optioneel in je ops-kanaal (DISCORD_ADMIN_FEED_CHANNEL_ID).',
+    title: 'Try a report',
+    body: 'With Sentra User role: `/sentra report` in your server. The report appears in the admin queue and optionally in your ops channel (DISCORD_ADMIN_FEED_CHANNEL_ID).',
   },
 ];
 
@@ -29,10 +29,10 @@ export default function WelcomePage() {
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Startgids</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Welcome guide</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          In een paar stappen staat Sentra klaar voor jouw moderators. Je kunt dit venster later
-          terugvinden via het menu onderaan (Startgids).
+          A short checklist to get Sentra ready for your moderators. You can reopen this anytime from
+          the sidebar (Welcome guide).
         </p>
       </div>
 
@@ -42,7 +42,7 @@ export default function WelcomePage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">
-                  Stap {s.n}: {s.title}
+                  Step {s.n}: {s.title}
                 </CardTitle>
                 <CardDescription className="text-foreground/90 leading-relaxed">{s.body}</CardDescription>
               </CardHeader>
@@ -53,15 +53,15 @@ export default function WelcomePage() {
 
       <div className="flex flex-wrap gap-3">
         <Button asChild>
-          <Link href="/dashboard/server-setup">Server instellen in dashboard</Link>
+          <Link href="/dashboard/server-setup">Server setup in dashboard</Link>
         </Button>
         <Button variant="outline" asChild>
-          <Link href="/dashboard">Naar home</Link>
+          <Link href="/dashboard">Back to home</Link>
         </Button>
       </div>
 
       <p className="text-muted-foreground text-xs">
-        Uitgebreide documentatie voor operators: zie{' '}
+        Operator documentation: see{' '}
         <a
           href="https://github.com/userxx77/protect-platform/blob/main/docs/sentra-operator-guide.md"
           className="text-primary hover:underline"
@@ -70,7 +70,7 @@ export default function WelcomePage() {
         >
           sentra-operator-guide.md
         </a>{' '}
-        in de repository.
+        in the repository.
       </p>
     </div>
   );

@@ -1,16 +1,23 @@
 import Link from 'next/link';
+import { auth } from '@/auth';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LayoutList, Settings } from 'lucide-react';
+import { RedeemLicenseCard } from './redeem-license-card';
 
-export default function ServerSetupHubPage() {
+export default async function ServerSetupHubPage() {
+  const session = await auth();
+  const guilds = session?.manageableGuilds ?? [];
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Server instellen</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Server setup</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          In twee stappen: eerst zie je waar de bot actief is, daarna stel je waarschuwingen en kanalen in.
+          In two steps: see where the bot is active, then configure alerts and channels.
         </p>
       </div>
+
+      <RedeemLicenseCard guilds={guilds} />
 
       <div className="grid gap-4">
         <Link href="/dashboard/my-servers">
@@ -21,10 +28,10 @@ export default function ServerSetupHubPage() {
                   <LayoutList className="h-5 w-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-base">Jouw Discord-servers</CardTitle>
+                  <CardTitle className="text-base">Your Discord servers</CardTitle>
                   <CardDescription>
-                    Kies een server waar je beheerder bent. Controleer of de licentie actief is en of
-                    members gesynchroniseerd zijn.
+                    Pick a server you administer. Check that the license is active and members are
+                    synced.
                   </CardDescription>
                 </div>
               </div>
@@ -40,10 +47,10 @@ export default function ServerSetupHubPage() {
                   <Settings className="h-5 w-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-base">Alerts & gedrag</CardTitle>
+                  <CardTitle className="text-base">Alerts & behavior</CardTitle>
                   <CardDescription>
-                    Staff-kanaal, minimale vlag voor pings, join hold — wat moderators in Discord
-                    zien wanneer iemand join.
+                    Staff channel, minimum flag level for pings, join hold — what moderators see in
+                    Discord when someone joins.
                   </CardDescription>
                 </div>
               </div>
@@ -53,9 +60,9 @@ export default function ServerSetupHubPage() {
       </div>
 
       <p className="text-muted-foreground text-xs">
-        Nieuwe hier? Start bij{' '}
+        New here? Start with the{' '}
         <Link href="/dashboard/welcome" className="text-primary hover:underline">
-          de startgids
+          welcome guide
         </Link>
         .
       </p>

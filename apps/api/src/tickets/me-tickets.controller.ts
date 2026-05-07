@@ -8,6 +8,7 @@ import {
   UploadedFiles,
   UseGuards,
   UseInterceptors,
+  Body,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -26,6 +27,25 @@ import { TicketsService } from './tickets.service';
 @UseGuards(BotOrJwtGuard, RbacGuard)
 export class MeTicketsController {
   constructor(private readonly tickets: TicketsService) {}
+
+  @Get('me/tickets/:id/messages')
+  @RequireRoles(AppRole.USER, AppRole.ADMIN)
+  listMessages(
+    @Param('id') id: string,
+    @Req() req: Request & { principal?: RequestPrincipal },
+  ) {
+    return this.tickets.listTicketMessages(req.principal!, id, false);
+  }
+
+  @Post('me/tickets/:id/messages')
+  @RequireRoles(AppRole.USER, AppRole.ADMIN)
+  postMessage(
+    @Param('id') id: string,
+    @Body() body: { body: string },
+    @Req() req: Request & { principal?: RequestPrincipal },
+  ) {
+    return this.tickets.postTicketMessageFromUser(req.principal!, id, body.body);
+  }
 
   @Get('me/tickets')
   @RequireRoles(AppRole.USER, AppRole.ADMIN)

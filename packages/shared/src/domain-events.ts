@@ -6,6 +6,7 @@ export const EVENT_CHANNELS = {
   SERVER_CONFIG_UPDATED: 'protect:server.config.updated',
   REPORT_PENDING: 'protect:report.pending',
   GUILD_MEMBERS_SYNC: 'protect:guild.members.sync',
+  GUILD_METADATA_REFRESH: 'protect:guild.metadata.refresh',
   GUILD_DISCOVERED: 'protect:guild.discovered',
   SUPPORT_TICKET_CREATED: 'protect:support.ticket.created',
   SUPPORT_TICKET_EVIDENCE_SUBMITTED: 'protect:support.ticket.evidence_submitted',
@@ -25,6 +26,7 @@ export type DomainEventType =
   | 'server.config.updated'
   | 'report.pending'
   | 'guild.members.sync'
+  | 'guild.metadata.refresh'
   | 'guild.discovered'
   | 'support.ticket.created'
   | 'support.ticket.evidence_submitted'
@@ -86,6 +88,10 @@ export type GuildMembersSyncPayload = {
   guildId: string;
 };
 
+export type GuildMetadataRefreshPayload = {
+  guildId: string;
+};
+
 export type GuildDiscoveredPayload = {
   guildId: string;
   name: string | null;
@@ -135,6 +141,8 @@ export function channelForEventType(type: DomainEventType): string {
       return EVENT_CHANNELS.REPORT_PENDING;
     case 'guild.members.sync':
       return EVENT_CHANNELS.GUILD_MEMBERS_SYNC;
+    case 'guild.metadata.refresh':
+      return EVENT_CHANNELS.GUILD_METADATA_REFRESH;
     case 'guild.discovered':
       return EVENT_CHANNELS.GUILD_DISCOVERED;
     case 'support.ticket.created':
@@ -177,6 +185,7 @@ export function isDomainEventType(s: string): s is DomainEventType {
     s === 'server.config.updated' ||
     s === 'report.pending' ||
     s === 'guild.members.sync' ||
+    s === 'guild.metadata.refresh' ||
     s === 'guild.discovered' ||
     s === 'support.ticket.created' ||
     s === 'support.ticket.evidence_submitted' ||

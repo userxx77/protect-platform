@@ -34,16 +34,16 @@ export function DashboardSetupBanner() {
   return (
     <div className="border-primary/35 bg-primary-soft/20 mb-4 flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <p className="text-sm">
-        <span className="font-medium">Welkom bij Sentra.</span>{' '}
+        <span className="font-medium">Welcome to Sentra.</span>{' '}
         <span className="text-muted-foreground">
-          Volg de startgids om je server en meldingen in te richten.
+          Follow the welcome guide to set up your server and reports.
         </span>
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" asChild>
-          <Link href="/dashboard/welcome">Naar startgids</Link>
+          <Link href="/dashboard/welcome">Open welcome guide</Link>
         </Button>
-        <Button type="button" variant="ghost" size="sm" className="h-8 px-2" onClick={dismiss} aria-label="Sluiten">
+        <Button type="button" variant="ghost" size="sm" className="h-8 px-2" onClick={dismiss} aria-label="Dismiss">
           <X className="h-4 w-4" />
         </Button>
       </div>

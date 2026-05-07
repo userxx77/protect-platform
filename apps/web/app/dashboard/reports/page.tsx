@@ -32,9 +32,9 @@ export default async function MyReportsPage() {
   } catch (e) {
     return (
       <div className="border-destructive/35 bg-destructive/10 rounded-lg border p-6 text-sm">
-        <h1 className="text-lg font-semibold">Mijn meldingen</h1>
+        <h1 className="text-lg font-semibold">My reports</h1>
         <p className="text-muted-foreground mt-2">
-          {e instanceof Error ? e.message : 'Laden mislukt'}
+          {e instanceof Error ? e.message : 'Failed to load'}
         </p>
       </div>
     );
@@ -43,9 +43,9 @@ export default async function MyReportsPage() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Mijn meldingen</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">My reports</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Meldingen die je via Discord hebt ingediend. Tik op een rij voor de volledige tekst en status.
+          Reports you submitted from Discord. Open a row for the full text and status.
         </p>
       </div>
 
@@ -72,7 +72,7 @@ export default async function MyReportsPage() {
                     </div>
                     <p className="text-muted-foreground line-clamp-2 text-sm">{r.reason}</p>
                     <p className="text-muted-foreground mt-1 text-[11px]">
-                      {new Date(r.createdAt).toLocaleString('nl-NL')}
+                      {new Date(r.createdAt).toLocaleString()}
                       {r.guildId ? ` · server` : ''}
                     </p>
                   </div>
@@ -83,11 +83,11 @@ export default async function MyReportsPage() {
         })}
       </ul>
       {rows.length === 0 ? (
-        <p className="text-muted-foreground mt-4 text-sm">Nog geen meldingen in dit overzicht.</p>
+        <p className="text-muted-foreground mt-4 text-sm">No reports yet.</p>
       ) : null}
       <p className="text-muted-foreground mt-4 text-[11px]">
         <Link href="/dashboard" className="text-primary hover:underline">
-          ← Terug naar home
+          ← Back to home
         </Link>
       </p>
     </>

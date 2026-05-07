@@ -48,4 +48,9 @@ export class AdminGuildsController {
   requestSync(@Param('guildId') guildId: string) {
     return this.adminGuilds.requestMemberSync(guildId);
   }
+
+  @Post('admin/guilds/:guildId/refresh-metadata')
+  refreshMetadata(@Param('guildId') guildId: string) {
+    return this.adminGuilds.requestMetadataRefresh(guildId);
+  }
 }

@@ -6,11 +6,10 @@ import {
   reportAvatarSrc,
   reportMemberLabel,
 } from '@/lib/report-display';
-import { approveReportAction, rejectReportAction } from './actions';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { flagActionLevels, flagLevelDisplayName, type FlagActionLevel } from '@protect/shared';
 import { FlagLevelBadge } from '@/components/flag-level-badge';
+import { ReportModerationActions } from './report-moderation-actions';
 
 export type PendingReportItem = {
   id: string;
@@ -26,7 +25,7 @@ export type PendingReportItem = {
 
 export function PendingReportsQueue({ items }: { items: PendingReportItem[] }) {
   if (items.length === 0) {
-    return <p className="text-muted-foreground text-sm">Geen openstaande meldingen.</p>;
+    return <p className="text-muted-foreground text-sm">No pending reports.</p>;
   }
 
   return (
@@ -62,25 +61,13 @@ export function PendingReportsQueue({ items }: { items: PendingReportItem[] }) {
                     </div>
                   </div>
                   <p className="text-muted-foreground text-xs">
-                    Melder: {reportMemberLabel(r.reporterDisplay ?? null, r.reporterDiscordId)}
+                    Reporter: {reportMemberLabel(r.reporterDisplay ?? null, r.reporterDiscordId)}
                   </p>
                   <p className="line-clamp-2 text-sm leading-snug">
                     {r.reason.length > 280 ? `${r.reason.slice(0, 277)}…` : r.reason}
                   </p>
-                  <div className="border-border flex flex-wrap items-center gap-2 border-t pt-3">
-                    <form action={rejectReportAction.bind(null, r.id)}>
-                      <Button type="submit" variant="outline" size="sm">
-                        Weigeren
-                      </Button>
-                    </form>
-                    <span className="text-muted-foreground text-xs">Accepteren als:</span>
-                    {flagActionLevels.map((level: FlagActionLevel) => (
-                      <form key={level} action={approveReportAction.bind(null, r.id, level)}>
-                        <Button type="submit" size="sm" variant="soft">
-                          {flagLevelDisplayName(level)}
-                        </Button>
-                      </form>
-                    ))}
+                  <div className="border-border border-t pt-3">
+                    <ReportModerationActions reportId={r.id} />
                   </div>
                 </div>
               </div>

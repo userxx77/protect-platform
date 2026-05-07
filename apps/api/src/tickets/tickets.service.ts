@@ -8,7 +8,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Prisma, SupportTicketStatus } from '@prisma/client';
+import { Prisma, SupportTicketMessageAuthor, SupportTicketStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { OutboxService } from '../events/outbox.service';
 import { AuthzService } from '../auth/authz.service';
@@ -251,6 +251,52 @@ export class TicketsService {
     };
   }
 
+  async getForAdmin(principal: RequestPrincipal, ticketId: string) {
+    if (!this.authz.principalHasAnyRole(principal, [AppRole.ADMIN])) {
+      throw new ForbiddenException();
+    }
+    const row = await this.prisma.supportTicket.findFirst({
+      where: { id: ticketId },
+      include: {
+        report: {
+          select: {
+            id: true,
+            status: true,
+            reason: true,
+            allegedFlagLevel: true,
+            reportedUser: { select: { discordId: true } },
+          },
+        },
+        attachments: {
+          select: { id: true, mimeType: true, sizeBytes: true, createdAt: true },
+        },
+      },
+    });
+    if (!row) throw new NotFoundException('Ticket not found');
+    return {
+      id: row.id,
+      status: row.status,
+      reportId: row.reportId,
+      guildId: row.guildId,
+      reporterDiscordId: row.reporterDiscordId,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+      evidenceLinks: row.evidenceLinks,
+      adminNote: row.adminNote,
+      userMessage: row.userMessage,
+      targetDiscordId: row.report.reportedUser.discordId,
+      reportStatus: row.report.status,
+      reportReason: row.report.reason,
+      allegedFlagLevel: row.report.allegedFlagLevel,
+      attachments: row.attachments.map((a) => ({
+        id: a.id,
+        mimeType: a.mimeType,
+        sizeBytes: a.sizeBytes,
+        createdAt: a.createdAt.toISOString(),
+      })),
+    };
+  }
+
   async submitEvidence(
     principal: RequestPrincipal,
     ticketId: string,
@@ -452,5 +498,103 @@ export class TicketsService {
     const abs = this.attachmentAbsolutePath(row.storageKey);
     const stream = createReadStream(abs);
     return { stream, mimeType: row.mimeType };
+  }
+
+  private assertTicketOpenForChat(ticket: { status: SupportTicketStatus }): void {
+    if (ticket.status === 'RESOLVED' || ticket.status === 'REJECTED') {
+      throw new BadRequestException('This ticket is closed');
+    }
+  }
+
+  async listTicketMessages(
+    principal: RequestPrincipal,
+    ticketId: string,
+    asAdmin: boolean,
+  ) {
+    if (asAdmin) {
+      if (!this.authz.principalHasAnyRole(principal, [AppRole.ADMIN])) {
+        throw new ForbiddenException();
+      }
+      const ticket = await this.prisma.supportTicket.findUnique({ where: { id: ticketId } });
+      if (!ticket) throw new NotFoundException('Ticket not found');
+    } else {
+      const discordId = this.assertTicketUser(principal);
+      const ticket = await this.prisma.supportTicket.findFirst({
+        where: { id: ticketId, reporterDiscordId: discordId },
+      });
+      if (!ticket) throw new NotFoundException('Ticket not found');
+    }
+    const messages = await this.prisma.supportTicketMessage.findMany({
+      where: { ticketId },
+      orderBy: { createdAt: 'asc' },
+    });
+    return {
+      items: messages.map((m) => ({
+        id: m.id,
+        authorKind: m.authorKind,
+        authorDiscordId: m.authorDiscordId,
+        body: m.body,
+        createdAt: m.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  async postTicketMessageFromUser(principal: RequestPrincipal, ticketId: string, body: string) {
+    const discordId = this.assertTicketUser(principal);
+    const ticket = await this.prisma.supportTicket.findFirst({
+      where: { id: ticketId, reporterDiscordId: discordId },
+    });
+    if (!ticket) throw new NotFoundException('Ticket not found');
+    this.assertTicketOpenForChat(ticket);
+    const text = body.trim();
+    if (text.length < 1 || text.length > 4000) {
+      throw new BadRequestException('Message must be 1–4000 characters');
+    }
+    const row = await this.prisma.supportTicketMessage.create({
+      data: {
+        ticketId,
+        authorKind: SupportTicketMessageAuthor.USER,
+        authorDiscordId: discordId,
+        body: text,
+      },
+    });
+    await this.prisma.supportTicket.update({
+      where: { id: ticketId },
+      data: { updatedAt: new Date() },
+    });
+    return { id: row.id, createdAt: row.createdAt.toISOString() };
+  }
+
+  async postTicketMessageFromAdmin(principal: RequestPrincipal, ticketId: string, body: string) {
+    if (!this.authz.principalHasAnyRole(principal, [AppRole.ADMIN])) {
+      throw new ForbiddenException();
+    }
+    if (principal.identity.kind !== 'user') {
+      throw new ForbiddenException();
+    }
+    const adminId = principal.identity.discordId;
+    const ticket = await this.prisma.supportTicket.findUnique({ where: { id: ticketId } });
+    if (!ticket) throw new NotFoundException('Ticket not found');
+    this.assertTicketOpenForChat(ticket);
+    const text = body.trim();
+    if (text.length < 1 || text.length > 4000) {
+      throw new BadRequestException('Message must be 1–4000 characters');
+    }
+    const row = await this.prisma.supportTicketMessage.create({
+      data: {
+        ticketId,
+        authorKind: SupportTicketMessageAuthor.ADMIN,
+        authorDiscordId: adminId,
+        body: text,
+      },
+    });
+    await this.prisma.supportTicket.update({
+      where: { id: ticketId },
+      data: {
+        updatedAt: new Date(),
+        assignedAdminDiscordId: ticket.assignedAdminDiscordId ?? adminId,
+      },
+    });
+    return { id: row.id, createdAt: row.createdAt.toISOString() };
   }
 }

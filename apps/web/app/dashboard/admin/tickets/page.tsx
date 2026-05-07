@@ -78,6 +78,9 @@ export default async function AdminTicketsPage() {
                 <Td className="font-mono text-[11px]">{t.reportStatus}</Td>
                 <Td>
                   <div className="flex flex-wrap gap-1">
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/dashboard/admin/tickets/${t.id}`}>Open</Link>
+                    </Button>
                     <form action={patchTicketAction.bind(null, t.id, 'NEEDS_EVIDENCE')}>
                       <Button type="submit" variant="outline" size="sm" title="Ask reporter for evidence">
                         Request evidence

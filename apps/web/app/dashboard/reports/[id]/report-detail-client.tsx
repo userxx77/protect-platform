@@ -6,9 +6,7 @@ import {
   reportMemberHandle,
   reportMemberLabel,
 } from '@/lib/report-display';
-import { approveReportAction, rejectReportAction } from '@/app/dashboard/admin/reports/actions';
-import { flagActionLevels, flagLevelDisplayName, type FlagActionLevel } from '@protect/shared';
-import { Button } from '@/components/ui/button';
+import { ReportModerationActions } from '@/app/dashboard/admin/reports/report-moderation-actions';
 
 export function ReportModerationPanel({
   reportId,
@@ -20,25 +18,11 @@ export function ReportModerationPanel({
   if (!canModerate) return null;
   return (
     <div className="border-border space-y-3 rounded-xl border bg-surface/30 p-4">
-      <p className="text-sm font-medium">Beoordeling (platform admin)</p>
+      <p className="text-sm font-medium">Review (platform admin)</p>
       <p className="text-muted-foreground text-xs">
-        Weiger de melding of kies de reputatietier die je wilt toepassen.
+        Reject the report or approve it and apply a reputation tier.
       </p>
-      <div className="flex flex-wrap items-center gap-2">
-        <form action={rejectReportAction.bind(null, reportId)}>
-          <Button type="submit" variant="outline" size="sm">
-            Weigeren
-          </Button>
-        </form>
-        <span className="text-muted-foreground text-xs">Accepteren als:</span>
-        {flagActionLevels.map((level: FlagActionLevel) => (
-          <form key={level} action={approveReportAction.bind(null, reportId, level)}>
-            <Button type="submit" size="sm" variant="soft">
-              {flagLevelDisplayName(level)}
-            </Button>
-          </form>
-        ))}
-      </div>
+      <ReportModerationActions reportId={reportId} />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar } from '@/components/ui/avatar';
+import { userAvatarUrl } from '@/lib/discord-cdn';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 
@@ -12,6 +12,7 @@ export type MembersViewRow = {
   discordUserId: string;
   username: string | null;
   globalName: string | null;
+  avatarHash: string | null;
   firstSeenAt: string;
   source: string;
   guildId: string;
@@ -91,10 +92,19 @@ export function MembersViewClient({
             </Tr>
           </Thead>
           <Tbody>
-            {pageSlice.map((m) => (
+            {pageSlice.map((m) => {
+              const av = userAvatarUrl(m.discordUserId, m.avatarHash) ?? '';
+              return (
               <Tr key={`${m.guildId}-${m.discordUserId}`}>
                 <Td className="w-10">
-                  <Avatar name={displayName(m)} />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={av}
+                    alt=""
+                    width={32}
+                    height={32}
+                    className="border-border h-8 w-8 shrink-0 rounded-full border"
+                  />
                 </Td>
                 <Td className="font-medium">{displayName(m)}</Td>
                 <Td className="font-mono text-[11px] text-muted-foreground">
@@ -108,7 +118,8 @@ export function MembersViewClient({
                   {new Date(m.firstSeenAt).toLocaleString()}
                 </Td>
               </Tr>
-            ))}
+            );
+            })}
           </Tbody>
         </Table>
       </Card>

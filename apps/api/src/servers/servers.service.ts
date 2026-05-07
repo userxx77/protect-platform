@@ -105,6 +105,38 @@ export class ServersService {
     };
   }
 
+  /** Bot: upsert Discord server metadata only (no entitlement / lifecycle side effects). */
+  async recordBotGuildSnapshot(dto: {
+    guildId: string;
+    discordName?: string | null;
+    iconHash?: string | null;
+    approximateMemberCount?: number | null;
+    ownerDiscordId?: string | null;
+    vanityUrlCode?: string | null;
+    premiumTier?: number | null;
+  }): Promise<void> {
+    await this.prisma.server.upsert({
+      where: { guildId: dto.guildId },
+      create: {
+        guildId: dto.guildId,
+        discordName: dto.discordName ?? null,
+        iconHash: dto.iconHash ?? null,
+        approximateMemberCount: dto.approximateMemberCount ?? null,
+        ownerDiscordId: dto.ownerDiscordId ?? null,
+        vanityUrlCode: dto.vanityUrlCode ?? null,
+        premiumTier: dto.premiumTier ?? null,
+      },
+      update: {
+        discordName: dto.discordName ?? undefined,
+        iconHash: dto.iconHash ?? undefined,
+        approximateMemberCount: dto.approximateMemberCount ?? undefined,
+        ownerDiscordId: dto.ownerDiscordId ?? undefined,
+        vanityUrlCode: dto.vanityUrlCode ?? undefined,
+        premiumTier: dto.premiumTier ?? undefined,
+      },
+    });
+  }
+
   /** Called by bot on guild join/leave — creates entitlement (auto-trial or INACTIVE). */
   async recordBotGuildLifecycle(dto: {
     guildId: string;

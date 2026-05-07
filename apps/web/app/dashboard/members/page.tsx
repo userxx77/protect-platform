@@ -20,6 +20,7 @@ type MembersRes = {
     discordUserId: string;
     username: string | null;
     globalName: string | null;
+    avatarHash: string | null;
     firstSeenAt: string;
     source: string;
   }>;

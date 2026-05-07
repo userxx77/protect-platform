@@ -51,6 +51,44 @@ export class BotGuildLifecycleDto {
   premiumTier?: number | null;
 }
 
+/** Bot-only: refresh Server row metadata from live Guild (no lifecycle / entitlement). */
+export class BotGuildSnapshotDto {
+  @ApiProperty()
+  @IsString()
+  @Matches(/^\d{17,20}$/)
+  guildId!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  discordName?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  iconHash?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  approximateMemberCount?: number | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{17,20}$/)
+  ownerDiscordId?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  vanityUrlCode?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  premiumTier?: number | null;
+}
+
 export class GuildMemberBatchItemDto {
   @ApiProperty()
   @IsString()

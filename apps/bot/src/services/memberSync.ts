@@ -10,6 +10,7 @@ import {
 } from '../embeds/sentra';
 import { sendAdminFeedEmbed } from './adminFeed';
 import { userStatusEmbed } from './alerts';
+import { pushGuildSnapshotToApi } from '../util/guildSnapshot';
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -111,6 +112,12 @@ export async function syncGuildMembersToApi(
 
   try {
     await guild.members.fetch();
+    await pushGuildSnapshotToApi(guild, api).catch((e) =>
+      botLog('warn', 'guild_snapshot_after_fetch_failed', {
+        guildId: guild.id,
+        error: e instanceof Error ? e.message : String(e),
+      }),
+    );
     const members = [...guild.members.cache.values()];
     const rows: MemberProfileRow[] = await Promise.all(
       members.map(async (m) => {

@@ -30,6 +30,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { PublicModule } from './platform-stats/public.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { LicenseKeysModule } from './license-keys/license-keys.module';
 
 @Module({
   imports: [
@@ -95,6 +96,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     PublicModule,
     TicketsModule,
     DashboardModule,
+    LicenseKeysModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

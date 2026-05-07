@@ -1,7 +1,16 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { dashboardFormPost } from '@/lib/api-server';
+import { dashboardApi, dashboardFormPost } from '@/lib/api-server';
+
+export async function postUserTicketMessageAction(ticketId: string, body: string): Promise<void> {
+  await dashboardApi(`/me/tickets/${ticketId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ body }),
+  });
+  revalidatePath(`/dashboard/tickets/${ticketId}`);
+  revalidatePath('/dashboard/tickets');
+}
 
 export async function submitEvidenceAction(
   ticketId: string,

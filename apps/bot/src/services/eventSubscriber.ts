@@ -6,6 +6,7 @@ import type { ApiClient } from './apiClient';
 import type { Env } from '../config/env';
 import { syncGuildMembersToApi } from './memberSync';
 import { sendAdminFeedEmbed } from './adminFeed';
+import { pushGuildSnapshotToApi } from '../util/guildSnapshot';
 import {
   embedGuildDiscovered,
   embedReportPending,
@@ -20,6 +21,7 @@ const CHANNELS = [
   'protect:server.config.updated',
   'protect:report.pending',
   'protect:guild.members.sync',
+  'protect:guild.metadata.refresh',
   'protect:guild.discovered',
   'protect:support.ticket.created',
   'protect:support.ticket.evidence_submitted',
@@ -105,6 +107,28 @@ export function startEventSubscriber(
               }
             }
             await syncGuildMembersToApi(g, api, client, botEnv);
+          }
+          return;
+        }
+
+        if (env.type === 'guild.metadata.refresh') {
+          const gid = env.payload?.guildId;
+          if (gid) {
+            let g = client.guilds.cache.get(gid);
+            if (!g) {
+              try {
+                g = await client.guilds.fetch(gid);
+              } catch {
+                botLog('warn', 'metadata_refresh_guild_fetch_failed', { guildId: gid });
+                return;
+              }
+            }
+            await pushGuildSnapshotToApi(g, api).catch((e) =>
+              botLog('warn', 'metadata_refresh_snapshot_failed', {
+                guildId: gid,
+                error: e instanceof Error ? e.message : String(e),
+              }),
+            );
           }
           return;
         }
