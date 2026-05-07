@@ -1,5 +1,5 @@
--- CreateTable
-CREATE TABLE "guild_blacklist" (
+-- Idempotent table create (retry-safe if a previous run failed after enum but before this file finished)
+CREATE TABLE IF NOT EXISTS "guild_blacklist" (
     "guild_id" TEXT NOT NULL,
     "reason" TEXT,
     "created_by_discord_id" TEXT,
@@ -8,5 +8,9 @@ CREATE TABLE "guild_blacklist" (
     CONSTRAINT "guild_blacklist_pkey" PRIMARY KEY ("guild_id")
 );
 
--- Backfill: split former low-score SUSPICIOUS into WATCH (aligns with FLAG_THRESHOLD_WATCH=1, SUSPICIOUS=3)
-UPDATE "users" SET "flag_level" = 'WATCH' WHERE "flag_level" = 'SUSPICIOUS' AND "flag_score" >= 1 AND "flag_score" < 3;
+-- Backfill: same filter repeated is safe
+UPDATE "users"
+SET "flag_level" = 'WATCH'
+WHERE "flag_level" = 'SUSPICIOUS'
+  AND "flag_score" >= 1
+  AND "flag_score" < 3;
