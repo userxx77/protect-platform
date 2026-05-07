@@ -67,11 +67,19 @@ else
   note_fail "API GET /ready (curl ${API_BASE}/ready)"
 fi
 
-# --- Web ---
-if curl -sf "${WEB_BASE}/api/health" >/dev/null; then
+# --- Web (Next.js bind can lag a few seconds after container "Started") ---
+web_ok=0
+for _try in {1..15}; do
+  if curl -sf "${WEB_BASE}/api/health" >/dev/null; then
+    web_ok=1
+    break
+  fi
+  sleep 2
+done
+if [[ "$web_ok" -eq 1 ]]; then
   note_ok "Web GET /api/health"
 else
-  note_fail "Web GET /api/health"
+  note_fail "Web GET /api/health (curl ${WEB_BASE}/api/health after ~30s retries — check WEB_PUBLISH_PORT and: docker compose logs web --tail 80)"
 fi
 
 # --- Postgres ---
@@ -105,6 +113,9 @@ LAST_ACTIVE=$("${REDIS_CLI[@]}" GET protect:worker:last_active_at 2>/dev/null | 
 if [[ -n "$LAST_ACTIVE" && "$LAST_ACTIVE" != "(nil)" ]]; then
   NOW_MS=$(($(date +%s) * 1000))
   AGE=$((NOW_MS - LAST_ACTIVE))
+  if [[ "$AGE" -lt 0 ]]; then
+    AGE=$((-AGE))
+  fi
   if [[ "$AGE" -lt 180000 ]]; then
     note_ok "Worker last_active age ${AGE}ms (<3m)"
   else
