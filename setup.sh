@@ -147,6 +147,7 @@ else
   remove_kv DISCORD_GUILD_ID "$ENV_FILE"
 fi
 
+upsert_kv JWT_SECRET "$JWT_SECRET" "$ENV_FILE"
 upsert_kv AUTH_SECRET "$JWT_SECRET" "$ENV_FILE"
 upsert_kv DASHBOARD_JWT_SECRET "$JWT_SECRET" "$ENV_FILE"
 upsert_kv BOT_API_KEY "$BOT_API_KEY" "$ENV_FILE"

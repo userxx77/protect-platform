@@ -5,7 +5,8 @@ import { canManageGuildDiscordPermissions } from '@/lib/discord-guilds';
 const authSecret =
   process.env.AUTH_SECRET?.trim() ||
   process.env.NEXTAUTH_SECRET?.trim() ||
-  process.env.DASHBOARD_JWT_SECRET?.trim();
+  process.env.DASHBOARD_JWT_SECRET?.trim() ||
+  process.env.JWT_SECRET?.trim();
 
 const discordClientId = process.env.DISCORD_CLIENT_ID?.trim() ?? '';
 const discordClientSecret = process.env.DISCORD_CLIENT_SECRET?.trim() ?? '';
