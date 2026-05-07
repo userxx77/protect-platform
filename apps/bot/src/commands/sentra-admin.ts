@@ -1,7 +1,4 @@
-import {
-  SlashCommandBuilder,
-  type ChatInputCommandInteraction,
-} from 'discord.js';
+import { type ChatInputCommandInteraction } from 'discord.js';
 import { isDiscordPlatformAdmin } from '@protect/shared';
 import type { ApiClient } from '../services/apiClient';
 import type { Env } from '../config/env';
@@ -12,64 +9,7 @@ import {
   embedSentraAdminSyncQueued,
 } from '../embeds/commandEmbeds';
 
-export const sentraAdminCommandData = new SlashCommandBuilder()
-  .setName('sentra-admin')
-  .setDescription('Platform admins: server licenses and member sync jobs')
-  .setDMPermission(false)
-  .addSubcommand((sub) =>
-    sub
-      .setName('license')
-      .setDescription('Create or update a server license (entitlement)')
-      .addStringOption((o) =>
-        o
-          .setName('guild_id')
-          .setDescription('Discord server (guild) snowflake ID')
-          .setRequired(true),
-      )
-      .addStringOption((o) =>
-        o
-          .setName('status')
-          .setDescription('License status to apply')
-          .setRequired(true)
-          .addChoices(
-            { name: 'Inactive', value: 'INACTIVE' },
-            { name: 'Trial', value: 'TRIAL' },
-            { name: 'Active', value: 'ACTIVE' },
-            { name: 'Past due', value: 'PAST_DUE' },
-            { name: 'Canceled', value: 'CANCELED' },
-          ),
-      )
-      .addStringOption((o) =>
-        o
-          .setName('valid_from')
-          .setDescription('Start date YYYY-MM-DD (UTC midnight); default today')
-          .setRequired(false),
-      )
-      .addStringOption((o) =>
-        o
-          .setName('valid_until')
-          .setDescription('Optional end date YYYY-MM-DD (UTC midnight)')
-          .setRequired(false),
-      )
-      .addStringOption((o) =>
-        o
-          .setName('plan_code')
-          .setDescription('Optional plan label (e.g. pro)')
-          .setRequired(false),
-      ),
-  )
-  .addSubcommand((sub) =>
-    sub
-      .setName('sync-members')
-      .setDescription('Queue a full member cache sync for a server')
-      .addStringOption((o) =>
-        o
-          .setName('guild_id')
-          .setDescription('Discord server snowflake ID')
-          .setRequired(true),
-      ),
-  );
-
+/** Handlers for `/sentra platform …` (and legacy callers). */
 export async function executeSentraAdmin(
   interaction: ChatInputCommandInteraction,
   api: ApiClient,

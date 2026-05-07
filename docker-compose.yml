@@ -160,7 +160,13 @@ services:
       NODE_ENV: production
       PORT: "3000"
       API_BASE_URL: http://api:3001
-      # Auth.js: public URL for OAuth callbacks (set in .env, e.g. https://dashboard.sentra.gg)
+      # Auth.js (explicit so a missing key is obvious in `docker compose config`; still load secrets via env_file)
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-}
+      DASHBOARD_JWT_SECRET: ${DASHBOARD_JWT_SECRET:-}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
+      # Public URL for OAuth callbacks (set in .env, e.g. https://dashboard.sentra.gg)
       NEXTAUTH_URL: ${NEXTAUTH_URL:-}
       AUTH_URL: ${AUTH_URL:-${NEXTAUTH_URL:-}}
     ports:

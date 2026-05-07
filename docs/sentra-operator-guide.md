@@ -12,6 +12,7 @@ Single-page reference: where to configure things, who is admin, Discord bot beha
 | Variable | Example | Note |
 |----------|---------|------|
 | `NEXTAUTH_URL` / `WEB_URL` | `https://dashboard.sentra.gg` | Must match the host users open in the browser (OAuth callback). |
+| `AUTH_SECRET` (or `NEXTAUTH_SECRET`, or reuse `DASHBOARD_JWT_SECRET`) | openssl rand | Missing secret → Auth.js “server configuration” error on sign-in. |
 | `NEXT_PUBLIC_API_URL` / `API_PUBLIC_URL` | `https://api.sentra.gg` | Browser calls the API here; not `localhost`. |
 | `API_BASE_URL` (web + bot in Docker) | `http://api:3001` | Internal Compose network only. |
 
@@ -40,8 +41,9 @@ Configure **alert channel** and **minimum flag level** in the dashboard (Server 
 
 On each **Discord ready**, the bot **reconciles** commands so you should only see **one** set per guild:
 
-- **Global mode** (`DISCORD_GUILD_ID` empty): clears **all global** definitions’ competing **guild** command lists (for every guild the bot is currently in), then registers **global** commands only. That removes old guild-scoped copies that were stacking with global (duplicate `/report`, etc.).
-- **Guild mode** (`DISCORD_GUILD_ID` set): clears **global** commands, clears **guild** command lists for every guild in cache, then registers commands **only** on that guild id (dev / single-guild instant updates).
+- The bot registers **only `/sentra`** (subcommands and groups for check, report, flag, config, setup, platform admin, etc.). Legacy top-level commands (`/check`, `/report`, …) are **not** registered; if an old client still shows them during propagation, using them replies with a pointer to `/sentra`.
+- **Global mode** (`DISCORD_GUILD_ID` empty): clears **guild**-scoped command lists (for every guild the bot is in), then registers **global** `/sentra` only.
+- **Guild mode** (`DISCORD_GUILD_ID` set + `DISCORD_SLASH_SCOPE=guild`): clears **global** commands and every guild’s list, then registers **`/sentra` only** on that guild id (dev / instant updates).
 
 Sync runs **after** the gateway connection is ready so the guild list is known. Very large guild counts add a short startup delay due to per-guild API calls.
 
@@ -73,9 +75,9 @@ Licensing, pending reports, and member sync: **[Sentra licensing & roles](runboo
 
 ## Bot capabilities (summary)
 
-- **`/check`**, **`/report`**, **`/flag`** — reputation and intake (API enforces trust for flags).
-- **`/help`** — short command list and dashboard link (uses `WEB_URL` in the bot container if set).
-- **`/config`** — **`view`** / **`set`** alert channel and minimum level; requires **Manage Server** or **Administrator** on the guild (writes via `POST /v1/bot/server/config`).
+- **`/sentra check`**, **`/sentra report`**, **`/sentra flag`** — reputation and intake (API enforces trust for flags).
+- **`/sentra help`** / **`/sentra support`** — command list, setup hints, tickets (uses `WEB_URL` in the bot container if set).
+- **`/sentra config`** — **`show`** / **`set`** alert channel and minimum level; requires **Manage Server** or **Administrator** on the guild (writes via `POST /v1/bot/server/config`).
 - **Guild member join** — optional alerts using saved server config.
 - **Presence** — bot sets activity from `GET /v1/bot/public-stats` (user + server counts); no PII.
 - **Redis** (if configured) — subscriber refreshes server config cache; no extra Discord messages from that path alone.
@@ -85,7 +87,7 @@ Licensing, pending reports, and member sync: **[Sentra licensing & roles](runboo
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
 | `GET` | `/v1/bot/public-stats` | `x-api-key` | Counts for bot presence (`usersTracked`, `serversActive`). |
-| `POST` | `/v1/bot/server/config` | `x-api-key` | Bot proxy for guild config; body includes `actorDiscordId` (admin who ran `/config` in Discord). |
+| `POST` | `/v1/bot/server/config` | `x-api-key` | Bot proxy for guild config; body includes `actorDiscordId` (admin who ran `/sentra config` in Discord). |
 | `GET` | `/v1/servers` | Bearer (admin JWT) | List configured guilds for the dashboard. |
 | `POST` | `/v1/server/config` | Bearer (admin JWT) | Dashboard server configuration. |
 

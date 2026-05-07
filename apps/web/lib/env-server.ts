@@ -6,7 +6,9 @@ export type WebEnvCheck = {
 /** Server-only env checks (no secrets in response). */
 export function evaluateWebProductionEnv(): WebEnvCheck {
   const authSecret =
-    process.env.AUTH_SECRET?.trim() || process.env.NEXTAUTH_SECRET?.trim();
+    process.env.AUTH_SECRET?.trim() ||
+    process.env.NEXTAUTH_SECRET?.trim() ||
+    process.env.DASHBOARD_JWT_SECRET?.trim();
   const apiBaseUrl = process.env.API_BASE_URL?.trim();
   const discordClientId = process.env.DISCORD_CLIENT_ID?.trim();
   const discordClientSecret = process.env.DISCORD_CLIENT_SECRET?.trim();

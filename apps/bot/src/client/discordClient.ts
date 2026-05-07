@@ -10,20 +10,6 @@ import {
 import type { Env } from '../config/env';
 import type { ApiClient } from '../services/apiClient';
 import { botLog } from '../log';
-import { checkCommandData, executeCheck } from '../commands/check';
-import { reportCommandData, executeReport } from '../commands/report';
-import { flagCommandData, executeFlag } from '../commands/flag';
-import {
-  configCommandData,
-  executeConfigSet,
-  executeConfigView,
-} from '../commands/config';
-import { helpCommandData, executeHelp } from '../commands/help';
-import { setupCommandData, executeSetup } from '../commands/setup';
-import {
-  sentraAdminCommandData,
-  executeSentraAdmin,
-} from '../commands/sentra-admin';
 import { sentraCommandData, executeSentra } from '../commands/sentra';
 import { onGuildMemberAdd } from '../events/guildMemberAdd';
 import { onGuildJoined, onGuildRemoved } from '../events/guildJoinLeave';
@@ -101,27 +87,14 @@ export function createDiscordClient(api: ApiClient, env: Env): Client {
 
     if (!i.isChatInputCommand()) return;
     try {
-      if (i.commandName === 'check') {
-        await executeCheck(i, api, client, env.WEB_URL);
-      } else if (i.commandName === 'report') {
-        await executeReport(i, api, env);
-      } else if (i.commandName === 'flag') {
-        await executeFlag(i, api);
-      } else if (i.commandName === 'help') {
-        await executeHelp(i, env);
-      } else if (i.commandName === 'setup') {
-        await executeSetup(i);
-      } else if (i.commandName === 'config') {
-        const sub = i.options.getSubcommand();
-        if (sub === 'view') {
-          await executeConfigView(i, api);
-        } else if (sub === 'set') {
-          await executeConfigSet(i, api);
-        }
-      } else if (i.commandName === 'sentra-admin') {
-        await executeSentraAdmin(i, api, env);
-      } else if (i.commandName === 'sentra') {
+      if (i.commandName === 'sentra') {
         await executeSentra(i, api, client, env);
+        return;
+      }
+      const legacy = legacySentraHint(i.commandName);
+      if (legacy) {
+        await i.reply({ ephemeral: true, content: legacy });
+        return;
       }
     } catch (e) {
       botLog('error', 'interaction_handler', { error: String(e) });
@@ -138,25 +111,30 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+/** If Discord still delivers removed global commands, tell users the /sentra equivalent. */
+function legacySentraHint(removed: string): string | null {
+  const map: Record<string, string> = {
+    check: 'Use **`/sentra check`**.',
+    report: 'Use **`/sentra report`**.',
+    flag: 'Use **`/sentra flag`**.',
+    config: 'Use **`/sentra config`** (show or set).',
+    help: 'Use **`/sentra help`** or **`/sentra support`**.',
+    setup: 'Use **`/sentra setup`** (start, alerts, reports, permissions).',
+    'sentra-admin': 'Use **`/sentra platform`** (license, sync-members).',
+  };
+  return map[removed] ?? null;
+}
+
 /**
  * Slash command registration:
- * - global (default): clear per-guild command lists, register application commands globally
- *   so every server the bot is in can use /check, /report, etc.
+ * - Registers **only** `/sentra` so Discord does not list legacy top-level commands.
+ * - global (default): clear per-guild command lists, register application commands globally.
  * - guild: dev single-guild — register only in DISCORD_GUILD_ID (requires env DISCORD_GUILD_ID).
  */
 export async function registerSlashCommands(env: Env, client: Client): Promise<void> {
   const rest = new REST().setToken(env.DISCORD_BOT_TOKEN);
   const appId = env.DISCORD_APPLICATION_ID;
-  const body = [
-    checkCommandData.toJSON(),
-    reportCommandData.toJSON(),
-    flagCommandData.toJSON(),
-    helpCommandData.toJSON(),
-    setupCommandData.toJSON(),
-    configCommandData.toJSON(),
-    sentraAdminCommandData.toJSON(),
-    sentraCommandData.toJSON(),
-  ];
+  const body = [sentraCommandData.toJSON()];
   const maxAttempts = 10;
   let lastErr: unknown;
   const useGuildScope =

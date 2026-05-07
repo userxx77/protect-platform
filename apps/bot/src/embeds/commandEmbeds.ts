@@ -44,7 +44,7 @@ export function embedReportLicenseDenied(dashboardUrl: string | undefined): Embe
     .setDescription(`This server has no active Sentra license.${link}`)
     .addFields({
       name: 'What to do',
-      value: 'Platform admin: trial or subscription (`/sentra-admin` or billing).',
+      value: 'Platform admin: trial or subscription (`/sentra platform license` or billing).',
     });
 }
 
@@ -150,10 +150,9 @@ export function embedHelp(dashboardUrl: string): EmbedBuilder {
     .setTitle('Commands')
     .setDescription(
       [
-        '`/check` reputation · `/report` community report · `/flag` trusted flag · `/help`',
-        '`/sentra` also exposes **check · report · flag · config show · support** (same behavior)',
-        '`/setup` · `/config` (Manage Server) · `/sentra monitor` (operators)',
-        '`/sentra reports_mine` / `report_status` · admin: `approve` `reject` `reports_pending` `unflag`',
+        'All commands live under **`/sentra`** — e.g. `check`, `report`, `flag`, `help`, `support`, `config`, `setup`.',
+        '**Platform admin:** `/sentra platform` (license, sync-members); report moderation: `approve`, `reject`, `reports_pending`, `unflag`.',
+        '`/sentra monitor` — operators only (same list as `ADMIN_DISCORD_IDS`).',
         `Dashboard: ${dashboardUrl}`,
       ].join('\n'),
     );
@@ -166,11 +165,11 @@ export function embedSetupStart(guildName: string): EmbedBuilder {
     .addFields(
       {
         name: '1',
-        value: 'Active Sentra license (admin: `/sentra-admin` or billing).',
+        value: 'Active Sentra license (admin: `/sentra platform license`).',
         inline: false,
       },
-      { name: '2', value: 'Staff channel + min level: `/config set` or `/setup alerts`.', inline: false },
-      { name: '3', value: 'Bot permissions: `/setup permissions`.', inline: false },
+      { name: '2', value: 'Staff channel + min level: `/sentra config set` or `/sentra setup alerts`.', inline: false },
+      { name: '3', value: 'Bot permissions: `/sentra setup permissions`.', inline: false },
     );
 }
 
@@ -179,10 +178,10 @@ export function embedSetupAlerts(): EmbedBuilder {
     .setTitle('Alerts')
     .setDescription(
       [
-        '`/config view` — see current channel',
-        '`/config set` — pick text / announcement / forum channel',
+        '`/sentra config show` — see current channel',
+        '`/sentra config set` — pick text / announcement / forum channel',
         'Set **minlevel** so CLEAN users do not spam pings',
-        'Optional join hold: **joinhold_*** in `/config set`; bot needs **Moderate / Kick / Ban Members**',
+        'Optional join hold: **joinhold_*** in `/sentra config set`; bot needs **Moderate / Kick / Ban Members**',
       ].join('\n'),
     );
 }
@@ -205,7 +204,7 @@ export function embedSetupPermissions(): EmbedBuilder {
       [
         'Send messages & embed links · read history · view channels',
         'Join hold: Moderate + Kick + Ban — bot role **above** targets',
-        '`/config` needs **Manage Server** on you, not on the bot',
+        '`/sentra config` needs **Manage Server** on you, not on the bot',
       ].join('\n'),
     );
 }

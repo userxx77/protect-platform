@@ -16,7 +16,14 @@ import {
 import { executeCheck } from './check';
 import { executeReport } from './report';
 import { executeFlag } from './flag';
-import { executeConfigView } from './config';
+import {
+  executeConfigSet,
+  executeConfigView,
+  withConfigSetOptions,
+} from './config';
+import { executeSetup } from './setup';
+import { executeHelp } from './help';
+import { executeSentraAdmin } from './sentra-admin';
 
 function ticketsPath(env: Env): string {
   const base = env.WEB_URL?.replace(/\/$/, '') ?? '';
@@ -25,8 +32,13 @@ function ticketsPath(env: Env): string {
 
 export const sentraCommandData = new SlashCommandBuilder()
   .setName('sentra')
-  .setDescription('Sentra — check, report, flag, config, support, operator tools')
+  .setDescription('Sentra — all bot commands (check, report, config, setup, support, …)')
   .setDMPermission(false)
+  .addSubcommand((sub) =>
+    sub
+      .setName('help')
+      .setDescription('Command list, setup hints, and dashboard link'),
+  )
   .addSubcommand((sub) =>
     sub
       .setName('monitor')
@@ -96,11 +108,101 @@ export const sentraCommandData = new SlashCommandBuilder()
   .addSubcommandGroup((group) =>
     group
       .setName('config')
-      .setDescription('Server configuration (same as /config)')
+      .setDescription('Server configuration (Manage Server)')
       .addSubcommand((sub) =>
         sub
           .setName('show')
           .setDescription('Show saved alert and join hold settings'),
+      )
+      .addSubcommand((sub) =>
+        withConfigSetOptions(
+          sub
+            .setName('set')
+            .setDescription('Update alert channel, levels, or join hold options'),
+        ),
+      ),
+  )
+  .addSubcommandGroup((group) =>
+    group
+      .setName('setup')
+      .setDescription('Guided server setup: alerts, reports, permissions')
+      .addSubcommand((sub) =>
+        sub
+          .setName('start')
+          .setDescription('First-time checklist for enabling Sentra in this server'),
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName('alerts')
+          .setDescription('Configure staff alert channel and noise level'),
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName('reports')
+          .setDescription('How community reports work and who can use them'),
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName('permissions')
+          .setDescription('Recommended bot permissions and staff requirements'),
+      ),
+  )
+  .addSubcommandGroup((group) =>
+    group
+      .setName('platform')
+      .setDescription('[Platform admin] Licenses and member sync')
+      .addSubcommand((sub) =>
+        sub
+          .setName('license')
+          .setDescription('Create or update a server license (entitlement)')
+          .addStringOption((o) =>
+            o
+              .setName('guild_id')
+              .setDescription('Discord server (guild) snowflake ID')
+              .setRequired(true),
+          )
+          .addStringOption((o) =>
+            o
+              .setName('status')
+              .setDescription('License status to apply')
+              .setRequired(true)
+              .addChoices(
+                { name: 'Inactive', value: 'INACTIVE' },
+                { name: 'Trial', value: 'TRIAL' },
+                { name: 'Active', value: 'ACTIVE' },
+                { name: 'Past due', value: 'PAST_DUE' },
+                { name: 'Canceled', value: 'CANCELED' },
+              ),
+          )
+          .addStringOption((o) =>
+            o
+              .setName('valid_from')
+              .setDescription('Start date YYYY-MM-DD (UTC midnight); default today')
+              .setRequired(false),
+          )
+          .addStringOption((o) =>
+            o
+              .setName('valid_until')
+              .setDescription('Optional end date YYYY-MM-DD (UTC midnight)')
+              .setRequired(false),
+          )
+          .addStringOption((o) =>
+            o
+              .setName('plan_code')
+              .setDescription('Optional plan label (e.g. pro)')
+              .setRequired(false),
+          ),
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName('sync-members')
+          .setDescription('Queue a full member cache sync for a server')
+          .addStringOption((o) =>
+            o
+              .setName('guild_id')
+              .setDescription('Discord server snowflake ID')
+              .setRequired(true),
+          ),
       ),
   )
   .addSubcommand((sub) =>
@@ -167,8 +269,23 @@ export async function executeSentra(
     await executeConfigView(interaction, api);
     return;
   }
+  if (group === 'config' && sub === 'set') {
+    await executeConfigSet(interaction, api);
+    return;
+  }
+  if (group === 'setup') {
+    await executeSetup(interaction);
+    return;
+  }
+  if (group === 'platform') {
+    await executeSentraAdmin(interaction, api, env);
+    return;
+  }
 
   switch (sub) {
+    case 'help':
+      await executeHelp(interaction, env);
+      return;
     case 'monitor': {
       if (!isDiscordPlatformAdmin(interaction.user.id, env.ADMIN_DISCORD_IDS)) {
         await interaction.reply({

@@ -4,7 +4,7 @@
 
 | Tier | Discord | API / dashboard |
 |------|---------|-----------------|
-| **Public** | Bot can be invited; `/config` still updates alert settings via existing bot→API path (subject to your future stricter gating). | No dashboard scope by default. |
+| **Public** | Bot can be invited; `/sentra config` still updates alert settings via existing bot→API path (subject to your future stricter gating). | No dashboard scope by default. |
 | **Licensed guild** | `GuildEntitlement` is **ACTIVE** or **TRIAL** with `validFrom` / `validUntil` in range. | Community `/report` via bot creates a **pending** report (no flag) until a platform **ADMIN** approves in the dashboard. |
 | **Trusted / platform ADMIN** (reporter) | `/report` applies the flag immediately (same as previous product behavior for trusted paths). | Full admin APIs and pages. |
 
@@ -13,7 +13,7 @@
 | Variable | Purpose |
 |----------|---------|
 | `DISCORD_ADMIN_FEED_CHANNEL_ID` | Optional. Text channel ID where the bot posts embeds for **pending reports**, **guild discovered**, and (via Redis) **member sync** is driven. |
-| `ADMIN_DISCORD_IDS` | Same comma-separated Discord user IDs as API **`ADMIN_DISCORD_IDS`**. Required for **`/sentra-admin`** and **`/sentra monitor`** (slash) to authorize platform operators. |
+| `ADMIN_DISCORD_IDS` | Same comma-separated Discord user IDs as API **`ADMIN_DISCORD_IDS`**. Required for **`/sentra platform`** and **`/sentra monitor`** (slash) to authorize platform operators. |
 
 ## Environment (API)
 
@@ -26,10 +26,10 @@
 
 In servers where the bot is present, users with a Discord ID listed in **`ADMIN_DISCORD_IDS`** (bot env, mirroring the API) may run:
 
-- **`/sentra-admin license`** — set `guild_id`, `status`, optional `valid_from` / `valid_until` / `plan_code` (calls `POST /v1/bot/admin/guilds/:id/entitlement` with bot key + actor id).
-- **`/sentra-admin sync-members`** — queue member cache sync (`POST /v1/bot/admin/guilds/:id/sync-members`).
+- **`/sentra platform license`** — set `guild_id`, `status`, optional `valid_from` / `valid_until` / `plan_code` (calls `POST /v1/bot/admin/guilds/:id/entitlement` with bot key + actor id).
+- **`/sentra platform sync-members`** — queue member cache sync (`POST /v1/bot/admin/guilds/:id/sync-members`).
 
-Commands are registered in **global** command scope when `DISCORD_GUILD_ID` is unset (production). With dev guild-only registration, register `/sentra-admin` in that same guild scope or temporarily use global registration.
+Commands are registered in **global** command scope when `DISCORD_GUILD_ID` is unset (production). With dev guild-only registration, `/sentra` is registered in that same guild scope or temporarily use global registration.
 
 ## Stripe (placeholder)
 

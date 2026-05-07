@@ -3,6 +3,7 @@ import {
   PermissionFlagsBits,
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
+  type SlashCommandSubcommandBuilder,
 } from 'discord.js';
 import type { ApiClient } from '../services/apiClient';
 import {
@@ -18,7 +19,7 @@ import {
 } from '../embeds/commandEmbeds';
 import { displayFlagLevel } from '../services/joinHold';
 
-const levelChoices = [
+export const configLevelChoices = [
   { name: 'CLEAN', value: 'CLEAN' },
   { name: 'WATCH', value: 'WATCH' },
   { name: 'SUSPICIOUS', value: 'SUSPICIOUS' },
@@ -26,13 +27,70 @@ const levelChoices = [
   { name: 'CONFIRMED_CHEATER', value: 'CONFIRMED_CHEATER' },
 ] as const;
 
-const joinActionChoices = [
+export const configJoinActionChoices = [
   { name: 'notify (channel ping — default)', value: 'notify' },
   { name: 'log (audit only — no channel message)', value: 'log' },
   { name: 'quarantine (timeout + staff card)', value: 'quarantine' },
   { name: 'kick (requires Kick Members)', value: 'kick' },
   { name: 'ban (requires Ban Members)', value: 'ban' },
 ] as const;
+
+/** Reused by `/sentra config set`. */
+export function withConfigSetOptions(
+  sub: SlashCommandSubcommandBuilder,
+): SlashCommandSubcommandBuilder {
+  return sub
+    .addChannelOption((o) =>
+      o
+        .setName('channel')
+        .setDescription('Channel where Sentra posts join and check alerts')
+        .addChannelTypes(
+          ChannelType.GuildText,
+          ChannelType.GuildAnnouncement,
+          ChannelType.GuildForum,
+        )
+        .setRequired(false),
+    )
+    .addStringOption((o) =>
+      o
+        .setName('minlevel')
+        .setDescription('Minimum reputation level that triggers an alert')
+        .setRequired(false)
+        .addChoices(...configLevelChoices),
+    )
+    .addBooleanOption((o) =>
+      o
+        .setName('joinhold_enabled')
+        .setDescription(
+          'Join hold: timeout + Kick/Ban/Release card (independent of alert level)',
+        )
+        .setRequired(false),
+    )
+    .addIntegerOption((o) =>
+      o
+        .setName('joinhold_minutes')
+        .setDescription('Communication timeout length in minutes (1–40320)')
+        .setMinValue(1)
+        .setMaxValue(40320)
+        .setRequired(false),
+    )
+    .addStringOption((o) =>
+      o
+        .setName('joinhold_minlevel')
+        .setDescription(
+          'Minimum Sentra level to apply join hold (below = no timeout/card)',
+        )
+        .setRequired(false)
+        .addChoices(...configLevelChoices),
+    )
+    .addStringOption((o) =>
+      o
+        .setName('join_action')
+        .setDescription('When a risky user joins: notify / log / quarantine / kick / ban')
+        .setRequired(false)
+        .addChoices(...configJoinActionChoices),
+    );
+}
 
 export const configCommandData = new SlashCommandBuilder()
   .setName('config')
@@ -43,59 +101,11 @@ export const configCommandData = new SlashCommandBuilder()
       .setDescription('Show saved alert and join hold settings'),
   )
   .addSubcommand((sub) =>
-    sub
-      .setName('set')
-      .setDescription('Update alert channel, levels, or join hold options')
-      .addChannelOption((o) =>
-        o
-          .setName('channel')
-          .setDescription('Channel where Sentra posts join and check alerts')
-          .addChannelTypes(
-            ChannelType.GuildText,
-            ChannelType.GuildAnnouncement,
-            ChannelType.GuildForum,
-          )
-          .setRequired(false),
-      )
-      .addStringOption((o) =>
-        o
-          .setName('minlevel')
-          .setDescription('Minimum reputation level that triggers an alert')
-          .setRequired(false)
-          .addChoices(...levelChoices),
-      )
-      .addBooleanOption((o) =>
-        o
-          .setName('joinhold_enabled')
-          .setDescription(
-            'Join hold: timeout + Kick/Ban/Release card (independent of alert level)',
-          )
-          .setRequired(false),
-      )
-      .addIntegerOption((o) =>
-        o
-          .setName('joinhold_minutes')
-          .setDescription('Communication timeout length in minutes (1–40320)')
-          .setMinValue(1)
-          .setMaxValue(40320)
-          .setRequired(false),
-      )
-      .addStringOption((o) =>
-        o
-          .setName('joinhold_minlevel')
-          .setDescription(
-            'Minimum Sentra level to apply join hold (below = no timeout/card)',
-          )
-          .setRequired(false)
-          .addChoices(...levelChoices),
-      )
-      .addStringOption((o) =>
-        o
-          .setName('join_action')
-          .setDescription('When a risky user joins: notify / log / quarantine / kick / ban')
-          .setRequired(false)
-          .addChoices(...joinActionChoices),
-      ),
+    withConfigSetOptions(
+      sub
+        .setName('set')
+        .setDescription('Update alert channel, levels, or join hold options'),
+    ),
   );
 
 function canManageConfig(interaction: ChatInputCommandInteraction): boolean {

@@ -28,7 +28,7 @@ const envSchema = z.object({
       const n = Number(s);
       return Number.isFinite(n) && n > 0 ? n : undefined;
     }),
-  /** Public dashboard URL (shown in /help); optional */
+  /** Public dashboard URL (shown in /sentra help); optional */
   WEB_URL: z
     .string()
     .url()
@@ -63,7 +63,7 @@ const envSchema = z.object({
       }
       return s.trim();
     }),
-  /** Comma-separated Discord user IDs allowed to use /sentra-admin (same as API ADMIN_DISCORD_IDS). */
+  /** Comma-separated Discord user IDs for `/sentra platform` + `/sentra monitor` (same as API ADMIN_DISCORD_IDS). */
   ADMIN_DISCORD_IDS: z
     .string()
     .optional()
