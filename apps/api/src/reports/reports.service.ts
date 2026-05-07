@@ -409,7 +409,23 @@ export class ReportsService {
     };
   }
 
-  async approve(reportId: string, adminDiscordId: string) {
+  async approve(
+    reportId: string,
+    adminDiscordId: string,
+    severity: FlagLevel,
+  ) {
+    const actionable = new Set<FlagLevel>([
+      FlagLevel.WATCH,
+      FlagLevel.SUSPICIOUS,
+      FlagLevel.HIGH_RISK,
+      FlagLevel.CONFIRMED_CHEATER,
+    ]);
+    if (!actionable.has(severity)) {
+      throw new BadRequestException(
+        'severity must be WATCH, SUSPICIOUS, HIGH_RISK, or CONFIRMED_CHEATER',
+      );
+    }
+
     const existing = await this.prisma.report.findUnique({
       where: { id: reportId },
       include: { reportedUser: true },
@@ -432,7 +448,7 @@ export class ReportsService {
     const result = await this.prisma.$transaction(async (tx) => {
       await lockUserRowForAggregateUpdate(tx, existing.reportedUserId);
 
-      const weight = this.policy.communityReportWeight();
+      const weight = this.policy.trustedCommandWeightForSeverity(severity);
 
       const createdFlag = await tx.flag.create({
         data: {

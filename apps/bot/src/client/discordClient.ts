@@ -119,7 +119,7 @@ function legacySentraHint(removed: string): string | null {
     flag: 'Use **`/sentra flag`**.',
     config: 'Use **`/sentra config`** (show or set).',
     help: 'Use **`/sentra help`** or **`/sentra support`**.',
-    setup: 'Use **`/sentra setup`** (start, alerts, reports, permissions).',
+    setup: 'Use **`/sentra setup`** (checklist).',
     'sentra-admin': 'Use **`/sentra platform`** (license, sync-members).',
   };
   return map[removed] ?? null;

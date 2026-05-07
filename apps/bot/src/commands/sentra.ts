@@ -7,12 +7,7 @@ import { discordSlashLevelChoices, isDiscordPlatformAdmin } from '@protect/share
 import type { Env } from '../config/env';
 import type { ApiClient } from '../services/apiClient';
 import { SENTRA_DANGER, SENTRA_WARNING, SENTRA_PRIMARY, baseCommandEmbed } from '../embeds/sentra';
-import {
-  embedMonitorHelp,
-  embedOperatorsOnly,
-  embedPlatformAdminOnly,
-  embedSentraSupport,
-} from '../embeds/commandEmbeds';
+import { embedPlatformAdminOnly, embedSentraSupport } from '../embeds/commandEmbeds';
 import { executeCheck } from './check';
 import { executeReport } from './report';
 import { executeFlag } from './flag';
@@ -21,7 +16,7 @@ import {
   executeConfigView,
   withConfigSetOptions,
 } from './config';
-import { executeSetup } from './setup';
+import { executeSetupQuick } from './setup';
 import { executeHelp } from './help';
 import { executeSentraAdmin } from './sentra-admin';
 
@@ -32,7 +27,7 @@ function ticketsPath(env: Env): string {
 
 export const sentraCommandData = new SlashCommandBuilder()
   .setName('sentra')
-  .setDescription('Sentra — all bot commands (check, report, config, setup, support, …)')
+  .setDescription('Sentra — reputation, reports, server config, and platform admin')
   .setDMPermission(false)
   .addSubcommand((sub) =>
     sub
@@ -41,8 +36,8 @@ export const sentraCommandData = new SlashCommandBuilder()
   )
   .addSubcommand((sub) =>
     sub
-      .setName('monitor')
-      .setDescription('Stream the live Redis event log from your application server'),
+      .setName('setup')
+      .setDescription('Short first-time checklist (license, alerts, permissions)'),
   )
   .addSubcommand((sub) =>
     sub
@@ -124,31 +119,6 @@ export const sentraCommandData = new SlashCommandBuilder()
   )
   .addSubcommandGroup((group) =>
     group
-      .setName('setup')
-      .setDescription('Guided server setup: alerts, reports, permissions')
-      .addSubcommand((sub) =>
-        sub
-          .setName('start')
-          .setDescription('First-time checklist for enabling Sentra in this server'),
-      )
-      .addSubcommand((sub) =>
-        sub
-          .setName('alerts')
-          .setDescription('Configure staff alert channel and noise level'),
-      )
-      .addSubcommand((sub) =>
-        sub
-          .setName('reports')
-          .setDescription('How community reports work and who can use them'),
-      )
-      .addSubcommand((sub) =>
-        sub
-          .setName('permissions')
-          .setDescription('Recommended bot permissions and staff requirements'),
-      ),
-  )
-  .addSubcommandGroup((group) =>
-    group
       .setName('platform')
       .setDescription('[Platform admin] Licenses and member sync')
       .addSubcommand((sub) =>
@@ -208,9 +178,16 @@ export const sentraCommandData = new SlashCommandBuilder()
   .addSubcommand((sub) =>
     sub
       .setName('approve')
-      .setDescription('[Platform admin] Approve a pending report by id')
+      .setDescription('[Platform admin] Approve a pending report (applies chosen tier weight)')
       .addStringOption((o) =>
         o.setName('report_id').setDescription('Report UUID').setRequired(true),
+      )
+      .addStringOption((o) =>
+        o
+          .setName('level')
+          .setDescription('Final reputation tier to apply')
+          .setRequired(true)
+          .addChoices(...discordSlashLevelChoices.map((c) => ({ name: c.name, value: c.value }))),
       ),
   )
   .addSubcommand((sub) =>
@@ -273,8 +250,8 @@ export async function executeSentra(
     await executeConfigSet(interaction, api);
     return;
   }
-  if (group === 'setup') {
-    await executeSetup(interaction);
+  if (sub === 'setup') {
+    await executeSetupQuick(interaction);
     return;
   }
   if (group === 'platform') {
@@ -286,27 +263,6 @@ export async function executeSentra(
     case 'help':
       await executeHelp(interaction, env);
       return;
-    case 'monitor': {
-      if (!isDiscordPlatformAdmin(interaction.user.id, env.ADMIN_DISCORD_IDS)) {
-        await interaction.reply({
-          ephemeral: true,
-          embeds: [embedOperatorsOnly()],
-        });
-        return;
-      }
-      const dash = env.WEB_URL?.replace(/\/$/, '') ?? 'your dashboard';
-      await interaction.reply({
-        ephemeral: true,
-        embeds: [
-          embedMonitorHelp({
-            dashboardHint: dash,
-            opsKeyHint:
-              'Set `SENTRA_OPS_STATS_KEY` in API `.env` (same value everywhere) so the stats footer on the CLI can call `/v1/public/platform-stats`.',
-          }),
-        ],
-      });
-      return;
-    }
     case 'support': {
       const dash = env.WEB_URL?.replace(/\/$/, '') ?? '';
       const ticketsUrl = ticketsPath(env);
@@ -444,7 +400,8 @@ async function executeSentraPlatform(
 
     if (sub === 'approve') {
       const id = interaction.options.getString('report_id', true);
-      const out = await api.botReportApprove(id, interaction.user.id);
+      const level = interaction.options.getString('level', true);
+      const out = await api.botReportApprove(id, interaction.user.id, level);
       await interaction.editReply({
         embeds: [
           baseCommandEmbed(SENTRA_PRIMARY)

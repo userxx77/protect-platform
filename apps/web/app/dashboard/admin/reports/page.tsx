@@ -1,20 +1,7 @@
 import { dashboardApi } from '@/lib/api-server';
-import { approveReportAction, rejectReportAction } from './actions';
-import { FlagLevelBadge } from '@/components/flag-level-badge';
+import { PendingReportsQueue, type PendingReportItem } from './pending-reports-queue';
 
-type PendingItem = {
-  id: string;
-  reporterDiscordId: string;
-  targetDiscordId: string;
-  guildId: string | null;
-  reason: string;
-  allegedFlagLevel?: string | null;
-  createdAt: string;
-  ticketId?: string | null;
-  ticketStatus?: string | null;
-};
-
-type PendingResponse = { items: PendingItem[] };
+type PendingResponse = { items: PendingReportItem[] };
 
 export default async function AdminReportsPage() {
   let data: PendingResponse;
@@ -23,7 +10,7 @@ export default async function AdminReportsPage() {
   } catch (e) {
     return (
       <section className="ds-card">
-        <h1 className="ds-h1">Pending reports</h1>
+        <h1 className="ds-h1">Reports queue</h1>
         <div className="ds-alert ds-alert-error" style={{ marginTop: '1rem' }}>
           {e instanceof Error ? e.message : 'Failed to load'} (platform admin only)
         </div>
@@ -32,68 +19,16 @@ export default async function AdminReportsPage() {
   }
 
   return (
-    <section className="ds-card">
-      <h1 className="ds-h1">Pending reports</h1>
-      <p className="ds-muted" style={{ marginTop: '0.35rem' }}>
-        Community reports awaiting review before flags apply.
-      </p>
-      <div className="ds-table-wrap" style={{ marginTop: '1rem' }}>
-        <table className="ds-table">
-          <thead>
-            <tr>
-              <th>Severity</th>
-              <th>Created</th>
-              <th>Target</th>
-              <th>Reporter</th>
-              <th>Guild</th>
-              <th>Ticket</th>
-              <th>Reason</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.items.map((r) => (
-              <tr key={r.id}>
-                <td>
-                  <FlagLevelBadge level={r.allegedFlagLevel} />
-                  {r.allegedFlagLevel == null ? (
-                    <span className="ds-hint" style={{ marginLeft: '0.25rem' }}>
-                      —
-                    </span>
-                  ) : null}
-                </td>
-                <td className="ds-mono">{r.createdAt}</td>
-                <td className="ds-mono">{r.targetDiscordId}</td>
-                <td className="ds-mono">{r.reporterDiscordId}</td>
-                <td className="ds-mono">{r.guildId ?? '—'}</td>
-                <td>
-                  {r.ticketId ? (
-                    <span className="ds-mono">
-                      {r.ticketStatus ?? '—'} · {r.ticketId.slice(0, 8)}…
-                    </span>
-                  ) : (
-                    '—'
-                  )}
-                </td>
-                <td style={{ maxWidth: 240 }}>{r.reason}</td>
-                <td>
-                  <form action={approveReportAction.bind(null, r.id)} style={{ display: 'inline', marginRight: '0.5rem' }}>
-                    <button type="submit" className="ds-btn">
-                      Approve
-                    </button>
-                  </form>
-                  <form action={rejectReportAction.bind(null, r.id)} style={{ display: 'inline' }}>
-                    <button type="submit" className="ds-btn ds-btn-ghost">
-                      Reject
-                    </button>
-                  </form>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <section className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Reports queue</h1>
+        <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
+          Pending community reports. <strong>Accepted</strong> applies the tier you pick;{' '}
+          <strong>Deny</strong> closes the report. New items are also posted to Discord when{' '}
+          <code className="text-foreground">DISCORD_ADMIN_FEED_CHANNEL_ID</code> is set on the bot.
+        </p>
       </div>
-      {data.items.length === 0 ? <p className="ds-hint">No pending reports.</p> : null}
+      <PendingReportsQueue items={data.items} />
     </section>
   );
 }

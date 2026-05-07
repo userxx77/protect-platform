@@ -61,7 +61,7 @@ export function embedGuildDiscovered(input: {
   const name = input.name ?? 'Unknown server';
   const e = baseFeedEmbed(SENTRA_SUCCESS)
     .setTitle('Server added')
-    .setDescription(`${name} — run \`/setup alerts\` for staff notifications.`)
+    .setDescription(`${name} — run \`/sentra config\` for staff notifications.`)
     .addFields(
       { name: 'ID', value: `\`${input.guildId}\``, inline: true },
       {
@@ -110,7 +110,9 @@ export function embedReportPending(input: {
 
   const e = baseFeedEmbed(SENTRA_WARNING)
     .setTitle('Report awaiting review')
-    .setDescription('Approve or reject in the dashboard before reputation changes.')
+    .setDescription(
+      '**Dashboard → Admin → Reports queue:** Deny, or Accept and pick the final tier (Watch / Suspicious / Flagged / Cheater). Or: `/sentra approve` with `level`.',
+    )
     .addFields(
       { name: 'ID', value: `\`${input.reportId ?? '—'}\``, inline: true },
       { name: 'Reporter tier', value: tier, inline: true },

@@ -41,7 +41,7 @@ Configure **alert channel** and **minimum flag level** in the dashboard (Server 
 
 On each **Discord ready**, the bot **reconciles** commands so you should only see **one** set per guild:
 
-- The bot registers **only `/sentra`** (subcommands and groups for check, report, flag, config, setup, platform admin, etc.). Legacy top-level commands (`/check`, `/report`, …) are **not** registered; if an old client still shows them during propagation, using them replies with a pointer to `/sentra`.
+- The bot registers **only `/sentra`** (subcommands for check, report, flag, config, setup, platform admin, …). Legacy top-level commands (`/check`, `/report`, …) are **not** registered; if an old client still shows them during propagation, using them replies with a pointer to `/sentra`.
 - **Global mode** (`DISCORD_GUILD_ID` empty): clears **guild**-scoped command lists (for every guild the bot is in), then registers **global** `/sentra` only.
 - **Guild mode** (`DISCORD_GUILD_ID` set + `DISCORD_SLASH_SCOPE=guild`): clears **global** commands and every guild’s list, then registers **`/sentra` only** on that guild id (dev / instant updates).
 
@@ -78,11 +78,17 @@ Licensing, pending reports, and member sync: **[Sentra licensing & roles](runboo
 ## Bot capabilities (summary)
 
 - **`/sentra check`**, **`/sentra report`**, **`/sentra flag`** — reputation and intake (API enforces trust for flags).
-- **`/sentra help`** / **`/sentra support`** — command list, setup hints, tickets (uses `WEB_URL` in the bot container if set).
-- **`/sentra config`** — **`show`** / **`set`** alert channel and minimum level; requires **Manage Server** or **Administrator** on the guild (writes via `POST /v1/bot/server/config`).
+- **`/sentra help`** / **`/sentra support`** — short command list + ticket/dashboard links (`WEB_URL` on the bot).
+- **`/sentra setup`** — one short checklist (license, `/sentra config`, permissions). Details live in this guide + help.
+- **`/sentra config`** — **`show`** / **`set`** alert channel and minimum level; requires **Manage Server** or **Administrator** on the guild.
+- **Platform admin** (your Discord ID in `ADMIN_DISCORD_IDS`): **`/sentra platform`** (license, sync-members), **`/sentra approve`** (requires **`report_id`** + **`level`**), **`/sentra reject`**, **`/sentra reports_pending`**, **`/sentra unflag`**, **`/sentra report_status`**.
 - **Guild member join** — optional alerts using saved server config.
-- **Presence** — bot sets activity from `GET /v1/bot/public-stats` (user + server counts); no PII.
-- **Redis** (if configured) — subscriber refreshes server config cache; no extra Discord messages from that path alone.
+- **Presence** — bot activity from `GET /v1/bot/public-stats` (aggregate counts only).
+- **Redis** (if configured) — subscriber refreshes server config cache and delivers events to Discord.
+
+### Pending reports inbox (Discord)
+
+When **`DISCORD_ADMIN_FEED_CHANNEL_ID`** is set, new **pending** community reports are posted to that channel. Staff still apply the final tier in the **dashboard → Admin → Reports queue** (or **`/sentra approve`** with **`level`**).
 
 ## API routes (reference)
 

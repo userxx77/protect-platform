@@ -324,6 +324,7 @@ export class ApiClient {
   async botReportApprove(
     reportId: string,
     actorDiscordId: string,
+    severity: string,
   ): Promise<{
     id: string;
     status: string;
@@ -333,7 +334,7 @@ export class ApiClient {
     return this.requestJson(`/bot/reports/${reportId}/approve`, {
       method: 'POST',
       headers: this.actorHeaders(actorDiscordId),
-      body: JSON.stringify({}),
+      body: JSON.stringify({ severity }),
     });
   }
 

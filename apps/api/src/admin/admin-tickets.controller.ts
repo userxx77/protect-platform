@@ -19,6 +19,7 @@ import { RbacGuard } from '../auth/rbac.guard';
 import { RequireRoles } from '../auth/roles.decorator';
 import { AppRole, type RequestPrincipal } from '../auth/auth.types';
 import { AdminPatchTicketDto } from '../tickets/dto/admin-patch-ticket.dto';
+import { ApproveReportDto } from '../reports/dto/approve-report.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReportsService } from '../reports/reports.service';
 import { TicketsService } from '../tickets/tickets.service';
@@ -48,6 +49,7 @@ export class AdminTicketsController {
   @Post(':id/resolve')
   async resolve(
     @Param('id') ticketId: string,
+    @Body() body: ApproveReportDto,
     @Req() req: Request & { principal?: RequestPrincipal },
   ) {
     const ticket = await this.prisma.supportTicket.findUnique({
@@ -62,6 +64,6 @@ export class AdminTicketsController {
       req.principal?.identity.kind === 'user'
         ? req.principal.identity.discordId
         : 'system';
-    return this.reports.approve(ticket.reportId, adminId);
+    return this.reports.approve(ticket.reportId, adminId, body.severity);
   }
 }

@@ -37,6 +37,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AdminFlagsService } from '../admin/admin-flags.service';
 import { ReportsService } from '../reports/reports.service';
 import { RejectReportDto } from '../reports/dto/reject-report.dto';
+import { ApproveReportDto } from '../reports/dto/approve-report.dto';
 
 @ApiTags('bot')
 @Controller('bot')
@@ -202,10 +203,11 @@ export class BotController {
   @ApiHeader({ name: 'x-actor-discord-id', required: true })
   async botReportApprove(
     @Param('id') id: string,
+    @Body() body: ApproveReportDto,
     @Headers('x-actor-discord-id') actorHeader: string | undefined,
   ) {
     const actor = this.assertBotActorAdmin(actorHeader);
-    return this.reports.approve(id, actor);
+    return this.reports.approve(id, actor, body.severity);
   }
 
   @Post('reports/:id/reject')

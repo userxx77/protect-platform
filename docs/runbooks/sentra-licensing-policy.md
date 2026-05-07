@@ -5,7 +5,7 @@
 | Tier | Discord | API / dashboard |
 |------|---------|-----------------|
 | **Public** | Bot can be invited; `/sentra config` still updates alert settings via existing bot→API path (subject to your future stricter gating). | No dashboard scope by default. |
-| **Licensed guild** | `GuildEntitlement` is **ACTIVE** or **TRIAL** with `validFrom` / `validUntil` in range. | Community `/report` via bot creates a **pending** report (no flag) until a platform **ADMIN** approves in the dashboard. |
+| **Licensed guild** | `GuildEntitlement` is **ACTIVE** or **TRIAL** with `validFrom` / `validUntil` in range. | Community `/report` via bot creates a **pending** report (no flag) until a platform **ADMIN** accepts it in the dashboard (**Admin → Reports queue**) or via **`/sentra approve`** with a **final tier** (Watch / Suspicious / Flagged / Cheater). |
 | **Trusted / platform ADMIN** (reporter) | `/report` applies the flag immediately (same as previous product behavior for trusted paths). | Full admin APIs and pages. |
 
 ## Environment (bot)
@@ -13,7 +13,7 @@
 | Variable | Purpose |
 |----------|---------|
 | `DISCORD_ADMIN_FEED_CHANNEL_ID` | Optional. Text channel ID where the bot posts embeds for **pending reports**, **guild discovered**, and (via Redis) **member sync** is driven. |
-| `ADMIN_DISCORD_IDS` | Same comma-separated Discord user IDs as API **`ADMIN_DISCORD_IDS`**. Required for **`/sentra platform`** and **`/sentra monitor`** (slash) to authorize platform operators. |
+| `ADMIN_DISCORD_IDS` | Same comma-separated Discord user IDs as API **`ADMIN_DISCORD_IDS`**. Required for **`/sentra platform`**, report moderation (`approve` / `reject`, …), and other platform-only subcommands. |
 
 ## Environment (API)
 

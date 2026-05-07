@@ -150,9 +150,9 @@ export function embedHelp(dashboardUrl: string): EmbedBuilder {
     .setTitle('Commands')
     .setDescription(
       [
-        'All commands live under **`/sentra`** — e.g. `check`, `report`, `flag`, `help`, `support`, `config`, `setup`.',
-        '**Platform admin:** `/sentra platform` (license, sync-members); report moderation: `approve`, `reject`, `reports_pending`, `unflag`.',
-        '`/sentra monitor` — operators only (same list as `ADMIN_DISCORD_IDS`).',
+        '**Everyone:** `check`, `report`, `flag` (trusted), `config` (Manage Server), `help`, `support`, `setup` (short checklist).',
+        '**Platform admin:** `platform` (license, sync), `approve` / `reject` (needs **`level`** on approve), `reports_pending`, `unflag`, `report_status`.',
+        `**New reports** also post to the ops channel when \`DISCORD_ADMIN_FEED_CHANNEL_ID\` is set on the bot.`,
         `Dashboard: ${dashboardUrl}`,
       ].join('\n'),
     );
@@ -168,8 +168,16 @@ export function embedSetupStart(guildName: string): EmbedBuilder {
         value: 'Active Sentra license (admin: `/sentra platform license`).',
         inline: false,
       },
-      { name: '2', value: 'Staff channel + min level: `/sentra config set` or `/sentra setup alerts`.', inline: false },
-      { name: '3', value: 'Bot permissions: `/sentra setup permissions`.', inline: false },
+      {
+        name: '2',
+        value: 'Staff channel + min level: `/sentra config show` and `/sentra config set`.',
+        inline: false,
+      },
+      {
+        name: '3',
+        value: 'Bot permissions: Administrator or the role permissions in the Sentra docs.',
+        inline: false,
+      },
     );
 }
 

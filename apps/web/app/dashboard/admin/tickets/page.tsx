@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { flagActionLevels, flagLevelDisplayName, type FlagActionLevel } from '@protect/shared';
 import { dashboardApi } from '@/lib/api-server';
 import { patchTicketAction, resolveTicketAction } from './actions';
 import { Card } from '@/components/ui/card';
@@ -88,11 +89,18 @@ export default async function AdminTicketsPage() {
                       </Button>
                     </form>
                     {t.reportStatus === 'PENDING' ? (
-                      <form action={resolveTicketAction.bind(null, t.id)}>
-                        <Button type="submit" size="sm">
-                          Approve report
-                        </Button>
-                      </form>
+                      <>
+                        <span className="text-muted-foreground w-full py-1 text-[11px] sm:w-auto">
+                          Approve as:
+                        </span>
+                        {flagActionLevels.map((level: FlagActionLevel) => (
+                          <form key={level} action={resolveTicketAction.bind(null, t.id, level)}>
+                            <Button type="submit" size="sm">
+                              {flagLevelDisplayName(level)}
+                            </Button>
+                          </form>
+                        ))}
+                      </>
                     ) : null}
                     <Button variant="ghost" size="sm" asChild>
                       <Link href={`/dashboard/admin/users/${t.targetDiscordId}`}>User flags</Link>

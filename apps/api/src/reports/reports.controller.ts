@@ -18,6 +18,7 @@ import { AppRole, type RequestPrincipal } from '../auth/auth.types';
 import { ReportsService } from './reports.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { RejectReportDto } from './dto/reject-report.dto';
+import { ApproveReportDto } from './dto/approve-report.dto';
 
 @ApiTags('reports')
 @ApiBearerAuth()
@@ -54,13 +55,14 @@ export class ReportsController {
   @RequireRoles(AppRole.ADMIN)
   async approve(
     @Param('id') id: string,
+    @Body() body: ApproveReportDto,
     @Req() req: Request & { principal?: RequestPrincipal },
   ) {
     const adminId =
       req.principal?.identity.kind === 'user'
         ? req.principal.identity.discordId
         : 'system';
-    return this.reports.approve(id, adminId);
+    return this.reports.approve(id, adminId, body.severity);
   }
 
   @Post('reports/:id/reject')
